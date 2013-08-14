@@ -1,0 +1,20 @@
+1.7 (30th August 2013)
+
+There have been significant changes to the API. Changes for the next released
+version (1.8) will be less significant. Thereafter, all changes will be
+backward-compatible.
+
+Technical
+
+o Support for writing with object streams
+o AES256ISO encryption support
+o More compact writing of files
+o Support for reading many malformed files
+
+Other
+
+o Now under a standard LGPL license
+o Has no dependencies
+o First import into git for use with GitHub for open development
+o Support for ocamlfind
+
