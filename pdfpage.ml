@@ -262,9 +262,15 @@ let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_BDC (n, Pdf.Name p) ->
       Pdfops.Op_BDC (n, Pdf.Name (lookup "/Properties" seqnum p))
   | Pdfops.InlineImage (dict, bytes) ->
-      (* Replace any "/CS" or "/ColorSpace" with a new "/CS" *)
+      (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
       let dict' =
         match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
+        | Some (Pdf.Name "/DeviceGray")
+        | Some (Pdf.Name "/DeviceRGB")
+        | Some (Pdf.Name "/DeviceCMYK")
+        | Some (Pdf.Name "/G")
+        | Some (Pdf.Name "/RGB")
+        | Some (Pdf.Name "/CMYK") -> dict
         | Some (Pdf.Name n) ->
             Pdf.add_dict_entry
               (Pdf.remove_dict_entry
