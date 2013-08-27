@@ -254,7 +254,9 @@ let implode l =
 
 (* String of character. *)
 let string_of_char c =
-  implode [c]
+  let s = String.create 1 in
+    String.unsafe_set s 0 c;
+    s
 
 (* Long-integer function abbreviations *)
 let i32ofi = Int32.of_int

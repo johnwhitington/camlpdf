@@ -109,9 +109,7 @@ let getuntil i =
     let l = lengthuntil i 0 in
       i.Pdfio.seek_in p;
       let s = if l <= 16 then Array.unsafe_get strings l else String.create l in
-        for x = 0 to l - 1 do
-          String.unsafe_set s x (Char.unsafe_chr (i.Pdfio.input_byte ()))
-        done;
+        Pdfio.setinit_string i s 0 l;
         s
 
 (* The same, but don't return anything. *)

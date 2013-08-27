@@ -460,6 +460,16 @@ let setinit i s o l =
       | Long s ->
           for x = o to o + l - 1 do bigarray_unsafe_set s x (i.input_byte ()) done
 
+let setinit_string i s o l =
+  let max = String.length s - 1
+  and last = o + 1 - 1 in
+    if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit") else
+      match i.caml_channel with
+      | Some ch ->
+          really_input ch s o l
+      | None ->
+          for x = o to o + l - 1 do String.unsafe_set s x (Char.unsafe_chr (i.input_byte ())) done
+
 let getinit i s o l =
   let max = bytes_size s - 1
   and last = o + 1 - 1 in
