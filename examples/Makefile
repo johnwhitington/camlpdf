@@ -1,4 +1,4 @@
-export PACKS = bigarray camlpdf
+export PACKS = camlpdf
 export OCAMLBCFLAGS = -g
 export OCAMLNCFLAGS = -g 
 export OCAMLLDFLAGS = -g
