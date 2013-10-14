@@ -11,11 +11,6 @@ type encryption =
   | AESV2 (* v = 4, r = 4 *)
   | AESV3 of bool (* v = 5, r = 5 or v = 5, r = 6 if true *)
 
-let string_of_encryption = function
-  | ARC4 (kl, r) -> Printf.sprintf "ARC4, keylength = %i, r = %i\n" kl r;
-  | AESV2 -> "AESV2"
-  | AESV3 b -> Printf.sprintf "AESV3 iso=%b" b
-
 (* Given an object number, generation number, input key and key length in bits,
 apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
 by the encryption function. *)
@@ -281,10 +276,6 @@ let rcon =
     word_of_bytes 0x4d 0x00 0x00 0x00;
     word_of_bytes 0x9a 0x00 0x00 0x00 |]
 
-let testkey =
-  [| 0x60; 0x3d; 0xeb; 0x10; 0x15; 0xca; 0x71; 0xbe; 0x2b; 0x73; 0xae; 0xf0; 0x85; 0x7d; 0x77; 0x81;
-     0x1f; 0x35; 0x2c; 0x07; 0x3b; 0x61; 0x08; 0xd7; 0x2d; 0x98; 0x10; 0xa3; 0x09; 0x14; 0xdf; 0xf4|] 
-
 (* Key expansion *)
 let key_expansion nk key =
   try
@@ -500,20 +491,6 @@ let cipher_raw nr data_in pos_in data_out pos_out =
   output_from_state_raw data_out pos_out
 
 (* Decryption cipher. Assumes key already expanded. *)
-let inv_cipher nr data_in =
-  input_to_state data_in;
-  add_round_key (nr * 4);
-  for round = (nr - 1) downto 1 do
-    inv_shift_rows ();
-    inv_sub_bytes ();
-    add_round_key (round * 4);
-    inv_mix_columns ();
-  done;
-  inv_shift_rows ();
-  inv_sub_bytes ();
-  add_round_key 0;
-  output_from_state ()
-
 let inv_cipher_raw nr data_in pos_in data_out pos_out =
   input_to_state_raw data_in pos_in;
   add_round_key (nr * 4);
@@ -1015,10 +992,6 @@ let k =
     0x19a4c116l; 0x1e376c08l; 0x2748774cl; 0x34b0bcb5l; 0x391c0cb3l; 0x4ed8aa4al; 0x5b9cca4fl; 0x682e6ff3l;
     0x748f82eel; 0x78a5636fl; 0x84c87814l; 0x8cc70208l; 0x90befffal; 0xa4506cebl; 0xbef9a3f7l; 0xc67178f2l |]
 
-let rotate x n = lor32 (lsr32 x n) (lsl32 x (32 - n))
-
-let shift = lsr32
-
 let ch x y z = lxor32 (land32 x y) (land32 (lnot32 x) z)
 
 let maj x y z = lxor32 (land32 x y) (lxor32 (land32 x z) (land32 y z))
@@ -1509,7 +1482,7 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
          | AESV2 -> 4, 128, None
          | AESV3 iso ->
              begin match oe, ue with
-             | Some oe, Some ue ->
+             | Some _, Some ue ->
                  begin match keyfromowner with
                  | Some k -> 5, 256, Some k
                  | None ->
@@ -1524,7 +1497,7 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
                              match p_of_perms key perms with
                              | None -> raise (Failure "/Perms file permissions corrupted")
                              | Some x when x = p -> 5, 256, Some (string_of_bytes key)
-                             | Some x -> raise (Failure "Mismatched /Perms and /P permissions")
+                             | Some _ -> raise (Failure "Mismatched /Perms and /P permissions")
                  end
              | _ -> raise (Failure "decrypt_pdf: no oe")
              end

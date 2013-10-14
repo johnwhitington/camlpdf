@@ -84,7 +84,7 @@ let breadth_first index conv_array u =
 (* Given source and destination units, we return a conversion function. This
  follows the appropriate arcs, accumulating the total multiplier. Obviously, the
  user can provide a third argument to do the computation immediately. *)
-let rec convert dpi u u' =
+let convert dpi u u' =
   let conversions = conversions dpi in
     let index = index conversions in
       let conv_array = conv_array index conversions in

@@ -988,7 +988,7 @@ let encode_runlength stream =
           in
               while !runs <> [] do
                 begin match hd !runs with
-                | (l, x) when l < 1 ->
+                | (l, _) when l < 1 ->
                     assert false
                 | (l, x) when l < 3 ->
                     if l + !chunksize > 128 then writechunk ();
@@ -1129,7 +1129,7 @@ let decode_one pdf dict source =
   | None | Some (Pdf.Array []) ->
       begin match source with
       | StreamSource s -> s
-      | InputSource i -> raise (DecodeNotSupported "decode_one")
+      | InputSource _ -> raise (DecodeNotSupported "decode_one")
       end
   | Some (Pdf.Name n) | Some (Pdf.Array (Pdf.Name n::_)) ->
       let decoded = decoder pdf dict source n in
@@ -1196,13 +1196,13 @@ let remove_decoder d =
     | _ -> raise (Pdf.PDFError "PDF.remove_decoder: malformed /DecodeParms")
 
 (* Decode at most one stage. *)
-let rec decode_pdfstream_onestage pdf stream =
+let decode_pdfstream_onestage pdf stream =
   Pdf.getstream stream;
   match stream with
   | Pdf.Stream ({contents = (Pdf.Dictionary d as dict, Pdf.Got s)} as stream_contents) ->
       begin match Pdf.direct pdf (Pdf.lookup_fail "no /Length" pdf "/Length" dict) with
-      | Pdf.Integer l -> () (*i if l <> bytes_size s then raise (PDFError "Wrong /Length") i*)
-      | x -> raise (Pdf.PDFError "No /Length")
+      | Pdf.Integer _ -> () (*i if l <> bytes_size s then raise (PDFError "Wrong /Length") i*)
+      | _ -> raise (Pdf.PDFError "No /Length")
       end;
       let stream' = decode_one pdf dict (StreamSource s) in
         let d' =
@@ -1242,13 +1242,13 @@ let decode_pdfstream_until_unknown pdf s =
 (* Decode from an input. *)
 let decode_from_input i dict =
   match Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict with
-  | Some (Pdf.Name n) ->
+  | Some (Pdf.Name _) ->
       Some (decode_one (Pdf.empty ()) dict (InputSource i))
-  | Some (Pdf.Array (h::t)) ->
+  | Some (Pdf.Array (_::t)) ->
       let stream = decode_one (Pdf.empty ()) dict (InputSource i) in
         let rec decode_rest stream = function
           | [] -> stream
-          | Pdf.Name n::more ->
+          | Pdf.Name _::more ->
               (* Removing the filter just done, and its decodeparms. Note that
               /F can denote a file specification, but this can never be in an
               inline image (which is currrently the only use of

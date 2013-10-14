@@ -22,7 +22,7 @@ let read_char_metrics_line l =
       (name, (charnum, width))
   | x -> iter print_lexeme x; failwith "badline"
 
-let rec lookup_charnum table name =
+let lookup_charnum table name =
   match Hashtbl.find table name with (c', _) -> c'
 
 let read_kern_line_lexer = Genlex.make_lexer ["KPX"]

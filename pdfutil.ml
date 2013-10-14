@@ -21,29 +21,6 @@ let string_replace_all x x' s =
         done;
         Buffer.contents output
 
-(* New function to write an integer as a string - avoids the format parsing in
-Pervasives.string_of_int. Faster in native code, slower in bytecode. *)
-let s = String.make 20 'X'
-
-(* Never called with p < 0 *)
-let rec chars_of_int p = function
-  | 0 -> p - 1
-  | n ->
-      String.unsafe_set s p (Char.unsafe_chr (n mod 10 + 48));
-      chars_of_int (p + 1) (n / 10)
-
-let rec output_int_as_string output = function
-  | 0 -> output '0'
-  | n when n = min_int ->
-      String.iter output (Pervasives.string_of_int min_int)
-  | n when n < 0 ->
-     output '-';
-     output_int_as_string output ~-n
-  | n ->
-     for x = chars_of_int 0 n downto 0 do
-       output (String.unsafe_get s x)
-     done
-
 (* Print something and then flush standard output. *)
 let flprint s =
   print_string s; flush stdout
@@ -501,7 +478,7 @@ let pairs l =
 let mem = List.mem
 
 (* The same, with reversed arguments. *)
-let rec mem' l x = mem x l
+let mem' l x = mem x l
 
 (* Return the set of distinct  elements in a list. Does not preserve order. *)
 let setify_simple l =
@@ -641,7 +618,7 @@ let pair f l =
 
 (* A version of [pair] which adds a unary function for the singleton, much
 like [couple_ext]. *)
-let rec pair_ext f g l =
+let pair_ext f g l =
   let rec pair_ext_inner r f g = function
     | [] -> rev r
     | [a] -> pair_ext_inner (g a::r) f g []

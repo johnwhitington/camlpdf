@@ -429,7 +429,7 @@ let rec read_raw_image size colspace bpc pdf resources width height dict data =
      flush stdout; i*)
      raise (Pdf.PDFError "No image\n")
 
-let rec get_raw_image pdf resources width height dict data =
+let get_raw_image pdf resources width height dict data =
   try
   let size =
     bytes_size data

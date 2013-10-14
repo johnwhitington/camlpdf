@@ -70,7 +70,7 @@ let hexchar = function
   | 8 -> '8' | 9 -> '9' | 10 -> 'A' | 11 -> 'B' | 12 -> 'C' | 13 -> 'D' | 14 -> 'E' | 15 -> 'F'
   | _ -> raise (Failure "hexchar")
 
-let rec make_pdf_name_inner b s =
+let make_pdf_name_inner b s =
   for x = 1 to String.length s - 1 do (* skip / *)
     match String.get s x with
     | '\000' ->

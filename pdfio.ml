@@ -381,12 +381,6 @@ let read_char_back i =
 let rewind i =
   i.seek_in (i.pos_in () - 1)
 
-let rewind2 i =
-  i.seek_in (i.pos_in () - 2)
-
-let rewind3 i =
-  i.seek_in (i.pos_in () - 3)
-
 (* Read a character, leaving the position unchanged. *)
 let peek_char i =
   let r = i.input_char () in

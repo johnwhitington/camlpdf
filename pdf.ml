@@ -699,7 +699,7 @@ let rec add_dict_entry dict key value =
   | _ -> raise (PDFError "add_dict_entry: not a dictionary.")
 
 (* Find the contents of a stream as a bytes. *)
-let rec bigarray_of_stream s =
+let bigarray_of_stream s =
   getstream s;
   match s with
   | Stream {contents = _, Got bytes} -> bytes
@@ -799,13 +799,6 @@ let rec contents_of_nametree pdf tree =
       | Some (Array kids) ->
           flatten (map (contents_of_nametree pdf) kids)
       | _ -> raise (PDFError "contents_of_nametree: neither names nor kids")
-
-let copy_pdf from =
-  {major = from.major;
-   minor = from.minor;
-   root = from.root;
-   objects = from.objects;
-   trailerdict = from.trailerdict}
 
 let deep_copy_pdfobjects frompdf from =
   let deep_copy_objdata objdata =
