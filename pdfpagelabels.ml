@@ -206,3 +206,12 @@ let write pdf labels =
           pdf.Pdf.trailerdict <-
             Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
 
+let remove pdf =
+  let root = Pdf.lookup_obj pdf pdf.Pdf.root in
+    let rootnum =
+      Pdf.addobj pdf (Pdf.remove_dict_entry root "/PageLabels")
+    in
+      pdf.Pdf.root <- rootnum;
+      pdf.Pdf.trailerdict <-
+        Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
+  

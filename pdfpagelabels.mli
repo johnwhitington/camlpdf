@@ -1,10 +1,17 @@
 (** Page Labels *)
 
-(** The type for page labels. The page labels of a document, if well-formed, are a list of [t]s where the [startpage] values are in increasing numerical order. In the most basic case, [startvalue] will always be equal to [startpage]. The default labelstyle is [DecimalArabic]. The default [labelprefix] is the empty string.
+(** The type for page labels. The page labels of a document, if well-formed,
+are a list of [t]s where the [startpage] values are in increasing numerical
+order. In the most basic case, [startvalue] will always be equal to
+[startpage]. The default labelstyle is [DecimalArabic]. The default
+[labelprefix] is the empty string.
 
-For example, a document might have five pages of introduction with roman numerals, followed by the rest of the pages in decimal arabic, numbered from one.
+For example, a document might have five pages of introduction with roman
+numerals, followed by the rest of the pages in decimal arabic, numbered from
+one.
 
-For more details, see ISO 32000 12.4.2, but note that in our implementation, pages are 1-based. *)
+For more details, see ISO 32000 12.4.2, but note that in our implementation,
+pages are 1-based. *)
 type labelstyle =
   | DecimalArabic
   | UppercaseRoman
@@ -44,6 +51,10 @@ val coalesce : t list -> t list
 (** Merge some page labels for some PDFs and page ranges. *)
 val merge_pagelabels : Pdf.t list -> int list list -> t list
 
-(** Write page labels to a document, replacing any there. *)
+(** Write page labels to a document, replacing any there. The list must contain
+at least one element. *)
 val write : Pdf.t -> t list -> unit
+
+(** Remove all page labels. *)
+val remove : Pdf.t -> unit
 
