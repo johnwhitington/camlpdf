@@ -3,7 +3,7 @@ open Pdfutil
 
 (* External type for big streams of bytes passed to C*)
 type rawbytes =
-  (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  (int, Pdfbigarray.int8_unsigned_elt, Pdfbigarray.c_layout) Pdfbigarray.Array1.t
 
 (* But for speed, we use strings of length < Sys.max_string_length *)
 type bytes =
@@ -11,15 +11,15 @@ type bytes =
   | Short of string
 
 let bigarray_unsafe_get =
-  Bigarray.Array1.unsafe_get
+  Pdfbigarray.Array1.unsafe_get
 
 let bigarray_unsafe_set =
-  Bigarray.Array1.unsafe_set
+  Pdfbigarray.Array1.unsafe_set
 
 (* Extract the raw bytes, without necessarily copying *)
 let raw_of_bytes = function
   | Short b ->
-      let l = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout (String.length b) in
+      let l = Pdfbigarray.Array1.create Pdfbigarray.int8_unsigned Pdfbigarray.c_layout (String.length b) in
         for x = 0 to String.length b - 1 do
           bigarray_unsafe_set l x (int_of_char (String.unsafe_get b x))
         done;
@@ -33,17 +33,17 @@ let bytes_of_raw b = Long b
 let mkbytes l =
   if l <= Sys.max_string_length
     then Short (String.create l)
-    else Long (Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout l)
+    else Long (Pdfbigarray.Array1.create Pdfbigarray.int8_unsigned Pdfbigarray.c_layout l)
 
 (* Find the size of a stream. *)
 let bytes_size = function
   | Short s -> String.length s
-  | Long b -> Bigarray.Array1.dim b
+  | Long b -> Pdfbigarray.Array1.dim b
 
 let bset s n v =
   match s with
   | Short s -> s.[n] <- Char.unsafe_chr v
-  | Long s -> Bigarray.Array1.set s n v
+  | Long s -> Pdfbigarray.Array1.set s n v
 
 let bset_unsafe s n v =
   match s with
@@ -53,7 +53,7 @@ let bset_unsafe s n v =
 let bget s n =
   match s with
   | Short s -> int_of_char (s.[n])
-  | Long s -> Bigarray.Array1.get s n
+  | Long s -> Pdfbigarray.Array1.get s n
 
 let bget_unsafe s n =
   match s with

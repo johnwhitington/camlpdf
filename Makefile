@@ -5,7 +5,7 @@ pdfpagelabels pdfpage pdfannot pdffun pdfspace pdfimage pdfafm pdfafmdata \
 pdfglyphlist pdftext pdfstandard14 pdfgraphics pdfshapes pdfdate pdfocg \
 pdfcff pdftype1 pdftruetype pdftype0 pdfmerge
 
-SOURCES = flatestubs.c bigarray_stubs.c bigarray.ml bigarray.mli \
+SOURCES = flatestubs.c bigarray_stubs.c pdfbigarray.ml pdfbigarray.mli \
 $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
 
 OCAMLDEP = ocamlfind ocamldep
