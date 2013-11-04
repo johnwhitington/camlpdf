@@ -437,7 +437,7 @@ let lex_malformed_stream_data i =
       let pos = find_endstream i in (* returns first char of endstream sequence *)
         i.seek_in curr;
         let arr = mkbytes (pos - curr) in
-          for x = 0 to bytes_size arr - 1 do bset arr x (i.input_byte ()) done;
+          for x = 0 to bytes_size arr - 1 do bset_unsafe arr x (i.input_byte ()) done;
           LexStream (Pdf.Got arr)
   with
     e -> raise (Pdf.PDFError ("Couldn't read malformed stream  - " ^ Printexc.to_string e))
