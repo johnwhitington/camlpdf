@@ -8,10 +8,7 @@ pdfcff pdftype1 pdftruetype pdftype0 pdfmerge
 SOURCES = flatestubs.c bigarray_stubs.c pdfbigarray.ml pdfbigarray.mli \
 $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
 
-OCAMLDEP = ocamlfind ocamldep
-OCAMLC = ocamlfind ocamlc
-OCAMLOPT = ocamlfind ocamlopt
-OCAMLDOC = ocamlfind ocamldoc
+REAL_OCAMLFIND = ocamlfind
 
 RESULT = camlpdf
 
