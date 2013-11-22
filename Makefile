@@ -1,13 +1,13 @@
 # Build the camlpdf library as byte code and native code
-PDFMODS = pdfbigarray pdfutil pdfio pdftransform pdfunits pdfpaper pdf \
+PDFMODS = pdfutil pdfio pdftransform pdfunits pdfpaper pdf \
 pdfcrypt pdfflate pdfcodec pdfwrite pdfgenlex pdfread pdfjpeg pdfops pdfdest \
 pdfmarks pdfpagelabels pdfpage pdfannot pdffun pdfspace pdfimage pdfafm \
 pdfafmdata pdfglyphlist pdftext pdfstandard14 pdfgraphics pdfshapes pdfdate \
 pdfocg pdfcff pdftype1 pdftruetype pdftype0 pdfmerge
 
-SOURCES = flatestubs.c bigarray_stubs.c $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
+SOURCES = flatestubs.c $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
 
-REAL_OCAMLFIND = ocamlfind
+PACKS = bigarray
 
 RESULT = camlpdf
 
