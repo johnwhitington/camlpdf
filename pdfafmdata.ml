@@ -1,4 +1,18 @@
 (* AFM data for standard 14 fonts *)
+
+(*
+This file constitutes a modification of Adobe's AFM data files. This file also
+constitutes a modification of Adobe's license file.
+
+This file and the 14 PostScript(R) AFM files it accompanies may be used,
+copied, and distributed for any purpose and without charge, with or without
+modification, provided that all copyright notices are retained; that the AFM
+files are not distributed without this file; that all modifications to this
+file or any of the AFM files are prominently noted in the modified file(s); and
+that this paragraph is not modified. Adobe Systems has no responsibility or
+obligation to support the use of the AFM files.
+*)
+
 let courier_afm = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 17:27:09 1997
