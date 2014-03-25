@@ -390,8 +390,11 @@ let is_malformed i =
     _ -> true (* Beyond end of file - so, read_chunk would have failed... *)
 
 let skip_stream_beginning i =
-  ignoreuntilwhite i;
-  (* Skip either CRLF or LF. (See PDF specification for why) *)
+  ignoreuntilwhite i; (* consume the 'stream' keyword *)
+  (* Ignore any white other than CR or LF. For malformed files which don't have
+   * CR or LF immediately following stream keyword. *)
+  ignoreuntil true (function ' ' | '\000' | '\012' | '\009' -> false | _ -> true) i;
+  (* Skip either CRLF or LF. (See PDF specification for why). *)
   match char_of_int (i.input_byte ()) with
   | '\013' ->
       begin match char_of_int (i.input_byte ()) with
@@ -429,7 +432,7 @@ let rec find_endstream i =
 let lex_malformed_stream_data i =
   (*Printf.printf "lex_malformed_stream_data at %i\n" (i.Pdfio.pos_in ());
   flprint "\n";
-  Pdfio.debug_next_five_chars i;
+  Pdfio.debug_next_n_chars 20 i;
   flprint "\n";*)
   try
     skip_stream_beginning i;
