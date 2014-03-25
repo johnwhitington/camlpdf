@@ -51,24 +51,26 @@ let is_whitespace_or_delimiter = function
   | _ -> false
 
 let lex_item s =
-  if String.length s = 0 then LexNull else
-  try
-    match String.get s 0 with
-    | 'a'..'z' | 'A'..'Z' -> LexName (String.copy s)
-    | '\"' when String.length s >= 2 ->
-        LexString (String.sub s 1 (String.length s - 2))
-    | _ ->
-        let rec isint s pos =
-          if pos = ~-1 then true else 
-            match String.unsafe_get s pos with
-            | '.' -> false
-            | _ -> isint s (pos - 1)
-        in
-          if isint s (String.length s - 1)
-            then LexInt (int_of_string s)
-            else LexReal (float_of_string s)
-  with
-    _ -> LexName (String.copy s)
+  let len = String.length s in
+    if len = 0 then LexNull else
+      try
+        match String.unsafe_get s 0 with
+        | 'a'..'z' | 'A'..'Z' ->
+            LexName (String.copy s)
+        | '\"' when len >= 2 ->
+            LexString (String.sub s 1 (len - 2))
+        | _ ->
+            let rec isint s pos =
+              pos = ~-1 ||
+                match String.unsafe_get s pos with
+                | '.' -> false
+                | _ -> isint s (pos - 1)
+            in
+              if isint s (len - 1)
+                then LexInt (int_of_string s)
+                else LexReal (float_of_string s)
+      with
+        _ -> LexName (String.copy s)
 
 (* Return the string between and including the current position and before the
 next character satisfying a given predicate, leaving the position at the
