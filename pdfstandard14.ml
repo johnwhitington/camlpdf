@@ -2,7 +2,8 @@
 open Pdfutil
 
 let read_afm afm =
-  let ws, ks = Pdfafm.read (Pdfio.input_of_string afm) in
+  let headers, ws, ks = Pdfafm.read (Pdfio.input_of_string afm) in
+    hashtable_of_dictionary headers,
     hashtable_of_dictionary ws,
     hashtable_of_dictionary (map (fun (c, c', k) -> (c, c'), k) ks)
 
@@ -57,6 +58,6 @@ let rec width dokern widths kerns = function
 
 (* The main function. Give a font and the text string. *)
 let textwidth dokern f s =
-  let widths, kerns = lookup_failnull f tables () in
+  let _, widths, kerns = lookup_failnull f tables () in
     width dokern widths kerns (map int_of_char (explode s))
 

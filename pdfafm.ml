@@ -49,6 +49,10 @@ let get_tables lines =
     isolate (string_starts_with "StartCharMetrics") (string_starts_with "EndCharMetrics") lines
   and kern_lines =
     isolate (string_starts_with "StartKernPairs") (string_starts_with "EndKernPairs") lines
+  and header_lines =
+    map
+      (fun s -> let a, b = cleavewhile (neq ' ') (explode s) in (implode a, implode b))
+      (takewhile (notpred (string_starts_with "C ")) lines)
   in
     let remove_empty = lose (fun x -> String.length x < 5) in
     let charmetrics =
@@ -58,6 +62,7 @@ let get_tables lines =
       let kerns =
         map read_kern_line (remove_empty kern_lines)
       in
+        header_lines,
         option_map
           (fun (_, (c, w)) -> if c > -1 then Some (c, w) else None)
           charmetrics,
