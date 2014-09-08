@@ -10,8 +10,8 @@ baseline at that y coordinate. *)
 val baseline_adjustment : Pdftext.standard_font -> int
 
 (** The data extracted from the font AFM. This is a triple, consisting of a
-list of header pairs, and list of (character number, width) pairs and a list
-of (first, secondm kern) triples representing the kerning table. *)
+table of header pairs, a table of (character number, width) pairs and a table
+of (first, second, kern) triples representing the kerning table. *)
 val afm_data :
   Pdftext.standard_font ->
     (string, string) Hashtbl.t * (int, int) Hashtbl.t * (int * int, int) Hashtbl.t
