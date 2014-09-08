@@ -61,3 +61,34 @@ let textwidth dokern f s =
   let _, widths, kerns = lookup_failnull f tables () in
     width dokern widths kerns (map int_of_char (explode s))
 
+(* Return the AFM table data itself *)
+let afm_data f =
+  lookup_failnull f tables ()
+
+(* StemV *)
+let stemv_of_standard_font = function
+    Pdftext.TimesRoman -> 116
+  | Pdftext.TimesBold -> 122
+  | Pdftext.TimesItalic -> 105
+  | Pdftext.TimesBoldItalic -> 108
+  | Pdftext.Helvetica -> 114
+  | Pdftext.HelveticaBold -> 123
+  | Pdftext.HelveticaOblique -> 127
+  | Pdftext.HelveticaBoldOblique -> 136
+  | Pdftext.Courier -> 88
+  | Pdftext.CourierBold -> 93
+  | Pdftext.CourierOblique -> 100
+  | Pdftext.CourierBoldOblique -> 104
+  | Pdftext.Symbol -> 0
+  | Pdftext.ZapfDingbats -> 125
+
+(* Flags *)
+let flags_of_standard_font = function
+    Pdftext.Symbol -> 65541
+  | Pdftext.ZapfDingbats -> 4
+  | Pdftext.Courier
+  | Pdftext.CourierBold
+  | Pdftext.CourierOblique
+  | Pdftext.CourierBoldOblique -> 33
+  | _ -> 32
+

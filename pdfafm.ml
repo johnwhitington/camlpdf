@@ -1,5 +1,4 @@
 (* Parse Adobe Font Metrics files *)
-(* FIXME: Faster a) remove genlex. b) remove list processing *)
 open Pdfutil
 
 let print_lexeme = function
