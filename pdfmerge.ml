@@ -314,3 +314,4 @@ let merge_pdfs ?rotations retain_numbering do_remove_duplicate_fonts (names : st
                             Pdfpagelabels.write pdf page_labels;
                             if do_remove_duplicate_fonts then remove_duplicate_fonts pdf;
                             pdf
+

@@ -19,7 +19,7 @@ OCAMLNCFLAGS = -g
 OCAMLBCFLAGS = -g
 OCAMLLDFLAGS = -g
 
-all : native-code-library byte-code-library top htdoc
+all : native-code-library byte-code-library htdoc
 
 install : libinstall
 
