@@ -1,4 +1,6 @@
-# Build the camlpdf library as byte code and native code
+# Build camlpdf.top as a 'utop' top level
+# Messy, because it stomps all over the parent folder, but this
+# is the best solution for now.
 PDFMODS = ../pdfutil ../pdfio ../pdftransform ../pdfunits ../pdfpaper ../pdf \
 ../pdfcrypt ../pdfflate ../pdfcodec ../pdfwrite ../pdfgenlex ../pdfread ../pdfjpeg ../pdfops ../pdfdest \
 ../pdfmarks ../pdfpagelabels ../pdfpage ../pdfannot ../pdffun ../pdfspace ../pdfimage ../pdfafm \
