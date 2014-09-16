@@ -21,6 +21,9 @@ OCAMLLDFLAGS = -g
 
 all : native-code-library byte-code-library htdoc
 
+clean ::
+	rm -r doc
+
 install : libinstall
 
 -include OCamlMakefile
