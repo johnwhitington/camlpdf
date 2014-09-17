@@ -42,8 +42,8 @@ val pagelabel_of_pagenumber : int -> t list -> t
 val pagelabeltext_of_pagenumber : int -> t list -> string
 
 (** Add a range starting at pagelabel.startpage, ending at the integer page
-given *)
-val add_label : t list -> t -> int -> t list
+given. The first integer argument is the number of pages in the PDF. *)
+val add_label : int -> t list -> t -> int -> t list
 
 (** Optimise page labels, removing any which are not required. *)
 val coalesce : t list -> t list
