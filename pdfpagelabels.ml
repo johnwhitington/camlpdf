@@ -104,9 +104,8 @@ let complete = function
   | x::xs when x.startpage > 1 -> basic::x::xs
   | ls -> ls
 
-let rec letter_string n =
-  if n <= 26 then [char_of_int (n + 64)] else
-    letter_string ((n - 1) / 26) @ letter_string (((n - 1) mod 26) + 1)
+let letter_string n =
+  implode (many (char_of_int ((n - 1) mod 26 + 65)) (((n - 1) / 26) + 1))
 
 (* Make a page label string *)
 let string_of_pagenumber n = function
@@ -114,8 +113,8 @@ let string_of_pagenumber n = function
   | DecimalArabic -> string_of_int n
   | UppercaseRoman -> roman_upper n
   | LowercaseRoman -> roman_lower n
-  | UppercaseLetters -> implode (letter_string n)
-  | LowercaseLetters -> String.lowercase (implode (letter_string n))
+  | UppercaseLetters -> letter_string n
+  | LowercaseLetters -> String.lowercase (letter_string n)
 
 let pagelabeltext_of_single n l =
   let realnumber =
