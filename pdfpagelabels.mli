@@ -18,9 +18,10 @@ type labelstyle =
   | LowercaseRoman
   | UppercaseLetters
   | LowercaseLetters
+  | NoLabelPrefixOnly
 
 type t =
-  {labelstyle : labelstyle option;
+  {labelstyle : labelstyle;
    labelprefix : string option;
    startpage : int;
    startvalue : int}
