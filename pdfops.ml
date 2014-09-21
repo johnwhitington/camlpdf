@@ -244,7 +244,20 @@ let b = Buffer.create 30
 
 let string_of_lexemes lexemes =
   Buffer.clear b;
-  iter (fun l -> Buffer.add_string b (string_of_lexeme l); Buffer.add_char b ' ') lexemes;
+  iter
+    (fun l ->
+       let str = string_of_lexeme l in
+         (* Add a space character if neither the current last character in the
+          * buffer nor the first character of the new string is a delimiter *)
+         if
+           Buffer.length b > 0 &&
+           not (Pdf.is_delimiter (Buffer.nth b (Buffer.length b - 1))) &&
+           String.length str > 0 &&
+           not (Pdf.is_delimiter str.[0])
+         then
+           Buffer.add_char b ' ';
+         Buffer.add_string b str)
+    lexemes;
   Buffer.contents b
 
 (* Make a string of an operation, for debug purposes only. *)
@@ -731,29 +744,40 @@ let parse_operators pdf resources streams =
 (* Give a bigarray representing a list of graphics operators. *)
 let stream_of_lexemes (oplists : lexeme list list) =
   let strings =
-    map
-      (fun ls ->
-         let s = string_of_lexemes ls in
-           if lastchar s <> Some ' ' then s ^ " " else s)
-      oplists
+    map string_of_lexemes oplists
   in
-    let total_length =
-      let l = ref 0 in iter (fun s -> l := !l + String.length s) strings; !l
+    (* Insert a space if the neither the last character of a string nor the
+     * first character of the next is a delimiter *)
+    let rec addspaces prev = function
+      [] -> rev prev
+    | [x] -> addspaces (x :: prev) []
+    | x::y::r ->
+        if
+             String.length x > 0 && Pdf.is_delimiter x.[String.length x - 1]
+          || String.length y > 0 && Pdf.is_delimiter y.[0]
+        then
+          addspaces (x :: prev) (y :: r)
+        else
+          addspaces (" " :: x :: prev) (y :: r)
     in
-      let s = mkbytes total_length
-      in let strings = ref strings
-      in let pos = ref 0 in
-        while !strings <> [] do
-          let str = hd !strings in
-            let l = String.length str in
-              if l > 0 then
-                for n = 0 to l - 1 do
-                  bset_unsafe s !pos (int_of_char str.[n]);
-                  incr pos
-                done;
-              strings := tl !strings
-        done;
-        s
+      let strings = addspaces [] strings in
+        let total_length =
+          let l = ref 0 in iter (fun s -> l := !l + String.length s) strings; !l
+        in
+          let s = mkbytes total_length
+          in let strings = ref strings
+          in let pos = ref 0 in
+            while !strings <> [] do
+              let str = hd !strings in
+                let l = String.length str in
+                  if l > 0 then
+                    for n = 0 to l - 1 do
+                      bset_unsafe s !pos (int_of_char str.[n]);
+                      incr pos
+                    done;
+                  strings := tl !strings
+            done;
+            s
 
 let print_stream s =
   if bytes_size s > 0 then 
