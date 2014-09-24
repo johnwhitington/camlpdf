@@ -699,7 +699,16 @@ let rewrite_first_indirect pdf objnum obj m n =
   | _ -> failwith "rewrite_first_indirect"
 
 (* Those page tree nodes which are not pages *)
-let page_tree_nodes_not_pages pdf = []
+let page_tree_nodes_not_pages pdf =
+  let objs = ref [] in
+    Pdf.objiter
+      (fun objnum o ->
+        match o with
+          Pdf.Dictionary d when lookup "/Type" d = Some (Pdf.Name "/Pages") ->
+            objs := (objnum, o) :: !objs
+        | _ -> ())
+      pdf;
+    !objs
 
 let rewrite_page_tree_first pdf m =
   let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m)
@@ -727,9 +736,6 @@ let rec fixup_duplicate_pages pdf =
       | _ -> ()
 
 let pdf_of_pages ?(retain_numbering = false) basepdf range =
-  Printf.printf "pdf_of_pages: range =\n";
-  iter (Printf.printf "%i ") range;
-  flprint "\n";
   let page_labels =
     if retain_numbering
       then Pdfpagelabels.merge_pagelabels [basepdf] [range]
@@ -765,9 +771,6 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                     end
                 | _ -> raise (Pdf.PDFError "pdf_of_pages")
               in
-            (*flprint "input object numbers of chosen pages:";
-            iter (Printf.printf "%i ") objnumbers;
-            flprint "\n"; *)
               (* 1. Look through all the page objects to be included, and
               replicate inheritable entries from their parent nodes, since they
               may fail to exist, leaving pages without Media boxes or
@@ -779,7 +782,7 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                      let obj = Pdf.lookup_obj pdf objnum in
                        (* Find the first parent entry we can which has the correct attribute. *)
                        let rec find_attribute obj =
-                         (* 2nd September 2012. Only replace if not there! *)
+                         (* Only replace if not there! *)
                          match Pdf.lookup_direct pdf entry obj with
                          | Some _ -> None
                          | _ ->
@@ -798,9 +801,7 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                          match find_attribute obj with
                          | None -> ()
                          | Some replacement_attr ->
-                            (*i Printf.printf "Replacing an instance of %s\n" entry; i*)
                             (* Replace the attribute with replacement_attr, updating the page object in place. *)
-
                             Pdf.addobj_given_num pdf (objnum, Pdf.add_dict_entry obj entry replacement_attr)
                    in
                      replace_inherit objnum "/MediaBox";
@@ -833,7 +834,6 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                             then
                               begin match findparent i thetree with
                               | Some p ->
-                                  (*Printf.printf "findparent on %i got %i \n" i p;*)
                                   Pdf.addobj_given_num pdf (i, (Pdf.Dictionary (add "/Parent" (Pdf.Indirect p) d)))
                               | None -> raise (Pdf.PDFError "pdf_of_pages internal inconsistency")
                               end
