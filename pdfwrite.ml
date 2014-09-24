@@ -119,10 +119,31 @@ let rec strings_of_array f changetable = function
   | h::(h'::_ as tail) ->
       strings_of_pdf f changetable h;
       begin match h' with
-      | Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
-      | _ -> f (WString " ")
+        Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
+      | _ ->
+          match h with
+            Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
+          | _ -> f (WString " ")
       end;
       strings_of_array f changetable tail
+
+and strings_of_dictionary f changetable = function
+  | [] -> ()
+  | [(k, v)] ->
+      f (WString (make_pdf_name k));
+      begin match v with
+        Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
+      | _ -> f (WString " ")
+      end;
+      strings_of_pdf f changetable v
+  | (k, v)::t ->
+      f (WString (make_pdf_name k));
+      begin match v with
+        Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
+      | _ -> f (WString " ")
+      end;
+      strings_of_pdf f changetable v;
+      strings_of_dictionary f changetable t
 
 and strings_of_pdf f changetable = function
   | Pdf.Null ->  f (WString "null")
@@ -137,15 +158,7 @@ and strings_of_pdf f changetable = function
       f (WString "]");
   | Pdf.Dictionary entries ->
       f (WString "<<");
-      iter
-        (function (k, v) ->
-           f (WString (make_pdf_name k));
-           begin match v with
-           | Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
-           | _ -> f (WString " ")
-           end;
-           strings_of_pdf f changetable v)
-        entries;
+      strings_of_dictionary f changetable entries;
       f (WString ">>");
   | Pdf.Stream {contents = (dict, data)} ->
       strings_of_pdf f changetable dict;
