@@ -663,7 +663,73 @@ let pdf_of_pages_build_pagetree thetree objnumbers pdf =
       objects_of_ptree_objnumbers pdf right;
       buildnode ([objnumfrom left] @ objnumbers @ [objnumfrom right]) parent (countof node)
 
+(* pdf_of_pages, if it has duplicates in the range, will produce duplicate
+items in the page tree, pointing to the same page object. This is bad for
+two reasons:
+
+   a) Adobe Reader is broken and crashes in this case
+
+   b) In any event, duplicate references make further document changes
+   confusing for most programs.  So, we duplicate the actual page objects, and
+   do the minimal renumbering.
+
+*)
+
+(* Given a number n, of a page node, copy it to a new object, and rewrite all
+but the first instance in the page tree to that new number. *)
+exception RewriteDone
+
+(* Rewrite first instance of an indirect in an array of such. *)
+let rec rewrite_first_kid m n = function
+    [] -> []
+  | Pdf.Indirect x::t when x = m -> Pdf.Indirect n :: t
+  | h::t -> h :: rewrite_first_kid m n t
+
+(* Rewrite first instance of m if any, in obj to n at objnum. Raise Rewrite if
+we did it. *)
+let rewrite_first_indirect pdf objnum obj m n =
+  match Pdf.lookup_direct pdf "/Kids" obj with
+    Some (Pdf.Array kids) ->
+      if mem (Pdf.Indirect m) kids then
+        let newobj =
+          Pdf.add_dict_entry obj "/Kids" (Pdf.Array (rewrite_first_kid m n kids))
+        in
+          Pdf.addobj_given_num pdf (objnum, newobj);
+          raise RewriteDone
+  | _ -> failwith "rewrite_first_indirect"
+
+(* Those page tree nodes which are not pages *)
+let page_tree_nodes_not_pages pdf = []
+
+let rewrite_page_tree_first pdf m =
+  let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m)
+  and nodes = page_tree_nodes_not_pages pdf in
+    try
+      iter
+        (fun (objnum, obj) -> rewrite_first_indirect pdf objnum obj m n)
+        nodes
+    with
+      RewriteDone -> () 
+    | _ -> raise (Pdf.PDFError "rewrite_page_tree_first: malformed page tree")
+
+(* Run this strategy repeatedly, until there are no duplicate page objects *)
+let rec fixup_duplicate_pages pdf =
+  let pagerefs = Pdf.page_reference_numbers pdf in
+    let groups =
+      keep
+        (fun x -> length x > 1)
+        (collate compare (sort compare pagerefs))
+    in
+      match groups with
+        (h::_)::_ ->
+          rewrite_page_tree_first pdf h;
+          fixup_duplicate_pages pdf
+      | _ -> ()
+
 let pdf_of_pages ?(retain_numbering = false) basepdf range =
+  Printf.printf "pdf_of_pages: range =\n";
+  iter (Printf.printf "%i ") range;
+  flprint "\n";
   let page_labels =
     if retain_numbering
       then Pdfpagelabels.merge_pagelabels [basepdf] [range]
@@ -783,7 +849,9 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                   Pdf.addobj_given_num pdf (old_pagetree_root_num, new_pagetree);
                     let pdf = add_root old_pagetree_root_num existing_root_entries pdf in
                     Pdfpagelabels.write pdf page_labels;
-                    Pdfmarks.add_bookmarks marks pdf
+                    let pdf = Pdfmarks.add_bookmarks marks pdf in
+                      fixup_duplicate_pages pdf;
+                      pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
   if fast then
