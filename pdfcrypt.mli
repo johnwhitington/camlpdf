@@ -71,9 +71,3 @@ val banlist_of_p : int32 -> permission list
 
 val string_of_pdf : (Pdf.pdfobject -> string) ref
 
-val sha256 : Pdfio.input -> string
-
-val sha384 : Pdfio.input -> string
-
-val sha512 : Pdfio.input -> string
-
