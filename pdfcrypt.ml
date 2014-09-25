@@ -78,584 +78,6 @@ let find_key no_encrypt_metadata password r o p id keylength =
               in
                 Array.sub (int_array_of_string hashed') 0 (keylength / 8)
 
-(* 40bit / 128bit Encryption/Decryption Primitives *)
-
-(* Encryption / Decryption given a key. *)
-let ksa s key =
-  let keylength = Array.length key in
-    for i = 0 to 255 do s.(i) <- i done;
-    let j = ref 0 in
-      for i = 0 to 255 do
-        j := (!j + s.(i) + key.(i mod keylength)) mod 256;
-        swap s i !j
-      done
-
-let prga s pi pj =
-  pi := (!pi + 1) mod 256;
-  pj := (!pj + s.(!pi)) mod 256;
-  swap s !pi !pj;
-  s.((s.(!pi) + s.(!pj)) mod 256)
-
-let crypt key data =
-  let s, pi, pj, out = Array.make 256 0, ref 0, ref 0, mkbytes (bytes_size data) in
-    ksa s key;
-    for x = 0 to bytes_size data - 1 do
-      bset out x (bget data x lxor prga s pi pj)
-    done;
-    out
-
-(* AES Encryption and Decryption Primitives *)
-
-(* The state, an array of four length 4 arrays. state.(row).(column) *)
-let st = Array.make 16 0
-
-let get x y = Array.unsafe_get st (x * 4 + y)
-let put x y v = Array.unsafe_set st (x * 4 + y) v
-
-(* Finite field addition *)
-let ( ++ ) = ( lxor )
-
-let tab_e =
-  [|0x01; 0x03; 0x05; 0x0f; 0x11; 0x33; 0x55; 0xff; 0x1a; 0x2e; 0x72; 0x96; 0xa1; 0xf8; 0x13; 0x35; 
-    0x5f; 0xe1; 0x38; 0x48; 0xd8; 0x73; 0x95; 0xa4; 0xf7; 0x02; 0x06; 0x0a; 0x1e; 0x22; 0x66; 0xaa;
-    0xe5; 0x34; 0x5c; 0xe4; 0x37; 0x59; 0xeb; 0x26; 0x6a; 0xbe; 0xd9; 0x70; 0x90; 0xab; 0xe6; 0x31;
-    0x53; 0xf5; 0x04; 0x0c; 0x14; 0x3c; 0x44; 0xcc; 0x4f; 0xd1; 0x68; 0xb8; 0xd3; 0x6e; 0xb2; 0xcd; 
-    0x4c; 0xd4; 0x67; 0xa9; 0xe0; 0x3b; 0x4d; 0xd7; 0x62; 0xa6; 0xf1; 0x08; 0x18; 0x28; 0x78; 0x88;
-    0x83; 0x9e; 0xb9; 0xd0; 0x6b; 0xbd; 0xdc; 0x7f; 0x81; 0x98; 0xb3; 0xce; 0x49; 0xdb; 0x76; 0x9a;
-    0xb5; 0xc4; 0x57; 0xf9; 0x10; 0x30; 0x50; 0xf0; 0x0b; 0x1d; 0x27; 0x69; 0xbb; 0xd6; 0x61; 0xa3;
-    0xfe; 0x19; 0x2b; 0x7d; 0x87; 0x92; 0xad; 0xec; 0x2f; 0x71; 0x93; 0xae; 0xe9; 0x20; 0x60; 0xa0;
-    0xfb; 0x16; 0x3a; 0x4e; 0xd2; 0x6d; 0xb7; 0xc2; 0x5d; 0xe7; 0x32; 0x56; 0xfa; 0x15; 0x3f; 0x41;
-    0xc3; 0x5e; 0xe2; 0x3d; 0x47; 0xc9; 0x40; 0xc0; 0x5b; 0xed; 0x2c; 0x74; 0x9c; 0xbf; 0xda; 0x75;
-    0x9f; 0xba; 0xd5; 0x64; 0xac; 0xef; 0x2a; 0x7e; 0x82; 0x9d; 0xbc; 0xdf; 0x7a; 0x8e; 0x89; 0x80;
-    0x9b; 0xb6; 0xc1; 0x58; 0xe8; 0x23; 0x65; 0xaf; 0xea; 0x25; 0x6f; 0xb1; 0xc8; 0x43; 0xc5; 0x54;
-    0xfc; 0x1f; 0x21; 0x63; 0xa5; 0xf4; 0x07; 0x09; 0x1b; 0x2d; 0x77; 0x99; 0xb0; 0xcb; 0x46; 0xca;
-    0x45; 0xcf; 0x4a; 0xde; 0x79; 0x8b; 0x86; 0x91; 0xa8; 0xe3; 0x3e; 0x42; 0xc6; 0x51; 0xf3; 0x0e;
-    0x12; 0x36; 0x5a; 0xee; 0x29; 0x7b; 0x8d; 0x8c; 0x8f; 0x8a; 0x85; 0x94; 0xa7; 0xf2; 0x0d; 0x17;
-    0x39; 0x4b; 0xdd; 0x7c; 0x84; 0x97; 0xa2; 0xfd; 0x1c; 0x24; 0x6c; 0xb4; 0xc7; 0x52; 0xf6; 0x01|]
-
-let tab_l =
-  [|0x00; 0x00; 0x19; 0x01; 0x32; 0x02; 0x1a; 0xc6; 0x4b; 0xc7; 0x1b; 0x68; 0x33; 0xee; 0xdf; 0x03;
-    0x64; 0x04; 0xe0; 0x0e; 0x34; 0x8d; 0x81; 0xef; 0x4c; 0x71; 0x08; 0xc8; 0xf8; 0x69; 0x1c; 0xc1;
-    0x7d; 0xc2; 0x1d; 0xb5; 0xf9; 0xb9; 0x27; 0x6a; 0x4d; 0xe4; 0xa6; 0x72; 0x9a; 0xc9; 0x09; 0x78; 
-    0x65; 0x2f; 0x8a; 0x05; 0x21; 0x0f; 0xe1; 0x24; 0x12; 0xf0; 0x82; 0x45; 0x35; 0x93; 0xda; 0x8e;
-    0x96; 0x8f; 0xdb; 0xbd; 0x36; 0xd0; 0xce; 0x94; 0x13; 0x5c; 0xd2; 0xf1; 0x40; 0x46; 0x83; 0x38;
-    0x66; 0xdd; 0xfd; 0x30; 0xbf; 0x06; 0x8b; 0x62; 0xb3; 0x25; 0xe2; 0x98; 0x22; 0x88; 0x91; 0x10;
-    0x7e; 0x6e; 0x48; 0xc3; 0xa3; 0xb6; 0x1e; 0x42; 0x3a; 0x6b; 0x28; 0x54; 0xfa; 0x85; 0x3d; 0xba;
-    0x2b; 0x79; 0x0a; 0x15; 0x9b; 0x9f; 0x5e; 0xca; 0x4e; 0xd4; 0xac; 0xe5; 0xf3; 0x73; 0xa7; 0x57;
-    0xaf; 0x58; 0xa8; 0x50; 0xf4; 0xea; 0xd6; 0x74; 0x4f; 0xae; 0xe9; 0xd5; 0xe7; 0xe6; 0xad; 0xe8;
-    0x2c; 0xd7; 0x75; 0x7a; 0xeb; 0x16; 0x0b; 0xf5; 0x59; 0xcb; 0x5f; 0xb0; 0x9c; 0xa9; 0x51; 0xa0;
-    0x7f; 0x0c; 0xf6; 0x6f; 0x17; 0xc4; 0x49; 0xec; 0xd8; 0x43; 0x1f; 0x2d; 0xa4; 0x76; 0x7b; 0xb7;
-    0xcc; 0xbb; 0x3e; 0x5a; 0xfb; 0x60; 0xb1; 0x86; 0x3b; 0x52; 0xa1; 0x6c; 0xaa; 0x55; 0x29; 0x9d;
-    0x97; 0xb2; 0x87; 0x90; 0x61; 0xbe; 0xdc; 0xfc; 0xbc; 0x95; 0xcf; 0xcd; 0x37; 0x3f; 0x5b; 0xd1;
-    0x53; 0x39; 0x84; 0x3c; 0x41; 0xa2; 0x6d; 0x47; 0x14; 0x2a; 0x9e; 0x5d; 0x56; 0xf2; 0xd3; 0xab;
-    0x44; 0x11; 0x92; 0xd9; 0x23; 0x20; 0x2e; 0x89; 0xb4; 0x7c; 0xb8; 0x26; 0x77; 0x99; 0xe3; 0xa5;
-    0x67; 0x4a; 0xed; 0xde; 0xc5; 0x31; 0xfe; 0x18; 0x0d; 0x63; 0x8c; 0x80; 0xc0; 0xf7; 0x70; 0x07|]
- 
-(* Finite field multiplication modulo the irreducible polynomial. *)
-let ( ** ) a b =
-  if a = 0 || b = 0 then 0 else
-    let t = Array.unsafe_get tab_l (a land 0xff) land 0xff + Array.unsafe_get tab_l (b land 0xff) land 0xff in
-      let t = if t > 255 then t - 255 else t in
-        Array.unsafe_get tab_e (t land 0xff)
-
-
-let sbox =
-[|
-0x63; 0x7c; 0x77; 0x7b; 0xf2; 0x6b; 0x6f; 0xc5; 0x30; 0x01; 0x67; 0x2b; 0xfe; 0xd7; 0xab; 0x76;
-0xca; 0x82; 0xc9; 0x7d; 0xfa; 0x59; 0x47; 0xf0; 0xad; 0xd4; 0xa2; 0xaf; 0x9c; 0xa4; 0x72; 0xc0;
-0xb7; 0xfd; 0x93; 0x26; 0x36; 0x3f; 0xf7; 0xcc; 0x34; 0xa5; 0xe5; 0xf1; 0x71; 0xd8; 0x31; 0x15;
-0x04; 0xc7; 0x23; 0xc3; 0x18; 0x96; 0x05; 0x9a; 0x07; 0x12; 0x80; 0xe2; 0xeb; 0x27; 0xb2; 0x75;
-0x09; 0x83; 0x2c; 0x1a; 0x1b; 0x6e; 0x5a; 0xa0; 0x52; 0x3b; 0xd6; 0xb3; 0x29; 0xe3; 0x2f; 0x84;
-0x53; 0xd1; 0x00; 0xed; 0x20; 0xfc; 0xb1; 0x5b; 0x6a; 0xcb; 0xbe; 0x39; 0x4a; 0x4c; 0x58; 0xcf;
-0xd0; 0xef; 0xaa; 0xfb; 0x43; 0x4d; 0x33; 0x85; 0x45; 0xf9; 0x02; 0x7f; 0x50; 0x3c; 0x9f; 0xa8;
-0x51; 0xa3; 0x40; 0x8f; 0x92; 0x9d; 0x38; 0xf5; 0xbc; 0xb6; 0xda; 0x21; 0x10; 0xff; 0xf3; 0xd2;
-0xcd; 0x0c; 0x13; 0xec; 0x5f; 0x97; 0x44; 0x17; 0xc4; 0xa7; 0x7e; 0x3d; 0x64; 0x5d; 0x19; 0x73;
-0x60; 0x81; 0x4f; 0xdc; 0x22; 0x2a; 0x90; 0x88; 0x46; 0xee; 0xb8; 0x14; 0xde; 0x5e; 0x0b; 0xdb;
-0xe0; 0x32; 0x3a; 0x0a; 0x49; 0x06; 0x24; 0x5c; 0xc2; 0xd3; 0xac; 0x62; 0x91; 0x95; 0xe4; 0x79;
-0xe7; 0xc8; 0x37; 0x6d; 0x8d; 0xd5; 0x4e; 0xa9; 0x6c; 0x56; 0xf4; 0xea; 0x65; 0x7a; 0xae; 0x08;
-0xba; 0x78; 0x25; 0x2e; 0x1c; 0xa6; 0xb4; 0xc6; 0xe8; 0xdd; 0x74; 0x1f; 0x4b; 0xbd; 0x8b; 0x8a;
-0x70; 0x3e; 0xb5; 0x66; 0x48; 0x03; 0xf6; 0x0e; 0x61; 0x35; 0x57; 0xb9; 0x86; 0xc1; 0x1d; 0x9e;
-0xe1; 0xf8; 0x98; 0x11; 0x69; 0xd9; 0x8e; 0x94; 0x9b; 0x1e; 0x87; 0xe9; 0xce; 0x55; 0x28; 0xdf;
-0x8c; 0xa1; 0x89; 0x0d; 0xbf; 0xe6; 0x42; 0x68; 0x41; 0x99; 0x2d; 0x0f; 0xb0; 0x54; 0xbb; 0x16
-|]
-
-let inv_sbox =
-[|
-0x52; 0x09; 0x6a; 0xd5; 0x30; 0x36; 0xa5; 0x38; 0xbf; 0x40; 0xa3; 0x9e; 0x81; 0xf3; 0xd7; 0xfb;
-0x7c; 0xe3; 0x39; 0x82; 0x9b; 0x2f; 0xff; 0x87; 0x34; 0x8e; 0x43; 0x44; 0xc4; 0xde; 0xe9; 0xcb;
-0x54; 0x7b; 0x94; 0x32; 0xa6; 0xc2; 0x23; 0x3d; 0xee; 0x4c; 0x95; 0x0b; 0x42; 0xfa; 0xc3; 0x4e;
-0x08; 0x2e; 0xa1; 0x66; 0x28; 0xd9; 0x24; 0xb2; 0x76; 0x5b; 0xa2; 0x49; 0x6d; 0x8b; 0xd1; 0x25;
-0x72; 0xf8; 0xf6; 0x64; 0x86; 0x68; 0x98; 0x16; 0xd4; 0xa4; 0x5c; 0xcc; 0x5d; 0x65; 0xb6; 0x92;
-0x6c; 0x70; 0x48; 0x50; 0xfd; 0xed; 0xb9; 0xda; 0x5e; 0x15; 0x46; 0x57; 0xa7; 0x8d; 0x9d; 0x84;
-0x90; 0xd8; 0xab; 0x00; 0x8c; 0xbc; 0xd3; 0x0a; 0xf7; 0xe4; 0x58; 0x05; 0xb8; 0xb3; 0x45; 0x06;
-0xd0; 0x2c; 0x1e; 0x8f; 0xca; 0x3f; 0x0f; 0x02; 0xc1; 0xaf; 0xbd; 0x03; 0x01; 0x13; 0x8a; 0x6b;
-0x3a; 0x91; 0x11; 0x41; 0x4f; 0x67; 0xdc; 0xea; 0x97; 0xf2; 0xcf; 0xce; 0xf0; 0xb4; 0xe6; 0x73;
-0x96; 0xac; 0x74; 0x22; 0xe7; 0xad; 0x35; 0x85; 0xe2; 0xf9; 0x37; 0xe8; 0x1c; 0x75; 0xdf; 0x6e;
-0x47; 0xf1; 0x1a; 0x71; 0x1d; 0x29; 0xc5; 0x89; 0x6f; 0xb7; 0x62; 0x0e; 0xaa; 0x18; 0xbe; 0x1b;
-0xfc; 0x56; 0x3e; 0x4b; 0xc6; 0xd2; 0x79; 0x20; 0x9a; 0xdb; 0xc0; 0xfe; 0x78; 0xcd; 0x5a; 0xf4;
-0x1f; 0xdd; 0xa8; 0x33; 0x88; 0x07; 0xc7; 0x31; 0xb1; 0x12; 0x10; 0x59; 0x27; 0x80; 0xec; 0x5f;
-0x60; 0x51; 0x7f; 0xa9; 0x19; 0xb5; 0x4a; 0x0d; 0x2d; 0xe5; 0x7a; 0x9f; 0x93; 0xc9; 0x9c; 0xef;
-0xa0; 0xe0; 0x3b; 0x4d; 0xae; 0x2a; 0xf5; 0xb0; 0xc8; 0xeb; 0xbb; 0x3c; 0x83; 0x53; 0x99; 0x61;
-0x17; 0x2b; 0x04; 0x7e; 0xba; 0x77; 0xd6; 0x26; 0xe1; 0x69; 0x14; 0x63; 0x55; 0x21; 0x0c; 0x7d
-|]
-
-let subbyte b =
-  Array.unsafe_get sbox b
-
-let sub_bytes () =
-  for r = 0 to 3 do
-    for c = 0 to 3 do
-      put r c (Array.unsafe_get sbox (get r c))
-    done
-  done
-
-let inv_sub_bytes () =
-  for r = 0 to 3 do
-    for c = 0 to 3 do
-      put r c (Array.unsafe_get inv_sbox (get r c))
-    done
-  done
-
-(* Key schedule *)
-let keys =
-  Array.init 60 (function _ -> String.make 4 '\000')
-
-let word_of_bytes a b c d =
-  let s = String.create 4 in
-    String.unsafe_set s 0 (Char.unsafe_chr a);
-    String.unsafe_set s 1 (Char.unsafe_chr b);
-    String.unsafe_set s 2 (Char.unsafe_chr c);
-    String.unsafe_set s 3 (Char.unsafe_chr d);
-    s
-
-let byte1_of_word s =
-  int_of_char (String.unsafe_get s 0)
-
-let byte2_of_word s =
-  int_of_char (String.unsafe_get s 1)
-
-let byte3_of_word s =
-  int_of_char (String.unsafe_get s 2)
-
-let byte4_of_word s =
-  int_of_char (String.unsafe_get s 3)
-
-let subword w =
-  word_of_bytes
-    (subbyte (byte1_of_word w))
-    (subbyte (byte2_of_word w))
-    (subbyte (byte3_of_word w))
-    (subbyte (byte4_of_word w))
-
-let rotword w =
-  word_of_bytes (byte2_of_word w) (byte3_of_word w) (byte4_of_word w) (byte1_of_word w)
-
-let crypt_lxor32 a b =
-  let s = String.create 4 in
-    s.[0] <- Char.unsafe_chr (int_of_char a.[0] lxor int_of_char b.[0]);
-    s.[1] <- Char.unsafe_chr (int_of_char a.[1] lxor int_of_char b.[1]);
-    s.[2] <- Char.unsafe_chr (int_of_char a.[2] lxor int_of_char b.[2]);
-    s.[3] <- Char.unsafe_chr (int_of_char a.[3] lxor int_of_char b.[3]);
-    s
-  
-let rcon =
- [| word_of_bytes 0x00 0x00 0x00 0x00;
-    word_of_bytes 0x01 0x00 0x00 0x00;
-    word_of_bytes 0x02 0x00 0x00 0x00;
-    word_of_bytes 0x04 0x00 0x00 0x00;
-    word_of_bytes 0x08 0x00 0x00 0x00;
-    word_of_bytes 0x10 0x00 0x00 0x00;
-    word_of_bytes 0x20 0x00 0x00 0x00;
-    word_of_bytes 0x40 0x00 0x00 0x00;
-    word_of_bytes 0x80 0x00 0x00 0x00;
-    word_of_bytes 0x1b 0x00 0x00 0x00;
-    word_of_bytes 0x36 0x00 0x00 0x00;
-    word_of_bytes 0x6c 0x00 0x00 0x00;
-    word_of_bytes 0xd8 0x00 0x00 0x00;
-    word_of_bytes 0xab 0x00 0x00 0x00;
-    word_of_bytes 0x4d 0x00 0x00 0x00;
-    word_of_bytes 0x9a 0x00 0x00 0x00 |]
-
-(* Key expansion *)
-let key_expansion nk key =
-  try
-    let nr = nk + 6 in
-    let temp = ref (String.create 4)
-    in let i = ref 0 in
-      while (!i < nk) do
-        keys.(!i) <-
-          word_of_bytes
-            key.(4 * !i) key.(4 * !i + 1) key.(4 * !i + 2) key.(4 * !i + 3);
-        incr i
-      done;
-      i := nk;
-      while (!i < 4 * (nr + 1)) do
-        temp := keys.(!i - 1);
-        if !i mod nk = 0 then
-          temp := crypt_lxor32 (subword (rotword !temp)) rcon.(!i / nk)
-        else if nk > 6 && !i mod nk = 4 then
-          temp := subword !temp;
-        keys.(!i) <- crypt_lxor32 keys.(!i - nk) !temp;
-        incr i 
-      done
-    with
-      Invalid_argument _ as e ->
-        Printf.printf "%i %i " nk (Array.length key);
-        raise e
-
-let shift_rows () =
-  let a = get 1 0
-  and b = get 1 1
-  and c = get 1 2
-  and d = get 1 3
-  in
-    put 1 0 b; put 1 1 c;
-    put 1 2 d; put 1 3 a;
-  let a = get 2 0
-  and b = get 2 1
-  and c = get 2 2
-  and d = get 2 3
-  in
-    put 2 0 c; put 2 1 d;
-    put 2 2 a; put 2 3 b;
-  let a = get 3 0
-  and b = get 3 1
-  and c = get 3 2
-  and d = get 3 3 in
-    put 3 0 d; put 3 1 a;
-    put 3 2 b; put 3 3 c
-
-let inv_shift_rows () =
-  let a = get 1 0
-  and b = get 1 1
-  and c = get 1 2
-  and d = get 1 3
-  in
-    put 1 0 d; put 1 1 a;
-    put 1 2 b; put 1 3 c;
-  let a = get 2 0
-  and b = get 2 1
-  and c = get 2 2
-  and d = get 2 3
-  in
-    put 2 0 c; put 2 1 d;
-    put 2 2 a; put 2 3 b;
-  let a = get 3 0
-  and b = get 3 1
-  and c = get 3 2
-  and d = get 3 3
-  in
-    put 3 0 b; put 3 1 c;
-    put 3 2 d; put 3 3 a
-
-let mix_columns () =
-  for c = 0 to 3 do
-    let s'0 =
-      (0x02 ** get 0 c) ++ (0x03 ** get 1 c) ++ get 2 c ++ get 3 c
-    in let s'1 =
-      get 0 c ++ (0x02 ** get 1 c) ++ (0x03 ** get 2 c) ++ get 3 c
-    in let s'2 =
-      get 0 c ++ get 1 c ++ (0x02 ** get 2 c) ++ (0x03 ** get 3 c)
-    in let s'3 =
-      (0x03 ** get 0 c) ++ get 1 c ++ get 2 c ++ (0x02 ** get 3 c)
-    in
-      put 0 c s'0;
-      put 1 c s'1;
-      put 2 c s'2;
-      put 3 c s'3
-  done
-
-let inv_mix_columns () =
-  for c = 0 to 3 do
-    let s'0 =
-      (0x0e ** get 0 c) ++ (0x0b ** get 1 c) ++
-      (0x0d ** get 2 c) ++ (0x09 ** get 3 c)
-    in let s'1 =
-      (0x09 ** get 0 c) ++ (0x0e ** get 1 c) ++
-      (0x0b ** get 2 c) ++ (0x0d ** get 3 c)
-    in let s'2 =
-      (0x0d ** get 0 c) ++ (0x09 ** get 1 c) ++
-      (0x0e ** get 2 c) ++ (0x0b ** get 3 c)
-    in let s'3 =
-      (0x0b ** get 0 c) ++ (0x0d ** get 1 c) ++
-      (0x09 ** get 2 c) ++ (0x0e ** get 3 c)
-    in
-      put 0 c s'0;
-      put 1 c s'1;
-      put 2 c s'2;
-      put 3 c s'3
-  done
-
-(* Add a round key to the state. *)
-let add_round_key keypos =
-  let word1 = Array.unsafe_get keys keypos
-  and word2 = Array.unsafe_get keys (keypos + 1)
-  and word3 = Array.unsafe_get keys (keypos + 2)
-  and word4 = Array.unsafe_get keys (keypos + 3) in
-    let a1 = byte1_of_word word1
-    and a2 = byte2_of_word word1
-    and a3 = byte3_of_word word1
-    and a4 = byte4_of_word word1
-    and b1 = byte1_of_word word2
-    and b2 = byte2_of_word word2
-    and b3 = byte3_of_word word2
-    and b4 = byte4_of_word word2
-    and c1 = byte1_of_word word3
-    and c2 = byte2_of_word word3
-    and c3 = byte3_of_word word3
-    and c4 = byte4_of_word word3
-    and d1 = byte1_of_word word4
-    and d2 = byte2_of_word word4
-    and d3 = byte3_of_word word4
-    and d4 = byte4_of_word word4 in
-      put 0 0 (get 0 0 ++ a1); put 1 0 (get 1 0 ++ a2);
-      put 2 0 (get 2 0 ++ a3); put 3 0 (get 3 0 ++ a4);
-      put 0 1 (get 0 1 ++ b1); put 1 1 (get 1 1 ++ b2);
-      put 2 1 (get 2 1 ++ b3); put 3 1 (get 3 1 ++ b4);
-      put 0 2 (get 0 2 ++ c1); put 1 2 (get 1 2 ++ c2);
-      put 2 2 (get 2 2 ++ c3); put 3 2 (get 3 2 ++ c4);
-      put 0 3 (get 0 3 ++ d1); put 1 3 (get 1 3 ++ d2);
-      put 2 3 (get 2 3 ++ d3); put 3 3 (get 3 3 ++ d4)
-
-let output_from_state () =
-  [| get 0 0; get 1 0; get 2 0; get 3 0;
-     get 0 1; get 1 1; get 2 1; get 3 1;
-     get 0 2; get 1 2; get 2 2; get 3 2;
-     get 0 3; get 1 3; get 2 3; get 3 3; |]
-
-let output_from_state_raw o p =
-  bset_unsafe o p (get 0 0);
-  bset_unsafe o (p + 1) (get 1 0);
-  bset_unsafe o (p + 2) (get 2 0);
-  bset_unsafe o (p + 3) (get 3 0);
-  bset_unsafe o (p + 4) (get 0 1);
-  bset_unsafe o (p + 5) (get 1 1);
-  bset_unsafe o (p + 6) (get 2 1);
-  bset_unsafe o (p + 7) (get 3 1);
-  bset_unsafe o (p + 8) (get 0 2);
-  bset_unsafe o (p + 9) (get 1 2);
-  bset_unsafe o (p + 10) (get 2 2);
-  bset_unsafe o (p + 11) (get 3 2);
-  bset_unsafe o (p + 12) (get 0 3);
-  bset_unsafe o (p + 13) (get 1 3);
-  bset_unsafe o (p + 14) (get 2 3);
-  bset_unsafe o (p + 15) (get 3 3)
-  
-let input_to_state d =
-  put 0 0 d.(0); put 1 0 d.(1);
-  put 2 0 d.(2); put 3 0 d.(3);
-  put 0 1 d.(4); put 1 1 d.(5);
-  put 2 1 d.(6); put 3 1 d.(7);
-  put 0 2 d.(8); put 1 2 d.(9);
-  put 2 2 d.(10); put 3 2 d.(11);
-  put 0 3 d.(12); put 1 3 d.(13);
-  put 2 3 d.(14); put 3 3 d.(15)
-
-let input_to_state_raw d p =
-  put 0 0 (bget_unsafe d (p + 0)); put 1 0 (bget_unsafe d (p + 1));
-  put 2 0 (bget_unsafe d (p + 2)); put 3 0 (bget_unsafe d (p + 3));
-  put 0 1 (bget_unsafe d (p + 4)); put 1 1 (bget_unsafe d (p + 5));
-  put 2 1 (bget_unsafe d (p + 6)); put 3 1 (bget_unsafe d (p + 7));
-  put 0 2 (bget_unsafe d (p + 8)); put 1 2 (bget_unsafe d (p + 9));
-  put 2 2 (bget_unsafe d (p + 10)); put 3 2 (bget_unsafe d (p + 11));
-  put 0 3 (bget_unsafe d (p + 12)); put 1 3 (bget_unsafe d (p + 13));
-  put 2 3 (bget_unsafe d (p + 14)); put 3 3 (bget_unsafe d (p + 15))
-
-(* Encryption cipher. Assumes key already expanded. *)
-let cipher nr data_in =
-  input_to_state data_in;
-  add_round_key 0;
-  for round = 1 to nr - 1 do
-    sub_bytes ();
-    shift_rows ();
-    mix_columns ();
-    add_round_key (round * 4)
-  done;
-  sub_bytes ();
-  shift_rows ();
-  add_round_key (nr * 4);
-  output_from_state ()
-
-let cipher_raw nr data_in pos_in data_out pos_out =
-  input_to_state_raw data_in pos_in;
-  add_round_key 0;
-  for round = 1 to nr - 1 do
-    sub_bytes ();
-    shift_rows ();
-    mix_columns ();
-    add_round_key (round * 4)
-  done;
-  sub_bytes ();
-  shift_rows ();
-  add_round_key (nr * 4);
-  output_from_state_raw data_out pos_out
-
-(* Decryption cipher. Assumes key already expanded. *)
-let inv_cipher_raw nr data_in pos_in data_out pos_out =
-  input_to_state_raw data_in pos_in;
-  add_round_key (nr * 4);
-  for round = (nr - 1) downto 1 do
-    inv_shift_rows ();
-    inv_sub_bytes ();
-    add_round_key (round * 4);
-    inv_mix_columns ();
-  done;
-  inv_shift_rows ();
-  inv_sub_bytes ();
-  add_round_key 0;
-  output_from_state_raw data_out pos_out
-
-let _ = Random.self_init ()
-
-(* Pad the input data (RFC2898, PKCS #5), then encrypt using a 16 byte AES
-cipher in cipher block chaining mode, with a random initialisation vector, which
-is stored as the first 16 bytes of the result. *)
-let ran255 () =
-  Random.int 255
-
-let mkiv () =
-  let r = ran255 in
-    [| r (); r (); r (); r ();
-       r (); r (); r (); r ();
-       r (); r (); r (); r ();
-       r (); r (); r (); r () |]
-
-(* Debug function to print a block as characters. *)
-let print_block arr =
-  Array.iter (fun i -> Printf.printf "%c" (char_of_int i)) arr;
-  flprint "\n\n"
-
-(* Build blocks for encryption, including padding. *)
-let get_blocks data =
-  let l = bytes_size data in
-    let fullblocks =
-      if l < 16 then [] else
-        let blocks = ref [] in
-          for x = 0 to l / 16 - 1 do
-            blocks =|
-              let a = Array.make 16 0 in
-                for y = 0 to 15 do
-                  Array.unsafe_set a y (bget_unsafe data (x * 16 + y))
-                done;
-                a (*Array.init 16 (fun y -> bget data (x * 16 + y))*)
-          done;
-          rev !blocks
-    in let lastblock =
-      let getlast n =
-        if n = 0 then [] else
-          let bytes = ref [] in
-            for x = 0 to n - 1 do
-              bytes =| bget data (l - 1 - x)
-            done;
-            !bytes
-      in let pad n =
-        many n n
-      in
-        let overflow = l mod 16 in
-          Array.of_list (getlast overflow @ pad (16 - overflow))
-    in
-      fullblocks @ [lastblock]
-
-(* Flatten a list of blocks into a bytes *)
-let bytes_of_blocks blocks =
-  let len = 16 * length blocks in
-    let s = mkbytes len
-    in let p = ref 0 in
-      iter
-        (fun a ->
-          Array.iter (fun v -> bset s !p v; incr p) a)
-        blocks;
-      s
-
-(* These two functions strip the padding from a stream once it's been decoded.*)
-let get_padding s =
-  let l = bytes_size s in
-    assert (l >= 16);
-    let potential = bget s (l - 1) in
-      if potential > 0x10 || potential < 0x01 then None else
-        let rec elts_equal p f t =
-          if f = t then p = bget s t else
-            p = bget s f && elts_equal p (f + 1) t
-        in
-          if elts_equal potential (l - potential) (l - 1)
-            then Some potential
-            else None
-
-let cutshort s =
-  if bytes_size s = 0 then mkbytes 0 else
-    if bytes_size s <= 16 then s else
-      match get_padding s with
-      | None -> s
-      | Some padding ->
-          let s' = mkbytes (bytes_size s - padding) in
-            for x = 0 to bytes_size s' - 1 do
-              bset_unsafe s' x (bget_unsafe s x)
-            done;
-            s'
-
-(* Decrypt data *)
-let print_txt d p =
-  for x = p to p + 15 do Printf.printf "%02x" (bget d x) done; flprint "\n"
-
-let aes_decrypt_data ?(remove_padding = true) nk key data =
-  key_expansion nk key;
-  let len = bytes_size data in
-    if len <= 16 then mkbytes 0 else
-      let output = mkbytes (len - 16)
-      and prev_ciphertext = mkbytes 16 in
-        for x = 0 to 15 do bset_unsafe prev_ciphertext x (bget_unsafe data x) done;
-        let pos = ref 16 in
-          while !pos < len do
-            inv_cipher_raw (nk + 6) data !pos output (!pos - 16);
-            for x = 0 to 15 do
-              bset_unsafe output (x + !pos - 16) (bget_unsafe prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
-              bset_unsafe prev_ciphertext x (bget_unsafe data (x + !pos))
-            done;
-            pos += 16
-          done;
-          if remove_padding then cutshort output else output
-
-(* With ECB instead. Data on input must be a multiple of 16. *)
-let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
-  key_expansion nk key;
-  let size = bytes_size data in
-    if size = 0 then mkbytes 0 else
-      let output = mkbytes size
-      and pos = ref 0 in
-        while !pos < size do
-          inv_cipher_raw (nk + 6) data !pos output !pos;
-          pos += 16;
-        done;
-        (if remove_padding then cutshort else ident) output
-
-(* Encrypt data *)
-let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
-  key_expansion nk key;
-  let outblocks = ref [] in
-    let prev_ciphertext = ref firstblock in
-      iter
-        (fun block ->
-          let ciphertext =
-            cipher (nk + 6) ((array_map2 (lxor)) block !prev_ciphertext)
-          in
-            prev_ciphertext := ciphertext;
-            outblocks =| ciphertext)
-        (get_blocks data);
-        bytes_of_blocks (firstblock::rev !outblocks)
-
-(* With ECB instead. Input length is multiple of 16. *)
-let aes_encrypt_data_ecb nk key data =
-  key_expansion nk key;
-  let size = bytes_size data in
-    if size = 0 then mkbytes 0 else
-      let output = mkbytes size
-      and pos = ref 0 in
-        while !pos < size do
-          cipher_raw (nk + 6) data !pos output !pos;
-          pos += 16
-        done;
-        output
-
 (* Authenticate the user password, given the password string and U, O, P, id
 and key length entry. *)
 let authenticate_user no_encrypt_metadata password r u o p id keylength =
@@ -677,7 +99,7 @@ flprint "END_AUTHENTICATE_USER\n";*)
             let hash_input = string_of_int_arrays todigest in
               let hashed = Digest.string hash_input in
                 let encrypted_hashed =
-                  int_array_of_bytes (crypt key (bytes_of_string hashed))
+                  int_array_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string hashed))
                 in
                   let u' = ref [||] in
                     u' := encrypted_hashed;
@@ -688,11 +110,11 @@ flprint "END_AUTHENTICATE_USER\n";*)
                         done;
                         u' :=
                           int_array_of_bytes
-                            (crypt key' (bytes_of_int_array !u'))
+                            (Pdfcryptprimitives.crypt key' (bytes_of_int_array !u'))
                     done;
                     Array.sub u 0 16 = !u'
       else
-        u = int_array_of_bytes (crypt key (bytes_of_int_array paddings))
+        u = int_array_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_int_array paddings))
 
 (* Decrypt a PDF file, given the user password. *)
 let string_of_pdf : (Pdf.pdfobject -> string) ref = ref (function _ -> "")
@@ -708,11 +130,11 @@ let rec decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength
       | _ (* Will always be Parsed for now...*) ->
         let f =
           (if crypt_type = AESV2 then
-            (if encrypt then aes_encrypt_data 4 else aes_decrypt_data 4)
+            (if encrypt then Pdfcryptprimitives.aes_encrypt_data 4 else Pdfcryptprimitives.aes_decrypt_data 4)
            else if (match crypt_type with AESV3 _ -> true | _ -> false) then
-            (if encrypt then aes_encrypt_data 8 else aes_decrypt_data 8)
+            (if encrypt then Pdfcryptprimitives.aes_encrypt_data 8 else Pdfcryptprimitives.aes_decrypt_data 8)
            else
-            crypt)
+            Pdfcryptprimitives.crypt)
         in
           let s_ints = bytes_of_string s in
             if r = 5 || r = 6 then
@@ -768,11 +190,11 @@ and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylen
         let data' =
           let f =
             (if crypt_type = AESV2 then
-               (if encrypt then aes_encrypt_data 4 else aes_decrypt_data 4)
+               (if encrypt then Pdfcryptprimitives.aes_encrypt_data 4 else Pdfcryptprimitives.aes_decrypt_data 4)
              else if (match crypt_type with AESV3 _ -> true | _ -> false) then
-               (if encrypt then aes_encrypt_data 8 else aes_decrypt_data 8)
+               (if encrypt then Pdfcryptprimitives.aes_encrypt_data 8 else Pdfcryptprimitives.aes_decrypt_data 8)
              else
-               crypt)
+               Pdfcryptprimitives.crypt)
           in
             if r = 5 || r = 6 then
               let key = match file_encryption_key with Some k -> k | None -> raise (Pdf.PDFError "decrypt: no key C") in
@@ -1028,7 +450,7 @@ let shamix password udata i =
             let key = int_array_of_string (String.sub !k 0 16) 
             and firstblock = int_array_of_string (String.sub !k 16 16) in
               let raw =
-                string_of_bytes (aes_encrypt_data ~firstblock:firstblock 4 key (Pdfio.bytes_of_string k1_64))
+                string_of_bytes (Pdfcryptprimitives.aes_encrypt_data ~firstblock:firstblock 4 key (Pdfio.bytes_of_string k1_64))
               in
                 String.sub raw 16 (String.length raw - 32)
           in
@@ -1077,11 +499,11 @@ let file_encryption_key_aesv3 ?digest iso utf8pw o oe u =
             if Array.length i <> 32 then Printf.printf "file_encryption_key_aesv3 made length %i\n" (Array.length i);
             i
     in
-      aes_decrypt_data ~remove_padding:false 8 d (bytes_of_string (zero_iv ^ oe))
+      Pdfcryptprimitives.aes_decrypt_data ~remove_padding:false 8 d (bytes_of_string (zero_iv ^ oe))
 
 let file_encryption_key_aesv3_user iso utf8pw u ue =
   if String.length u < 48 then raise (Pdf.PDFError "/U too short in file_encryption_key_aesv3_user") else
-    aes_decrypt_data ~remove_padding:false
+    Pdfcryptprimitives.aes_decrypt_data ~remove_padding:false
       8
       (int_array_of_string ((if iso then shamix utf8pw None else Pdfcryptprimitives.sha256) (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub u 40 8]))))
       (bytes_of_string (zero_iv ^ ue))
@@ -1099,7 +521,7 @@ let authenticate_user_password_aesv3 iso utf8pw u =
 (* Part of algorithm 3.2a - return p from perms so we can check they match *)
 let p_of_perms key perms =
   if String.length perms < 16 then raise (Pdf.PDFError "Wrong length in /Perms") else
-  let ps = aes_decrypt_data_ecb ~remove_padding:false 8 (int_array_of_bytes key) (bytes_of_string perms) in
+  let ps = Pdfcryptprimitives.aes_decrypt_data_ecb ~remove_padding:false 8 (int_array_of_bytes key) (bytes_of_string perms) in
     let ints = int_array_of_bytes ps in
       if ints.(9) <> int_of_char 'a' || ints.(10) <> int_of_char 'd' || ints.(11) <> int_of_char 'b'
         then None
@@ -1217,12 +639,12 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
                let key = owner_key padded_owner keylength r in
                  let user_pw =
                    if r = 2 then
-                     string_of_bytes (crypt key (bytes_of_string o))
+                     string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string o))
                    else (* r >= 3 *)
                      begin
                        let acc = ref (bytes_of_string o) in
                          for x = 19 downto 0 do
-                           acc := crypt (mkkey key x) !acc
+                           acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
                          done;
                          string_of_bytes !acc 
                      end
@@ -1270,12 +692,12 @@ let decrypt_pdf_owner owner_pw pdf =
             let user_pw =
               let key = owner_key padded_owner keylength r in
                 if r = 2 then
-                  string_of_bytes (crypt key (bytes_of_string o))
+                  string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string o))
                 else (* r >= 3 *)
                   begin
                     let acc = ref (bytes_of_string o) in
                       for x = 19 downto 0 do
-                        acc := crypt (mkkey key x) !acc
+                        acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
                       done;
                       string_of_bytes !acc 
                   end
@@ -1293,11 +715,11 @@ let mk_owner r owner_pw user_pw keylength =
     let key = owner_key padded_owner keylength r in
       let padded_user = pad_password (int_array_of_string user_pw) in
         if r = 2 then
-          string_of_bytes (crypt key (bytes_of_int_array padded_user))
+          string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_int_array padded_user))
         else (* r >= 3 *)
-          let acc = ref (crypt key (bytes_of_int_array padded_user)) in
+          let acc = ref (Pdfcryptprimitives.crypt key (bytes_of_int_array padded_user)) in
             for x = 1 to 19 do
-              acc := crypt (mkkey key x) !acc
+              acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
             done;
             string_of_bytes !acc
             
@@ -1305,13 +727,13 @@ let mk_owner r owner_pw user_pw keylength =
 let mk_user no_encrypt_metadata user_pw o p id r keylength =
   let key = find_key no_encrypt_metadata user_pw r o p id keylength in
     if r = 2 then
-      string_of_bytes (crypt key (bytes_of_int_array paddings))
+      string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_int_array paddings))
     else (* r >= 3 *)
       let digest_input = [paddings; int_array_of_string id] in
         let d = Digest.string (string_of_int_arrays digest_input) in
-          let acc = ref (crypt key (bytes_of_string d)) in
+          let acc = ref (Pdfcryptprimitives.crypt key (bytes_of_string d)) in
             for x = 1 to 19 do
-              acc := crypt (mkkey key x) !acc
+              acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
             done;
             string_of_bytes !acc ^ (implode (many '\000' 16))
 
@@ -1501,7 +923,7 @@ let perms_of_p ?digest iso encrypt_metadata p utf8pw o oe u =
       let key =
         (int_array_of_string (string_of_bytes (file_encryption_key_aesv3 ?digest iso utf8pw o oe u)))
       in
-        aes_encrypt_data_ecb 8 key (bytes_of_string (string_of_int_array b))
+        Pdfcryptprimitives.aes_encrypt_data_ecb 8 key (bytes_of_string (string_of_int_array b))
 
 (* Algorithm 3.8. Returns u, ue. *)
 let make_ue iso file_encryption_key user_pw user_validation_salt user_key_salt =
@@ -1514,7 +936,7 @@ let make_ue iso file_encryption_key user_pw user_validation_salt user_key_salt =
       [(hash (Pdfio.input_of_string (String.concat "" [user_pw; user_validation_salt]))); user_validation_salt; user_key_salt]
   in
     let ue = 
-      aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8
+      Pdfcryptprimitives.aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8
         (int_array_of_string (hash (Pdfio.input_of_string (String.concat "" [user_pw; user_key_salt]))))
         file_encryption_key
     in
@@ -1533,17 +955,17 @@ let make_oe iso file_encryption_key owner_pw owner_validation_salt owner_key_sal
       let digest =
         int_array_of_string (hash (Pdfio.input_of_string (String.concat "" [owner_pw; owner_key_salt; u])))
       in
-        let oe = aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8 digest file_encryption_key in
+        let oe = Pdfcryptprimitives.aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8 digest file_encryption_key in
           o, String.sub (string_of_bytes oe) 16 32, digest
 
 let mksalt () =
   let s = Array.make 8 0 in
-  for x = 0 to 7 do s.(x) <- ran255 () done;
+  for x = 0 to 7 do s.(x) <- Random.int 255 done;
     string_of_int_array s
 
 let mkfilekey () =
   let s = Array.make 32 0 in
-    for x = 0 to 31 do s.(x) <- ran255 () done;
+    for x = 0 to 31 do s.(x) <- Random.int 255 done;
     string_of_int_array s
 
 let encrypt_pdf_AES256_call iso encrypt_metadata user_pw owner_pw banlist pdf =
