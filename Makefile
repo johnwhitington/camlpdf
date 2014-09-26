@@ -15,8 +15,8 @@ LIBINSTALL_FILES = camlpdf.a camlpdf.cma camlpdf.cmxa libcamlpdf_stubs.a \
 dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
 $(foreach x,$(PDFMODS),$x.cmi)
 
-OCAMLNCFLAGS = -g
-OCAMLBCFLAGS = -g
+OCAMLNCFLAGS = -g -w -3
+OCAMLBCFLAGS = -g -w -3
 OCAMLLDFLAGS = -g
 
 all : native-code-library byte-code-library htdoc
