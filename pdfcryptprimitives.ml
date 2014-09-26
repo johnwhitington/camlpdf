@@ -210,6 +210,9 @@ let rcon =
 
 (* Key expansion *)
 let key_expansion nk key = aes_cook_encrypt_key (string_of_int_array key)
+
+let key_expansion_decrypt nk key = aes_cook_decrypt_key (string_of_int_array key)
+
   (*try
     let nr = nk + 6 in
     let temp = ref (String.create 4)
@@ -530,7 +533,8 @@ let print_txt d p =
   for x = p to p + 15 do Printf.printf "%02x" (bget d x) done; flprint "\n"
 
 let aes_decrypt_data ?(remove_padding = true) nk key data =
-  key_expansion nk key;
+  let key = key_expansion_decrypt nk key in
+  (*key_expansion nk key;*)
   let len = bytes_size data in
     if len <= 16 then mkbytes 0 else
       let output = mkbytes (len - 16)
@@ -538,12 +542,17 @@ let aes_decrypt_data ?(remove_padding = true) nk key data =
         for x = 0 to 15 do bset_unsafe prev_ciphertext x (bget_unsafe data x) done;
         let pos = ref 16 in
           while !pos < len do
-            inv_cipher_raw (nk + 6) data !pos output (!pos - 16);
-            for x = 0 to 15 do
-              bset_unsafe output (x + !pos - 16) (bget_unsafe prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
-              bset_unsafe prev_ciphertext x (bget_unsafe data (x + !pos))
-            done;
-            pos += 16
+            let i = String.make 16 ' '
+            and o = String.make 16 ' ' in
+              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
+              aes_decrypt key i 0 o 0;
+              for x = 0 to 15 do bset output (x + !pos - 16) (int_of_char o.[x]) done;
+              (*inv_cipher_raw (nk + 6) data !pos output (!pos - 16);*)
+              for x = 0 to 15 do
+                bset_unsafe output (x + !pos - 16) (bget_unsafe prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
+                bset_unsafe prev_ciphertext x (bget_unsafe data (x + !pos))
+              done;
+              pos += 16
           done;
           if remove_padding then cutshort output else output
 
