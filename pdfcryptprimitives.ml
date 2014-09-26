@@ -10,6 +10,10 @@ external aes_encrypt : string -> string -> int -> string -> int -> unit = "caml_
 
 external aes_decrypt : string -> string -> int -> string -> int -> unit = "caml_aes_decrypt"
 
+let key_expansion nk key = aes_cook_encrypt_key (string_of_int_array key)
+
+let key_expansion_decrypt nk key = aes_cook_decrypt_key (string_of_int_array key)
+
 (* 40bit / 128bit Encryption/Decryption Primitives *)
 
 (* Encryption / Decryption given a key. *)
@@ -36,6 +40,7 @@ let crypt key data =
     done;
     out
 
+(*
 (* AES Encryption and Decryption Primitives *)
 
 (* The state, an array of four length 4 arrays. state.(row).(column) *)
@@ -209,10 +214,9 @@ let rcon =
     word_of_bytes 0x9a 0x00 0x00 0x00 |]
 
 (* Key expansion *)
-let key_expansion nk key = aes_cook_encrypt_key (string_of_int_array key)
 
-let key_expansion_decrypt nk key = aes_cook_decrypt_key (string_of_int_array key)
 
+let key_expansion nk key =
   (*try
     let nr = nk + 6 in
     let temp = ref (String.create 4)
@@ -411,7 +415,7 @@ let input_to_state_raw d p =
   add_round_key (nr * 4);
   output_from_state () *)
 
-let cipher_raw nr data_in pos_in data_out pos_out =
+(*let cipher_raw nr data_in pos_in data_out pos_out =
   input_to_state_raw data_in pos_in;
   add_round_key 0;
   for round = 1 to nr - 1 do
@@ -423,10 +427,10 @@ let cipher_raw nr data_in pos_in data_out pos_out =
   sub_bytes ();
   shift_rows ();
   add_round_key (nr * 4);
-  output_from_state_raw data_out pos_out
+  output_from_state_raw data_out pos_out*)
 
 (* Decryption cipher. Assumes key already expanded. *)
-let inv_cipher_raw nr data_in pos_in data_out pos_out =
+(*let inv_cipher_raw nr data_in pos_in data_out pos_out =
   input_to_state_raw data_in pos_in;
   add_round_key (nr * 4);
   for round = (nr - 1) downto 1 do
@@ -438,7 +442,8 @@ let inv_cipher_raw nr data_in pos_in data_out pos_out =
   inv_shift_rows ();
   inv_sub_bytes ();
   add_round_key 0;
-  output_from_state_raw data_out pos_out
+  output_from_state_raw data_out pos_out*)
+*)
 
 let _ = Random.self_init ()
 
@@ -558,16 +563,21 @@ let aes_decrypt_data ?(remove_padding = true) nk key data =
 
 (* With ECB instead. Data on input must be a multiple of 16. *)
 let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
-  key_expansion nk key;
-  let size = bytes_size data in
-    if size = 0 then mkbytes 0 else
-      let output = mkbytes size
-      and pos = ref 0 in
-        while !pos < size do
-          inv_cipher_raw (nk + 6) data !pos output !pos;
-          pos += 16;
-        done;
-        (if remove_padding then cutshort else ident) output
+  let key = key_expansion_decrypt nk key in
+    let size = bytes_size data in
+      if size = 0 then mkbytes 0 else
+        let output = mkbytes size
+        and pos = ref 0 in
+          while !pos < size do
+            let i = String.make 16 ' '
+            and o = String.make 16 ' ' in
+              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
+              aes_decrypt key i 0 o 0;
+              for x = 0 to 15 do bset output (x + !pos) (int_of_char o.[x]) done;
+              (*inv_cipher_raw (nk + 6) data !pos output !pos;*)
+              pos += 16
+          done;
+          (if remove_padding then cutshort else ident) output
 
 (* Encrypt data *)
 let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
@@ -590,16 +600,21 @@ let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
 
 (* With ECB instead. Input length is multiple of 16. *)
 let aes_encrypt_data_ecb nk key data =
-  key_expansion nk key;
-  let size = bytes_size data in
-    if size = 0 then mkbytes 0 else
-      let output = mkbytes size
-      and pos = ref 0 in
-        while !pos < size do
-          cipher_raw (nk + 6) data !pos output !pos;
-          pos += 16
-        done;
-        output
+  let key = key_expansion nk key in
+    let size = bytes_size data in
+      if size = 0 then mkbytes 0 else
+        let output = mkbytes size
+        and pos = ref 0 in
+          while !pos < size do
+            let i = String.make 16 ' '
+            and o = String.make 16 ' ' in
+              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
+              aes_encrypt key i 0 o 0;
+              for x = 0 to 15 do bset output (x + !pos) (int_of_char o.[x]) done;
+              (*cipher_raw (nk + 6) data !pos output !pos;*)
+              pos += 16
+          done;
+          output
 
 (* SHA-256. Message length must be a multiple of 8 bits long. *)
 let k =
