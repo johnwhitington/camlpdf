@@ -2,6 +2,14 @@
 open Pdfutil
 open Pdfio
 
+external aes_cook_encrypt_key : string -> string = "caml_aes_cook_encrypt_key"
+
+external aes_cook_decrypt_key : string -> string = "caml_aes_cook_decrypt_key"
+
+external aes_encrypt : string -> string -> int -> string -> int -> unit = "caml_aes_encrypt"
+
+external aes_decrypt : string -> string -> int -> string -> int -> unit = "caml_aes_decrypt"
+
 (* 40bit / 128bit Encryption/Decryption Primitives *)
 
 (* Encryption / Decryption given a key. *)
@@ -201,8 +209,8 @@ let rcon =
     word_of_bytes 0x9a 0x00 0x00 0x00 |]
 
 (* Key expansion *)
-let key_expansion nk key =
-  try
+let key_expansion nk key = aes_cook_encrypt_key (string_of_int_array key)
+  (*try
     let nr = nk + 6 in
     let temp = ref (String.create 4)
     in let i = ref 0 in
@@ -225,7 +233,7 @@ let key_expansion nk key =
     with
       Invalid_argument _ as e ->
         Printf.printf "%i %i " nk (Array.length key);
-        raise e
+        raise e*)
 
 let shift_rows () =
   let a = get 1 0
@@ -386,7 +394,7 @@ let input_to_state_raw d p =
   put 2 3 (bget_unsafe d (p + 14)); put 3 3 (bget_unsafe d (p + 15))
 
 (* Encryption cipher. Assumes key already expanded. *)
-let cipher nr data_in =
+(* let cipher nr data_in =
   input_to_state data_in;
   add_round_key 0;
   for round = 1 to nr - 1 do
@@ -398,7 +406,7 @@ let cipher nr data_in =
   sub_bytes ();
   shift_rows ();
   add_round_key (nr * 4);
-  output_from_state ()
+  output_from_state () *)
 
 let cipher_raw nr data_in pos_in data_out pos_out =
   input_to_state_raw data_in pos_in;
@@ -560,7 +568,11 @@ let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
       iter
         (fun block ->
           let ciphertext =
-            cipher (nk + 6) ((array_map2 (lxor)) block !prev_ciphertext)
+            let src = string_of_int_array ((array_map2 (lxor)) block !prev_ciphertext)
+            and dst = String.make 16 ' ' in
+            (*cipher (nk + 6) ((array_map2 (lxor)) block !prev_ciphertext);*)
+            aes_encrypt (string_of_int_array key) src 0 dst 0;
+            (int_array_of_string dst)
           in
             prev_ciphertext := ciphertext;
             outblocks =| ciphertext)
@@ -744,6 +756,7 @@ let sha256 (i : Pdfio.input) =
         s.(x * 4 + 3) <- i32toi (land32 words.(x) 0x000000FFl)
       done;
       string_of_int_array s
+
 (* SHA-384 / SHA-512 *)
 let k =
   [| 0x428a2f98d728ae22L; 0x7137449123ef65cdL; 0xb5c0fbcfec4d3b2fL; 0xe9b5dba58189dbbcL;
