@@ -562,7 +562,7 @@ let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
 
 (* Encrypt data *)
 let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
-  key_expansion nk key;
+  let key = key_expansion nk key in
   let outblocks = ref [] in
     let prev_ciphertext = ref firstblock in
       iter
@@ -571,7 +571,7 @@ let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
             let src = string_of_int_array ((array_map2 (lxor)) block !prev_ciphertext)
             and dst = String.make 16 ' ' in
             (*cipher (nk + 6) ((array_map2 (lxor)) block !prev_ciphertext);*)
-            aes_encrypt (string_of_int_array key) src 0 dst 0;
+            aes_encrypt key src 0 dst 0;
             (int_array_of_string dst)
           in
             prev_ciphertext := ciphertext;
