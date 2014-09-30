@@ -433,11 +433,11 @@ let rec page_reference_numbers_inner pdf pages_node node_number =
       | Some (Array elts) ->
           flatten
             (map
-              (let x1 = (function
+              (function
                | Indirect i ->
                    page_reference_numbers_inner
                      pdf (direct pdf (Indirect i)) i
-               | _ -> raise (PDFError "badly formed page tree A")) in x1)
+               | _ -> raise (PDFError "badly formed page tree A"))
               elts)
       | _ -> raise (PDFError "badly formed page tree B")
       end
