@@ -80,7 +80,7 @@ val postpend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
 (** Ensure that there are no inherited attributes in the page tree --- in other
 words they are all explicit. This is required before writing a file with
 linearization *)
-val pagetree_make_explicit : Pdf.t -> Pdf.t
+(*val pagetree_make_explicit : Pdf.t -> Pdf.t*)
 
 val pagenumber_of_target : ?refnums:int list -> Pdf.t -> Pdfdest.t -> int
 

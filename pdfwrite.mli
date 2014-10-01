@@ -69,7 +69,7 @@ val string_of_pdf : Pdf.pdfobject -> string
 (**/**)
 
 (* For internal module recursion use only *)
-val pagetree_make_explicit : (Pdf.t -> Pdf.t) ref
+(*val pagetree_make_explicit : (Pdf.t -> Pdf.t) ref*)
 
 (* For debug, print out the PDFs objects to standard output *)
 val debug_whole_pdf : Pdf.t -> unit

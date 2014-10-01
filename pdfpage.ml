@@ -884,14 +884,14 @@ let postpend_operators pdf ops ?(fast=false) page =
       {page with content =
          [Pdfops.stream_of_ops (beforeops @ Pdfops.parse_operators pdf page.resources page.content @ afterops)]}
 
-(* Ensure that there are no inherited attributes in the page tree --- in other
+(* (* Ensure that there are no inherited attributes in the page tree --- in other
 words they are all explicit. This is required before writing a file with
 linearization *)
 let pagetree_make_explicit pdf =
   let pages = pages_of_pagetree pdf in
-    change_pages true pdf pages
+    change_pages true pdf pages*)
 
 (* Set the reference in Pdfwrite for inter-module recursion. *)
-let _ =
-  Pdfwrite.pagetree_make_explicit := pagetree_make_explicit
+(*let _ =
+  Pdfwrite.pagetree_make_explicit := pagetree_make_explicit*)
 
