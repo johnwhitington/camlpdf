@@ -6,7 +6,10 @@ let write_debug = ref false
 (* The file header. We include four larger-than-127 bytes as requested by the
 standard to help FTP programs distinguish binary/text transfer modes. *)
 let header pdf =
-  "%PDF-" ^ string_of_int pdf.Pdf.major ^ "." ^ string_of_int pdf.Pdf.minor ^ "\n%\128\129\130\131\n"
+  Printf.sprintf
+    "%%PDF-%i.%i\n%%\128\129\130\131\n"
+    pdf.Pdf.major
+    pdf.Pdf.minor
 
 (* Build a cross-reference table string. *)
 let pad_to_ten ch s =
