@@ -428,28 +428,25 @@ let objects_of_list parse l =
 (* Find the page reference numbers, given the top level node of the page tree *)
 let rec page_reference_numbers_inner pdf pages_node node_number =
   match lookup_direct pdf "/Type" pages_node with
-  | Some (Name "/Pages") | None ->
-      begin match lookup_direct pdf "/Kids" pages_node with
-      | Some (Array elts) ->
+    Some (Name "/Page") -> [node_number]
+  | _ ->
+      match lookup_direct pdf "/Kids" pages_node with
+        Some (Array elts) ->
           flatten
-            (map
+            (option_map
               (function
                | Indirect i ->
-                   page_reference_numbers_inner
-                     pdf (direct pdf (Indirect i)) i
-               | _ -> raise (PDFError "badly formed page tree A"))
+                   Some (page_reference_numbers_inner pdf (direct pdf (Indirect i)) i)
+               | _ -> None)
               elts)
-      | _ -> raise (PDFError "badly formed page tree B")
-      end
-  | Some (Name "/Page") -> [node_number]
-  | _ -> raise (PDFError "badly formed page tree C")
+      | _ -> [node_number] (* Missing /Type /Page in a malformed file would end up here *)
 
 let page_reference_numbers pdf =
   let root = lookup_obj pdf pdf.root in
     let pages_node =
-        match lookup_direct pdf "/Pages" root with
-        | Some p -> p
-        | None -> raise (PDFError "badly formed page tree D")
+      match lookup_direct pdf "/Pages" root with
+      | Some p -> p
+      | None -> raise (PDFError "No /Pages found in /Root")
     in
       page_reference_numbers_inner pdf pages_node (-1)
 
