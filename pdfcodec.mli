@@ -68,3 +68,7 @@ val string_of_pdf : (Pdf.pdfobject -> string) ref
 
 val flate_level : int ref
 
+val encode_flate : Pdfio.bytes -> Pdfio.bytes
+
+
+
