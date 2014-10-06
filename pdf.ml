@@ -62,15 +62,12 @@ let pdfobjmap_bindings_inorder map =
   sort (fun (a, _) (b, _) -> compare a b) !r
 
 let pdfobjmap_iter_inorder f map =
-  let bindings = pdfobjmap_bindings_inorder map in
-    iter (function (k, v) -> f k v) bindings
+  iter (function (k, v) -> f k v) (pdfobjmap_bindings_inorder map)
 
 let pdfobjmap_bindings map =
   let r = ref [] in Hashtbl.iter (fun k v -> r := (k, v)::!r) map; !r
 
-let pdfobjmap_iter f map =
-  let bindings = pdfobjmap_bindings map in
-    iter (function (k, v) -> f k v) bindings
+let pdfobjmap_iter = Hashtbl.iter
 
 let pdfobjmap_remove key map = Hashtbl.remove map key; map
 
@@ -207,7 +204,6 @@ c) Replace each object in the PDF with the parsed one, marked as already decrypt
 d) Delete the object stream, since it is no longer required.
 e) Return the new object. *)
 and parse_delayed_object_stream objnum streamobjnum pdf objstreamparser =
-  (*Printf.printf "Access of object %i triggered parsing of object stream %i" objnum streamobjnum; flprint "\n";*)
   let indexes = ref [] in
     pdfobjmap_iter
       (fun _ o -> match o with
@@ -220,7 +216,7 @@ and parse_delayed_object_stream objnum streamobjnum pdf objstreamparser =
         (function (objnum, newobject) ->
            pdf.objects.pdfobjects <- pdfobjmap_add objnum newobject pdf.objects.pdfobjects)
         objectsfromstream;
-      removeobj pdf streamobjnum; 
+      removeobj pdf streamobjnum;
       (* In the event that the object number we're looking for wasn't actually
       in the object stream due to a malformed file, we would enter an infinite
       loop parse_delayed_object_stream -> lookup_obj ->
@@ -231,8 +227,8 @@ and parse_delayed_object_stream objnum streamobjnum pdf objstreamparser =
 (* Parse all object streams in a document *)
 let resolve_all_delayed_object_streams pdf =
   iter
-    (function n -> ignore (lookup_obj pdf n))
-    (map fst (pdfobjmap_bindings pdf.objects.pdfobjects))
+    (function (n, _) -> ignore (lookup_obj pdf n))
+    (pdfobjmap_bindings pdf.objects.pdfobjects)
 
 let catalog_of_pdf pdf =
   try lookup_obj pdf pdf.root with
