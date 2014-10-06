@@ -120,7 +120,6 @@ flprint "END_AUTHENTICATE_USER\n";*)
 let string_of_pdf : (Pdf.pdfobject -> string) ref = ref (function _ -> "")
 
 let rec decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key l =
-  (*Printf.printf "decrypt %s" (!string_of_pdf l); flprint "\n";*)
   match l with
   | Pdf.String s ->
       (* Avoid decrypting an object which came from an object stream, since the
