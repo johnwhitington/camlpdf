@@ -1,6 +1,9 @@
 open Pdfutil
 open Pdfio
 
+(* Zlib inflate level *)
+let flate_level = ref 6
+
 (* Get the next non-whitespace character in a stream. *)
 let rec get_streamchar skipped s =
   match s.input_byte () with
@@ -258,7 +261,7 @@ let decode_flate_input i =
       bytes_of_strings_rev !strings
 
 let encode_flate stream =
-  flate_process Pdfflate.compress stream
+  flate_process (Pdfflate.compress ~level:!flate_level) stream
 
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
