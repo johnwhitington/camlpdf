@@ -856,10 +856,13 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
 let prepend_operators pdf ops ?(fast=false) page =
   if fast then
     {page with content =
-       Pdfops.stream_of_ops ops::page.content}
+       Pdfops.stream_of_ops ops :: page.content}
   else
-    {page with content =
-       [Pdfops.stream_of_ops (ops @ Pdfops.parse_operators pdf page.resources page.content)]}
+    let old_ops =
+      Pdfops.parse_operators pdf page.resources page.content
+    in
+      {page with content =
+        [Pdfops.stream_of_ops (ops @ old_ops)]}
 
 (* Add stack operators to a content stream to ensure it is composeable. *)
 let protect pdf resources content =
