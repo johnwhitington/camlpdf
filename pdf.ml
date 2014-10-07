@@ -45,7 +45,7 @@ type objectdata =
   | Parsed of pdfobject
   | ParsedAlreadyDecrypted of pdfobject
   | ToParse
-  | ToParseFromObjectStream of int * int * (int -> int list -> (int * (objectdata ref * int)) list)
+  | ToParseFromObjectStream of (int, int list) Hashtbl.t * int * int * (int -> int list -> (int * (objectdata ref * int)) list)
 
 type pdfobjmap_key = int
 
@@ -191,8 +191,8 @@ let rec lookup_obj doc i =
     match fst (pdfobjmap_find i doc.objects.pdfobjects) with
     | {contents = Parsed obj | ParsedAlreadyDecrypted obj} -> obj
     | {contents = ToParse} -> parse_lazy doc i
-    | {contents = ToParseFromObjectStream (streamobjnum, _, objstreamparser)} ->
-         parse_delayed_object_stream i streamobjnum doc objstreamparser
+    | {contents = ToParseFromObjectStream (themap, streamobjnum, _, objstreamparser)} ->
+         parse_delayed_object_stream themap i streamobjnum doc objstreamparser
   with
     Not_found -> Null
 
@@ -203,15 +203,9 @@ b) Read the object stream in the usual way
 c) Replace each object in the PDF with the parsed one, marked as already decrypted.
 d) Delete the object stream, since it is no longer required.
 e) Return the new object. *)
-and parse_delayed_object_stream objnum streamobjnum pdf objstreamparser =
-  let indexes = ref [] in
-    pdfobjmap_iter
-      (fun _ o -> match o with
-       | {contents = ToParseFromObjectStream (strm, index, _)}, _ when strm = streamobjnum ->
-            indexes := index::!indexes
-       | _ -> ())
-      pdf.objects.pdfobjects;
-    let objectsfromstream = objstreamparser streamobjnum !indexes in
+and parse_delayed_object_stream themap objnum streamobjnum pdf objstreamparser =
+  let indexes = Hashtbl.find themap objnum in
+    let objectsfromstream = objstreamparser streamobjnum indexes in
       iter
         (function (objnum, newobject) ->
            pdf.objects.pdfobjects <- pdfobjmap_add objnum newobject pdf.objects.pdfobjects)
@@ -242,8 +236,8 @@ let rec direct pdf = function
         match fst (pdfobjmap_find i pdf.objects.pdfobjects) with
         | {contents = Parsed pdfobject | ParsedAlreadyDecrypted pdfobject} -> direct pdf pdfobject
         | {contents = ToParse} -> parse_lazy pdf i
-        | {contents = ToParseFromObjectStream (streamobjnum, _, objstreamparser)} ->
-             parse_delayed_object_stream i streamobjnum pdf objstreamparser
+        | {contents = ToParseFromObjectStream (themap, streamobjnum, _, objstreamparser)} ->
+             parse_delayed_object_stream themap i streamobjnum pdf objstreamparser
       with
         Not_found -> Null
       end
@@ -335,8 +329,8 @@ let objiter f doc =
     | {contents = Parsed obj}, _ -> f k obj
     | {contents = ParsedAlreadyDecrypted obj}, _ -> f k obj
     | {contents = ToParse}, _ -> f k (parse_lazy doc k)
-    | {contents = ToParseFromObjectStream (s, _, func)}, _ ->
-         f k (parse_delayed_object_stream k s doc func)
+    | {contents = ToParseFromObjectStream (themap, s, _, func)}, _ ->
+         f k (parse_delayed_object_stream themap k s doc func)
   in
     pdfobjmap_iter f' doc.objects.pdfobjects
 
@@ -347,8 +341,8 @@ let objselfmap f doc =
     | {contents = Parsed obj} as r, _ -> r := Parsed (f obj)
     | {contents = ParsedAlreadyDecrypted obj} as r, _ -> r := ParsedAlreadyDecrypted (f obj)
     | {contents = ToParse}, _ -> ignore (parse_lazy doc k); f' k v
-    | {contents = ToParseFromObjectStream (s, _, func)}, _ ->
-         ignore (parse_delayed_object_stream k s doc func);
+    | {contents = ToParseFromObjectStream (themap, s, _, func)}, _ ->
+         ignore (parse_delayed_object_stream themap k s doc func);
          f' k v
   in
     pdfobjmap_iter f' doc.objects.pdfobjects
@@ -360,8 +354,8 @@ let objiter_inorder f doc =
     | {contents = Parsed obj}, _ -> f k obj
     | {contents = ParsedAlreadyDecrypted obj}, _ -> f k obj
     | {contents = ToParse}, _ -> f k (parse_lazy doc k)
-    | {contents = ToParseFromObjectStream (s, _, func)}, _ ->
-         f k (parse_delayed_object_stream k s doc func)
+    | {contents = ToParseFromObjectStream (themap, s, _, func)}, _ ->
+         f k (parse_delayed_object_stream themap k s doc func)
   in
     pdfobjmap_iter_inorder f' doc.objects.pdfobjects
 
@@ -373,8 +367,8 @@ let objiter_gen f doc =
     | {contents = Parsed obj}, g -> f k g obj
     | {contents = ParsedAlreadyDecrypted obj}, g -> f k g obj
     | {contents = ToParse}, g -> f k g (parse_lazy doc k)
-    | {contents = ToParseFromObjectStream (s, _, func)}, g ->
-         f k g (parse_delayed_object_stream k s doc func)
+    | {contents = ToParseFromObjectStream (themap, s, _, func)}, g ->
+         f k g (parse_delayed_object_stream themap k s doc func)
   in
     pdfobjmap_iter f' doc.objects.pdfobjects
 
@@ -468,8 +462,8 @@ let rec renumber_object_parsed (pdf : t) changes obj =
 let renumber_object pdf changes objnum = function
   | ToParse -> 
       renumber_object_parsed pdf changes (parse_lazy pdf objnum)
-  | ToParseFromObjectStream (s, _, func) ->
-      renumber_object_parsed pdf changes (parse_delayed_object_stream objnum s pdf func)
+  | ToParseFromObjectStream (themap, s, _, func) ->
+      renumber_object_parsed pdf changes (parse_delayed_object_stream themap objnum s pdf func)
   | Parsed obj | ParsedAlreadyDecrypted obj ->
       renumber_object_parsed pdf changes obj
 
@@ -594,8 +588,8 @@ and referenced no_follow_entries no_follow_contains pdf found i = function
       referenced no_follow_entries no_follow_contains pdf found i (Parsed x)
   | ToParse ->
       referenced no_follow_entries no_follow_contains pdf found i (Parsed (parse_lazy pdf i))
-  | ToParseFromObjectStream (s, _, func) ->
-      let result = parse_delayed_object_stream i s pdf func in
+  | ToParseFromObjectStream (themap, s, _, func) ->
+      let result = parse_delayed_object_stream themap i s pdf func in
         referenced no_follow_entries no_follow_contains pdf found i (ParsedAlreadyDecrypted result)
   | _ -> ()
 
@@ -810,7 +804,7 @@ let deep_copy_pdfobjects frompdf from =
       | Parsed obj -> Parsed (deep_copy_pdfobject obj)
       | ParsedAlreadyDecrypted obj -> ParsedAlreadyDecrypted (deep_copy_pdfobject obj)
       | ToParse -> ToParse
-      | ToParseFromObjectStream (x, y, z) -> ToParseFromObjectStream (x, y, z)
+      | ToParseFromObjectStream (themap, x, y, z) -> ToParseFromObjectStream (themap, x, y, z)
   in
     (* shouldn't occur due to resolve_all_delayed_object_streams above - do we really need that? *)
     let pdfobjmap = pdfobjmap_empty () in

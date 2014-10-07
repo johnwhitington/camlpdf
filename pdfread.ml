@@ -1264,7 +1264,7 @@ let read_pdf user_pw owner_pw opt i =
                  (list_of_hashtbl xrefs))
            in
              (*Printf.printf "*** %i objects are in streams\n" (length streamones);
-             iter (function (n, s, i) -> Printf.printf "STREAMONES: Obj %i, Stream %i, Index %i\n" n s i) streamones; *)
+             iter (function (n, s, i) -> Printf.printf "STREAMONES: Obj %i, Stream %i, Index %i\n" n s i) streamones;*)
              iter (function (n, s, _) -> Hashtbl.add object_stream_ids n s) streamones;
              if opt then
                begin
@@ -1293,7 +1293,21 @@ let read_pdf user_pw owner_pw opt i =
                  let readstream streamobjnumber indexes =
                    lex_stream_object i xrefs parse opt streamobjnumber indexes user_pw owner_pw partial (getgen streamobjnumber)
                  in
-                   map (function (n, s, i) -> (n, (ref (Pdf.ToParseFromObjectStream (s, i, readstream)), 0))) streamones
+                   let themap =
+                     let t = Hashtbl.create 200 in
+                       let groups =
+                         let sf = fun (_, s, _) (_, s', _) -> compare s s' in
+                           collate sf (sort sf streamones)
+                       in
+                         iter
+                           (fun group ->
+                              let pairs = map (fun (n, _, i) -> (n, i)) group in
+                                let all_indexes = map snd pairs in
+                                  iter (fun (n, _) -> Hashtbl.add t n all_indexes) pairs)
+                             groups;
+                             t
+                   in
+                     map (function (n, s, i) -> (n, (ref (Pdf.ToParseFromObjectStream (themap, s, i, readstream)), 0))) streamones
          in
           if !read_debug then
             begin

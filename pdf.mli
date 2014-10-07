@@ -35,7 +35,7 @@ type objectdata =
   (* Not parsed yet. Needs to be read from an object, which may still be encrypted *)
   | ToParse
   (* (stream object number, index in stream) Not parsed yet. Will come from an object stream. *)
-  | ToParseFromObjectStream of int * int * (int -> int list -> (int * (objectdata ref * int)) list)
+  | ToParseFromObjectStream of (int, int list) Hashtbl.t * int * int * (int -> int list -> (int * (objectdata ref * int)) list)
 
 type pdfobjmap_key = int
 
