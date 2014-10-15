@@ -59,6 +59,10 @@ encryption, but modified contents. This allows modifying an encrypted file
 directly without knowledge of the owner password. *)
 val pdf_to_file_recrypting : Pdf.t -> Pdf.t -> string -> string -> unit
 
+val pdf_to_channel_recrypting : Pdf.t -> Pdf.t -> string -> out_channel -> unit
+
+val pdf_to_output_recrypting : Pdf.t -> Pdf.t -> string -> Pdfio.output -> unit
+
 (** {2 String of a PDF object} *)
 
 (** Calculate a string of a pdf object. Due to OCaml's modest limit

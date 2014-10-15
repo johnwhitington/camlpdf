@@ -634,6 +634,22 @@ let pdf_to_file_options
 let pdf_to_file pdf f =
   pdf_to_file_options ~preserve_objstm:false ~generate_objstm:false false None true pdf f
 
+let pdf_to_output_recrypting original decrypted_and_modified userpw output =
+  let dummy_encryption =
+    Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
+  in
+    let copied = Pdf.deep_copy decrypted_and_modified in
+      let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+        pdf_to_output ~preserve_objstm:false ~generate_objstm:false false dummy_encryption recrypted output
+
+let pdf_to_channel_recrypting original decrypted_and_modified userpw channel =
+  let dummy_encryption =
+    Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
+  in
+    let copied = Pdf.deep_copy decrypted_and_modified in
+      let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+        pdf_to_channel ~preserve_objstm:false ~generate_objstm:false false dummy_encryption false recrypted channel
+
 let pdf_to_file_recrypting original decrypted_and_modified userpw filename =
   let dummy_encryption =
     Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
