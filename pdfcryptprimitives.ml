@@ -119,7 +119,7 @@ let get_padding s =
 
 let cutshort s =
   if bytes_size s = 0 then mkbytes 0 else
-    if bytes_size s <= 16 then s else
+    if bytes_size s < 16 then s else
       match get_padding s with
       | None -> s
       | Some padding ->
