@@ -604,15 +604,22 @@ let change_id pdf f =
   match pdf.Pdf.trailerdict with
   | Pdf.Dictionary d ->
       {pdf with
-         Pdf.trailerdict = Pdf.Dictionary (add "/ID" (Pdf.generate_id pdf f (fun () -> Random.float 1.)) d)}
+         Pdf.trailerdict =
+           Pdf.Dictionary
+             (add "/ID" (Pdf.generate_id pdf f (fun () -> Random.float 1.)) d)}
   | _ -> raise (Pdf.PDFError "Bad trailer dictionary")
 
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
-let pdf_to_channel ?(preserve_objstm = false) ?(generate_objstm=false) linearize encrypt mk_id pdf ch =
+let pdf_to_channel
+  ?(preserve_objstm = false) ?(generate_objstm=false)
+  linearize encrypt mk_id pdf ch
+=
   let pdf =
     if mk_id then change_id pdf "" else pdf
   in
-    pdf_to_output ~preserve_objstm ~generate_objstm linearize encrypt pdf (output_of_channel ch)
+    pdf_to_output
+      ~preserve_objstm ~generate_objstm linearize
+      encrypt pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
 trailer dictionary is updated using the current date and time and the filename.
@@ -624,37 +631,39 @@ let pdf_to_file_options
   ?(preserve_objstm = false) ?(generate_objstm = false)
   linearize encrypt mk_id pdf f
 =
-  let pdf' =
-    if mk_id then change_id pdf f else pdf
-  in
-    let ch = open_out_bin f in
-      pdf_to_channel ~preserve_objstm ~generate_objstm linearize encrypt false pdf' ch;
-      close_out ch
+  let pdf' = if mk_id then change_id pdf f else pdf
+  and ch = open_out_bin f in
+    pdf_to_channel
+      ~preserve_objstm ~generate_objstm linearize encrypt false pdf' ch;
+    close_out ch
 
 let pdf_to_file pdf f =
-  pdf_to_file_options ~preserve_objstm:false ~generate_objstm:false false None true pdf f
+  pdf_to_file_options
+    ~preserve_objstm:false ~generate_objstm:false false None true pdf f
+
+let dummy_encryption =
+  {encryption_method = AlreadyEncrypted;
+   owner_password = "";
+   user_password = "";
+   permissions = []}
 
 let pdf_to_output_recrypting original decrypted_and_modified userpw output =
-  let dummy_encryption =
-    Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
-  in
-    let copied = Pdf.deep_copy decrypted_and_modified in
-      let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
-        pdf_to_output ~preserve_objstm:false ~generate_objstm:false false dummy_encryption recrypted output
+  let copied = Pdf.deep_copy decrypted_and_modified in
+    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+      pdf_to_output
+        ~preserve_objstm:false ~generate_objstm:false false
+        (Some dummy_encryption) recrypted output
 
 let pdf_to_channel_recrypting original decrypted_and_modified userpw channel =
-  let dummy_encryption =
-    Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
-  in
-    let copied = Pdf.deep_copy decrypted_and_modified in
-      let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
-        pdf_to_channel ~preserve_objstm:false ~generate_objstm:false false dummy_encryption false recrypted channel
+  let copied = Pdf.deep_copy decrypted_and_modified in
+    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+      pdf_to_channel
+        ~preserve_objstm:false ~generate_objstm:false false
+        (Some dummy_encryption) false recrypted channel
 
 let pdf_to_file_recrypting original decrypted_and_modified userpw filename =
-  let dummy_encryption =
-    Some {encryption_method = AlreadyEncrypted; owner_password = ""; user_password = ""; permissions = []}
-  in
-    let copied = Pdf.deep_copy decrypted_and_modified in
-      let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
-        pdf_to_file_options false dummy_encryption false recrypted filename
+  let copied = Pdf.deep_copy decrypted_and_modified in
+    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+      pdf_to_file_options
+        false (Some dummy_encryption) false recrypted filename
 
