@@ -306,42 +306,49 @@ let get_encryption_values pdf =
             end
         | _ -> None
       in
-        match crypt_type with
-        | None -> raise (Pdf.PDFError "No encryption method")
-        | Some crypt_type ->
-            let o =
-              match Pdf.lookup_direct pdf "/O" encryptdict with
-              | Some (Pdf.String o) -> o
-              | _ -> raise (Pdf.PDFError "Bad or missing /O entry")
-            in let u =
-              match Pdf.lookup_direct pdf "/U" encryptdict with
-              | Some (Pdf.String u) -> u
-              | _ -> raise (Pdf.PDFError "Bad or missing /U entry")
-            in let p =
-              match Pdf.lookup_direct pdf "/P" encryptdict with
-              | Some (Pdf.Integer flags) -> i32ofi flags
-              | _ -> raise (Pdf.PDFError "Bad or missing /P entry")
-            in let id =
-              match Pdf.lookup_direct pdf "/ID" pdf.Pdf.trailerdict with
-              | Some (Pdf.Array [Pdf.String s; _]) -> s
-              | _ -> raise (Pdf.PDFError "Bad or missing /ID element")
-            in let oe =
-              match Pdf.lookup_direct pdf "/OE" encryptdict with
-              | Some (Pdf.String s) -> Some s
-              | _ -> None
-            in let ue =
-              match Pdf.lookup_direct pdf "/UE" encryptdict with
-              | Some (Pdf.String s) -> Some s
-              | _ -> None
-            in
-              (*Printf.printf "Encryption Values...\n";
-              Printf.printf "crypt_type = %s\n" (string_of_encryption crypt_type);
-              Printf.printf "p = %li\n" p;
-              Printf.printf "u = %s\n" (printable_of_string u);
-              Printf.printf "o = %s\n" (printable_of_string o);
-              if ue <> None then Printf.printf "ue = %s\n" (printable_of_string (unopt ue));
-              if oe <> None then Printf.printf "oe = %s\n" (printable_of_string (unopt oe));*)
-              crypt_type, u, o, p, id, ue, oe
+        let chop_string3248 n s =
+          let need = match crypt_type with Some (AESV3 _) -> 48 | _ -> 32 in
+            if String.length s < need then
+              raise (Pdf.PDFError (n ^ ": too small in get_encryption_values"))
+            else
+              String.sub s 0 need
+        in
+          match crypt_type with
+          | None -> raise (Pdf.PDFError "No encryption method")
+          | Some crypt_type ->
+              let o =
+                match Pdf.lookup_direct pdf "/O" encryptdict with
+                | Some (Pdf.String o) -> chop_string3248 "/O" o
+                | _ -> raise (Pdf.PDFError "Bad or missing /O entry")
+              and u =
+                match Pdf.lookup_direct pdf "/U" encryptdict with
+                | Some (Pdf.String u) -> chop_string3248 "/U" u
+                | _ -> raise (Pdf.PDFError "Bad or missing /U entry")
+              and p =
+                match Pdf.lookup_direct pdf "/P" encryptdict with
+                | Some (Pdf.Integer flags) -> i32ofi flags
+                | _ -> raise (Pdf.PDFError "Bad or missing /P entry")
+              and id =
+                match Pdf.lookup_direct pdf "/ID" pdf.Pdf.trailerdict with
+                | Some (Pdf.Array [Pdf.String s; _]) -> s
+                | _ -> raise (Pdf.PDFError "Bad or missing /ID element")
+              and oe =
+                match Pdf.lookup_direct pdf "/OE" encryptdict with
+                | Some (Pdf.String s) -> Some s
+                | _ -> None
+              and ue =
+                match Pdf.lookup_direct pdf "/UE" encryptdict with
+                | Some (Pdf.String s) -> Some s
+                | _ -> None
+              in
+                (*Printf.printf "Encryption Values...\n";
+                Printf.printf "crypt_type = %s\n" (string_of_encryption crypt_type);
+                Printf.printf "p = %li\n" p;
+                Printf.printf "u = %s\n" (printable_of_string u);
+                Printf.printf "o = %s\n" (printable_of_string o);
+                if ue <> None then Printf.printf "ue = %s\n" (printable_of_string (unopt ue));
+                if oe <> None then Printf.printf "oe = %s\n" (printable_of_string (unopt oe));*)
+                crypt_type, u, o, p, id, ue, oe
 
 (* Permissions *)
 type permission =
@@ -509,8 +516,13 @@ let file_encryption_key_aesv3_user iso utf8pw u ue =
 
 (* Algorithm 3.12 - Authenticating the owner password. *)
 let authenticate_owner_password_aesv3 iso utf8pw u o =
-  if String.length o < 48 || String.length u < 48 then raise (Pdf.PDFError "/O too short in authenticate_owner_password") else
-    (if iso then shamix utf8pw (Some u) else Pdfcryptprimitives.sha256) (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub o 32 8; String.sub u 0 48])) = String.sub o 0 32
+  if String.length o < 48 || String.length u < 48 then
+    raise (Pdf.PDFError "/O too short in authenticate_owner_password")
+  else
+      (if iso then shamix utf8pw (Some u) else Pdfcryptprimitives.sha256)
+      (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub o 32 8; String.sub u 0 48]))
+    =
+      String.sub o 0 32
 
 (* Algorithm 3.11 - Authenticating the user password. *)
 let authenticate_user_password_aesv3 iso utf8pw u =
