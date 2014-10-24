@@ -5,7 +5,8 @@ open Pdfio
 let crypt_debug = ref false
 
 (* ARC4 = old style or crypt filter with V2. AESV2 = Crypt filter with AESV2.
-AESV3 is 256 bit AES encryption from the PDF 1.7 Extensions, or the new ISO one. *)
+AESV3 is 256 bit AES encryption from the PDF 1.7 Extensions, or the new ISO one.
+*)
 type encryption =
   | ARC4 of int * int (* keylength, r (= 2 or 3 or 4) *)
   | AESV2 (* v = 4, r = 4 *)
@@ -70,7 +71,8 @@ let find_key no_encrypt_metadata password r o p id keylength =
                       let hashed = Digest.string !h in
                         h :=
                           string_of_int_array
-                            (Array.sub (int_array_of_string hashed) 0 (keylength / 8))
+                            (Array.sub (int_array_of_string hashed)
+                            0 (keylength / 8))
                     done;
                     !h
                 else
@@ -99,7 +101,8 @@ flprint "END_AUTHENTICATE_USER\n";*)
             let hash_input = string_of_int_arrays todigest in
               let hashed = Digest.string hash_input in
                 let encrypted_hashed =
-                  int_array_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string hashed))
+                  int_array_of_bytes
+                    (Pdfcryptprimitives.crypt key (bytes_of_string hashed))
                 in
                   let u' = ref [||] in
                     u' := encrypted_hashed;
@@ -110,57 +113,94 @@ flprint "END_AUTHENTICATE_USER\n";*)
                         done;
                         u' :=
                           int_array_of_bytes
-                            (Pdfcryptprimitives.crypt key' (bytes_of_int_array !u'))
+                            (Pdfcryptprimitives.crypt
+                               key' (bytes_of_int_array !u'))
                     done;
                     Array.sub u 0 16 = !u'
       else
-        u = int_array_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_int_array paddings))
+          u
+        =
+          int_array_of_bytes
+            (Pdfcryptprimitives.crypt key (bytes_of_int_array paddings))
 
 (* Decrypt a PDF file, given the user password. *)
 let string_of_pdf : (Pdf.pdfobject -> string) ref = ref (function _ -> "")
 
-let rec decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key l =
+let rec decrypt
+  crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
+  file_encryption_key l
+=
   match l with
   | Pdf.String s ->
       (* Avoid decrypting an object which came from an object stream, since the
       object stream has been decrypted en-masse already. *)
-      begin match fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects) with
+      begin match
+        fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects)
+      with
       | {contents = Pdf.ParsedAlreadyDecrypted _} -> Pdf.String s
       | _ (* Will always be Parsed for now...*) ->
         let f =
           (if crypt_type = AESV2 then
-            (if encrypt then Pdfcryptprimitives.aes_encrypt_data 4 else Pdfcryptprimitives.aes_decrypt_data 4)
+            (if encrypt
+               then Pdfcryptprimitives.aes_encrypt_data 4
+               else Pdfcryptprimitives.aes_decrypt_data 4)
            else if (match crypt_type with AESV3 _ -> true | _ -> false) then
-            (if encrypt then Pdfcryptprimitives.aes_encrypt_data 8 else Pdfcryptprimitives.aes_decrypt_data 8)
+            (if encrypt
+               then Pdfcryptprimitives.aes_encrypt_data 8
+               else Pdfcryptprimitives.aes_decrypt_data 8)
            else
             Pdfcryptprimitives.crypt)
         in
           let s_ints = bytes_of_string s in
             if r = 5 || r = 6 then
-              let key = match file_encryption_key with Some k -> k | None -> raise (Pdf.PDFError "decrypt: no key B") in
-                Pdf.String (string_of_bytes (f (int_array_of_string key) s_ints))
+              let key =
+                match file_encryption_key with
+                  Some k -> k
+                | None -> raise (Pdf.PDFError "decrypt: no key B")
+              in
+                Pdf.String
+                  (string_of_bytes (f (int_array_of_string key) s_ints))
             else
-              let hash = find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength in
+              let hash =
+                find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
+              in
                 Pdf.String (string_of_bytes (f hash s_ints))
       end
   | (Pdf.Stream _) as stream ->
-      decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key stream
+      decrypt_stream
+         crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
+         file_encryption_key stream
   | Pdf.Array a ->
-      begin match fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects) with
+      begin match
+        fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects)
+      with
       | {contents = Pdf.ParsedAlreadyDecrypted _} -> Pdf.Array a
-      | _ -> Pdf.recurse_array (decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key) a
+      | _ ->
+          Pdf.recurse_array
+            (decrypt crypt_type pdf no_encrypt_metadata encrypt obj
+             gen key keylength r file_encryption_key)
+            a
       end
   | Pdf.Dictionary d ->
-      begin match fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects) with
+      begin match
+        fst (Pdf.pdfobjmap_find obj pdf.Pdf.objects.Pdf.pdfobjects)
+      with
       | {contents = Pdf.ParsedAlreadyDecrypted _} -> Pdf.Dictionary d
-      | _ -> Pdf.recurse_dict (decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key) d
+      | _ ->
+          Pdf.recurse_dict
+            (decrypt crypt_type pdf no_encrypt_metadata encrypt obj
+             gen key keylength r file_encryption_key)
+            d
       end
   | x -> x
 
-and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key stream =
+and decrypt_stream
+  crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
+  file_encryption_key stream
+=
   Pdf.getstream stream;
   begin match stream with
-  | (Pdf.Stream {contents = (Pdf.Dictionary dict as d, Pdf.Got data)}) as stream ->
+  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, Pdf.Got data)} ->
       if
         begin let identity_crypt_filter_present =
           match Pdf.lookup_direct pdf "/Filter" d with
@@ -170,7 +210,8 @@ and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylen
               | Some (Pdf.Dictionary decodeparmsdict)
               | Some (Pdf.Array (Pdf.Dictionary decodeparmsdict::_)) ->
                   begin match
-                    Pdf.lookup_direct pdf "/Name" (Pdf.Dictionary decodeparmsdict)
+                    Pdf.lookup_direct
+                      pdf "/Name" (Pdf.Dictionary decodeparmsdict)
                   with
                   | Some (Pdf.Name "/Identity") | None -> true
                   | _ -> false
@@ -180,7 +221,10 @@ and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylen
           | _ -> false
         in
           (no_encrypt_metadata &&
-             (match Pdf.lookup_direct pdf "/Type" d with Some (Pdf.Name "/Metadata") -> true | _ -> false))
+             (match
+                Pdf.lookup_direct pdf "/Type" d with
+                  Some (Pdf.Name "/Metadata") -> true
+                | _ -> false))
           || identity_crypt_filter_present
         end
       then
@@ -189,21 +233,33 @@ and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylen
         let data' =
           let f =
             (if crypt_type = AESV2 then
-               (if encrypt then Pdfcryptprimitives.aes_encrypt_data 4 else Pdfcryptprimitives.aes_decrypt_data 4)
+               (if encrypt
+                  then Pdfcryptprimitives.aes_encrypt_data 4
+                  else Pdfcryptprimitives.aes_decrypt_data 4)
              else if (match crypt_type with AESV3 _ -> true | _ -> false) then
-               (if encrypt then Pdfcryptprimitives.aes_encrypt_data 8 else Pdfcryptprimitives.aes_decrypt_data 8)
+               (if encrypt
+                  then Pdfcryptprimitives.aes_encrypt_data 8
+                  else Pdfcryptprimitives.aes_decrypt_data 8)
              else
                Pdfcryptprimitives.crypt)
           in
             if r = 5 || r = 6 then
-              let key = match file_encryption_key with Some k -> k | None -> raise (Pdf.PDFError "decrypt: no key C") in
+              let key =
+                match file_encryption_key with
+                  Some k -> k
+                | None -> raise (Pdf.PDFError "decrypt: no key C")
+              in
                 f (int_array_of_string key) data
             else
-              let hash = find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength in
+              let hash =
+                find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
+              in
                 f hash data
         in let dict' =
           Pdf.recurse_dict
-            (decrypt crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r file_encryption_key) dict
+            (decrypt crypt_type pdf no_encrypt_metadata encrypt
+             obj gen key keylength r file_encryption_key)
+            dict
         in
           let dict'' =
             if bytes_size data <> bytes_size data' then
@@ -216,17 +272,10 @@ and decrypt_stream crypt_type pdf no_encrypt_metadata encrypt obj gen key keylen
   | _ -> assert false
   end
 
-let process_cryption no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p id keylength file_encryption_key =
-  (*Printf.printf "no_encrypt_metadata: %b\n" no_encrypt_metadata;
-  Printf.printf "encrypt = %b\n" encrypt;
-  Printf.printf "crypt_type = %s\n" ((function ARC4 (a, b) -> Printf.sprintf "ARC4 %i, %i" a b | AESV2 -> "AESV2" | AESV3 -> "AESV3") crypt_type);
-  Printf.printf "user_pw = |%s|\n" user_pw;
-  Printf.printf "r = %i\n" r;
-  Printf.printf "u = %s\n" u;
-  Printf.printf "o = %s\n" o;
-  Printf.printf "p = %li\n" p;
-  Printf.printf "id = %s\n" id;
-  Printf.printf "keylength = %i\n" keylength;*)
+let process_cryption
+  no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p id keylength
+  file_encryption_key
+=
   let encryption_object_number =
     match pdf.Pdf.trailerdict with
     | Pdf.Dictionary d ->
@@ -244,7 +293,9 @@ let process_cryption no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p 
              ignore
               (Pdf.addobj_given_num
                  pdf
-                 (objnum, decrypt crypt_type pdf no_encrypt_metadata encrypt objnum gennum key keylength r file_encryption_key obj))
+                 (objnum,
+                  decrypt crypt_type pdf no_encrypt_metadata encrypt objnum
+                  gennum key keylength r file_encryption_key obj))
            end)
       pdf;
     let trailerdict' = Pdf.remove_dict_entry pdf.Pdf.trailerdict "/Encrypt" in
@@ -256,16 +307,19 @@ let process_cryption no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p 
       | Some k -> do_encryption (int_array_of_string k)
       | None -> None
       end
-    else if authenticate_user no_encrypt_metadata user_pw r u o p id keylength then
+    else if
+      authenticate_user no_encrypt_metadata user_pw r u o p id keylength
+    then
       do_encryption (find_key no_encrypt_metadata user_pw r o p id keylength)
     else None
 
 let printable_of_string s =
-  String.concat "" (map (fun c -> Printf.sprintf "%02x" (int_of_char c)) (explode s))
+  String.concat
+    "" (map (fun c -> Printf.sprintf "%02x" (int_of_char c)) (explode s))
 
 let get_encryption_values pdf =
   match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
-  | None -> raise (Pdf.PDFError "get_encryption_values called on unencrypted pdf")
+  | None -> raise (Pdf.PDFError "get_encryption_values: unencrypted pdf")
   | Some encryptdict ->
       let crypt_type =
         match
@@ -986,15 +1040,24 @@ let encrypt_pdf_AES256_call iso encrypt_metadata user_pw owner_pw banlist pdf =
   and user_key_salt = mksalt ()
   and owner_validation_salt = mksalt ()
   and owner_key_salt = mksalt ()
-  and file_encryption_key = bytes_of_string (mkfilekey ()) in
-    let p = p_of_banlist banlist in
-      let u, ue = make_ue iso file_encryption_key user_pw user_validation_salt user_key_salt in
-        let o, oe, digest = make_oe iso file_encryption_key owner_pw owner_validation_salt owner_key_salt u in
-          let id, pdf = get_or_add_id pdf in
-            let perms = perms_of_p ~digest:digest iso encrypt_metadata p owner_pw o oe u in
-              encrypt_pdf_AES256_inner
-                iso encrypt_metadata o u p (string_of_bytes perms) oe ue id
-                (string_of_bytes file_encryption_key) pdf
+  and file_encryption_key = bytes_of_string (mkfilekey ())
+  and p = p_of_banlist banlist in
+  let u, ue =
+    make_ue
+      iso file_encryption_key user_pw user_validation_salt user_key_salt
+  in
+    let o, oe, digest =
+      make_oe
+        iso file_encryption_key owner_pw
+        owner_validation_salt owner_key_salt u
+    in
+      let id, pdf = get_or_add_id pdf in
+        let perms =
+          perms_of_p ~digest:digest iso encrypt_metadata p owner_pw o oe u
+        in
+          encrypt_pdf_AES256_inner
+            iso encrypt_metadata o u p (string_of_bytes perms) oe ue id
+            (string_of_bytes file_encryption_key) pdf
 
 let encrypt_pdf_AES256 =
   encrypt_pdf_AES256_call false
@@ -1011,35 +1074,52 @@ let is_encrypted pdf =
 (* recrypt_pdf original decrypted_and_modified user_password_used
 re-encrypts a PDF document which was decrypted with the user password given
 using that same user password, the owner password from the original encrypted
-file and the same permissions and encryption parameters. **modified is nuked**. *)
+file and the same permissions and encryption parameters. **modified is nuked**
+*)
 let recrypt_pdf original modified user_pw =
   match Pdf.lookup_direct original "/Encrypt" original.Pdf.trailerdict with
   | None -> raise (Pdf.PDFError "recrypt_pdf: original PDF not encrypted.")
   | Some encrypt_dict ->
      let modified = Pdf.renumber (Pdf.changes modified) modified in
-       let crypt_type, u, o, p, id, ue, oe = get_encryption_values original in
-         let encrypt_metadata =
-           match Pdf.lookup_direct original "/EncryptMetadata" encrypt_dict with
-           | Some (Pdf.Boolean false) -> false
-           | _ -> true
-         in
-           match crypt_type with
-           | AESV3 iso ->
-               let oe, ue =
-                 begin match oe with Some oe -> oe | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe") end,
-                 begin match ue with Some ue -> ue | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue") end
-               in
-                 let key =
-                   if authenticate_user_password_aesv3 iso (make_utf8 user_pw) u
-                     then file_encryption_key_aesv3_user iso (make_utf8 user_pw) u ue
-                     else raise (Pdf.PDFError "recrypt_pdf: could not build AESV3 file encryption key.")
-               in
-                 encrypt_pdf_AES256_inner
-                   iso encrypt_metadata o u p (string_of_bytes (perms_of_p iso encrypt_metadata p user_pw o oe u))
-                   oe ue id (string_of_bytes key) modified
-           | AESV2 -> encrypt_pdf_AES_inner o u p user_pw id encrypt_metadata modified
-           | ARC4 (40, _) -> encrypt_pdf_40bit_inner o u p user_pw id modified
-           | ARC4 (128, 4) -> encrypt_pdf_128bit_inner_r4 o u p user_pw id modified encrypt_metadata
-           | ARC4 (128, _) -> encrypt_pdf_128bit_inner o u p user_pw id modified
-           | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
+     let crypt_type, u, o, p, id, ue, oe = get_encryption_values original in
+     let encrypt_metadata =
+       match Pdf.lookup_direct original "/EncryptMetadata" encrypt_dict with
+         Some (Pdf.Boolean false) -> false
+       | _ -> true
+     in
+       match crypt_type with
+       | AESV3 iso ->
+           let oe, ue =
+             begin
+               match oe with
+                 Some oe -> oe
+               | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
+             end,
+             begin
+               match ue with
+                 Some ue -> ue
+               | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
+             end
+           in
+             let key =
+               if authenticate_user_password_aesv3 iso (make_utf8 user_pw) u
+                 then
+                   file_encryption_key_aesv3_user iso (make_utf8 user_pw) u ue
+                 else
+                   raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
+             in
+               encrypt_pdf_AES256_inner
+                 iso encrypt_metadata o u p
+                 (string_of_bytes
+                   (perms_of_p iso encrypt_metadata p user_pw o oe u))
+                 oe ue id (string_of_bytes key) modified
+       | AESV2 ->
+           encrypt_pdf_AES_inner o u p user_pw id encrypt_metadata modified
+       | ARC4 (40, _) -> encrypt_pdf_40bit_inner o u p user_pw id modified
+       | ARC4 (128, 4) ->
+           encrypt_pdf_128bit_inner_r4
+             o u p user_pw id modified encrypt_metadata
+       | ARC4 (128, _) ->
+           encrypt_pdf_128bit_inner o u p user_pw id modified
+       | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
 
