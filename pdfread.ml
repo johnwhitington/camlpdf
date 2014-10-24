@@ -29,8 +29,10 @@ let input_line i =
 
 (* Read back until a predicate is fulfilled. *)
 let rec read_back_until p i =
-  if (notpred p) (match read_char_back i with Some x -> x | None -> raise End_of_file)
-    then read_back_until p i
+  if
+    (notpred p)
+    (match read_char_back i with Some x -> x | None -> raise End_of_file)
+  then read_back_until p i
 
 (* Go back one line. In other words, find the second EOL character group
 seeking back in the file, and seek to the character after it. A blank line
@@ -65,7 +67,8 @@ let rec read_header_inner pos i =
           let minorchars = takewhile isdigit minor in
             if minorchars = []
               then
-                raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed PDF header"))
+                raise
+                  (Pdf.PDFError (Pdf.input_pdferror i "Malformed PDF header"))
               else
                 begin
                   i.set_offset pos;
@@ -83,20 +86,23 @@ let read_header =
 (* Find the EOF marker, and move position to its first character. We allow 1024
 bytes from end-of-file for compatibility with Acrobat. *)
 let find_eof i =
-  let fail () = raise (Pdf.PDFError (Pdf.input_pdferror i "Could not find EOF marker"))
-  in let pos = ref (i.in_channel_length - 4) in
-    try
-      let notfound = ref true
-      in let tries = ref 1024 in
-        while !notfound do
-          pos := !pos - 1;
+  let fail () =
+    raise (Pdf.PDFError (Pdf.input_pdferror i "Could not find EOF marker"))
+  in
+    let pos = ref (i.in_channel_length - 4) in
+      try
+        let notfound = ref true
+        in let tries = ref 1024 in
+          while !notfound do
+            pos := !pos - 1;
+            i.seek_in !pos;
+            if !tries < 0 then fail () else decr tries;
+            let l = input_line i in
+              if String.length l >= 5 && String.sub l 0 5 = "%%EOF" then
+                clear notfound
+          done;
           i.seek_in !pos;
-          if !tries < 0 then fail () else decr tries;
-          let l = input_line i in
-            if String.length l >= 5 && String.sub l 0 5 = "%%EOF" then clear notfound
-        done;
-        i.seek_in !pos;
-    with
+      with
       _ -> fail ()
 
 (* String of lexeme. *)
@@ -205,9 +211,12 @@ let lex_number i =
       | _ -> LexNone
     with
     | Failure "hd" -> LexNone
-    | Pdf.PDFError _ (* can't cope with floats where number has leading point. *)
+    | Pdf.PDFError _ (* can't cope with floats with leading point. *)
     | Failure "int_of_string" ->
-        LexReal (float_of_string (i.seek_in pos; (getuntil_white_or_delimiter_string i))) (*r [float_of_string] never fails. *)
+        LexReal
+          (float_of_string
+             (i.seek_in pos; (getuntil_white_or_delimiter_string i)))
+          (* [float_of_string] never fails. *)
 
 (* Lex a name. *)
 let b = Buffer.create 30
@@ -230,7 +239,10 @@ let lex_name i =
                   let a2 = i.input_byte () in
                     if a <> Pdfio.no_more && a2 <> Pdfio.no_more then
                       Buffer.add_char b
-                        (char_of_int (int_of_string ("0x" ^ string_of_char (char_of_int a) ^ string_of_char (char_of_int a2))))
+                        (char_of_int
+                          (int_of_string
+                            ("0x" ^ string_of_char (char_of_int a) ^
+                             string_of_char (char_of_int a2))))
               end
             else Buffer.add_char b c
     done;
@@ -315,7 +327,8 @@ let lex_string i =
     done;
     LexString (Buffer.contents str)
   with
-    | Failure "unopt" -> raise (Pdf.PDFError (Pdf.input_pdferror i "lex_string failure"))
+    | Failure "unopt" ->
+        raise (Pdf.PDFError (Pdf.input_pdferror i "lex_string failure"))
 
 (* Lex a hexadecimal string. *)
 let lex_hexstring i =
@@ -341,13 +354,14 @@ let lex_hexstring i =
                 let c' = input_next_char () in
                   match c, c' with
                   | '>', _ -> rewind i; set finished
-                  | a, '>' -> addchar (mkchar a '0'); set finished (* Fixed 10 Mar 2011 - added set finished *)
+                  | a, '>' -> addchar (mkchar a '0'); set finished
                   | a, b -> addchar (mkchar a b)
               done;
               LexString (Buffer.contents str)
        with
          | End_of_file -> LexString (Buffer.contents str)
-         | Failure "unopt" -> raise (Pdf.PDFError (Pdf.input_pdferror i "lex_hexstring"))
+         | Failure "unopt" ->
+             raise (Pdf.PDFError (Pdf.input_pdferror i "lex_hexstring"))
 
 (* Lex a keyword. *)
 let lex_keyword i =
@@ -393,7 +407,8 @@ let skip_stream_beginning i =
   ignoreuntilwhite i; (* consume the 'stream' keyword *)
   (* Ignore any white other than CR or LF. For malformed files which don't have
    * CR or LF immediately following stream keyword. *)
-  ignoreuntil true (function ' ' | '\000' | '\012' | '\009' -> false | _ -> true) i;
+  ignoreuntil
+    true (function ' ' | '\000' | '\012' | '\009' -> false | _ -> true) i;
   (* Skip either CRLF or LF. (See PDF specification for why). *)
   match char_of_int (i.input_byte ()) with
   | '\013' ->
@@ -427,23 +442,25 @@ let rec find_endstream i =
       then
         i.pos_in ()
       else
-        (if i.pos_in () = i.in_channel_length then i.pos_in () else (nudge i; find_endstream i))
+        (if i.pos_in () = i.in_channel_length
+           then i.pos_in ()
+           else (nudge i; find_endstream i))
 
 let lex_malformed_stream_data i =
-  (*Printf.printf "lex_malformed_stream_data at %i\n" (i.Pdfio.pos_in ());
-  flprint "\n";
-  Pdfio.debug_next_n_chars 20 i;
-  flprint "\n";*)
   try
     skip_stream_beginning i;
     let curr = i.pos_in () in
-      let pos = find_endstream i in (* returns first char of endstream sequence *)
+      let pos = find_endstream i in (* returns first char of endstream *)
         i.seek_in curr;
         let arr = mkbytes (pos - curr) in
-          for x = 0 to bytes_size arr - 1 do bset_unsafe arr x (i.input_byte ()) done;
+          for x = 0 to bytes_size arr - 1 do
+            bset_unsafe arr x (i.input_byte ())
+          done;
           LexStream (Pdf.Got arr)
   with
-    e -> raise (Pdf.PDFError ("Couldn't read malformed stream  - " ^ Printexc.to_string e))
+    e ->
+      raise
+        (Pdf.PDFError ("Bad read malformed stream  - " ^ Printexc.to_string e))
 
 let lex_stream_data i l opt =
   let original_pos = i.pos_in () in
@@ -473,9 +490,11 @@ length. [i] is at the start of the stream data, suitable for input to
 [lex_stream_data]. We extract the dictionary by going through
 [previous_lexemes], the reverse-order list of the lexemes already read. *)
 let lex_stream i p previous_lexemes lexobj opt =
-  let fail () = raise (Pdf.PDFError (Pdf.input_pdferror i "Failure lexing stream dict")) in
+  let fail () =
+    raise (Pdf.PDFError (Pdf.input_pdferror i "Failure lexing stream dict"))
+  in
     let dictlexemes =
-      (takewhile_reverse (function LexObj -> false | _ -> true) previous_lexemes)
+      takewhile_reverse (function LexObj -> false | _ -> true) previous_lexemes
     in
       match p dictlexemes with
       | _, Pdf.Dictionary a ->
@@ -504,8 +523,8 @@ let lex_stream i p previous_lexemes lexobj opt =
 
 (* Find the next lexeme in the channel and return it. The latest-first lexeme
 list [previous_lexemes] contains all things thus-far lexed. [dictlevel] is a
-number representing the dictionary and/or array nesting level. If [endonstream] is true,
-lexing ends upon encountering a [LexStream] lexeme. *)
+number representing the dictionary and/or array nesting level. If [endonstream]
+is true, lexing ends upon encountering a [LexStream] lexeme. *)
 let lex_next dictlevel arraylevel endonstream i previous_lexemes p opt lexobj =
   try
     dropwhite i;
@@ -556,7 +575,9 @@ let lex_next dictlevel arraylevel endonstream i previous_lexemes p opt lexobj =
       | 'I' -> StopLexing (* We've hit an ID marker in an inline image *)
       | c -> (*Printf.eprintf "lexnone with character %C\n" c;*) LexNone
   with
-    e -> Printf.eprintf "Recovering from Lex error: %s\n" (Printexc.to_string e); StopLexing
+    e ->
+      Printf.eprintf "Recovering from Lex error: %s\n" (Printexc.to_string e);
+      StopLexing
 
 (* Lex just a dictionary, consuming only the tokens to the end of it. This is
 used in the [PDFPages] module to read dictionaries in graphics streams. *)
@@ -573,7 +594,8 @@ let lex_dictionary i =
       | StopLexing ->
           rev lexemes
       | LexNone ->
-          raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read dictionary"))
+          raise
+            (Pdf.PDFError (Pdf.input_pdferror i "Could not read dictionary"))
       | a ->
           lex_dictionary_getlexemes i (a::lexemes) dictlevel arraylevel
   in
@@ -584,65 +606,84 @@ streams. Can raise [PDFError]. *)
 let lex_object_at oneonly i opt p lexobj =
   let dictlevel = ref 0
   in let arraylevel = ref 0 in
-    let rec lex_object_at i lexemes =
-      let lexeme = lex_next dictlevel arraylevel false i lexemes p opt lexobj in
-        match lexeme with
-        | LexEndObj -> rev (lexeme::lexemes) 
-        | StopLexing -> rev lexemes
-        | LexComment -> lex_object_at i (lexeme::lexemes)
-        | LexRightSquare | LexRightDict ->
-            if oneonly && !dictlevel = 0 && !arraylevel = 0
-              then
-                begin
-                  let pos = i.pos_in () in
-                    match lex_next dictlevel arraylevel false i (lexeme::lexemes) p opt lexobj with
-                    | LexStream s ->
-                        begin match lex_next dictlevel arraylevel false i (LexStream s::lexeme::lexemes) p opt lexobj with
-                        | LexEndStream ->
-                            begin match lex_next dictlevel arraylevel false i (LexEndStream::LexStream s::lexeme::lexemes) p opt lexobj with
-                            | LexEndObj -> rev (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
-                            | _ ->
-                               rev (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
-                            end
-                        | _ -> 
-                           rev (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
-                        end
-                    | _ -> i.seek_in pos; rev (lexeme::lexemes)
-                end
-              else lex_object_at i (lexeme::lexemes)
-        | LexNone ->
-            raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read object"))
-        | LexInt i1 ->
-            (* Check for the case of "x y obj", which in the case of oneonly
-            should be returned as the one object. If i is followed by something
-            other than an integer and 'obj', we must rewind and just return the
-            integer *)
-            if oneonly && !dictlevel = 0 && !arraylevel = 0 then
+  let rec lex_object_at i lexemes =
+    let lexeme = lex_next dictlevel arraylevel false i lexemes p opt lexobj in
+      match lexeme with
+      | LexEndObj -> rev (lexeme::lexemes) 
+      | StopLexing -> rev lexemes
+      | LexComment -> lex_object_at i (lexeme::lexemes)
+      | LexRightSquare | LexRightDict ->
+          if oneonly && !dictlevel = 0 && !arraylevel = 0
+            then
+              begin
               let pos = i.pos_in () in
-                begin match lex_next dictlevel arraylevel false i lexemes p opt lexobj with
-                | LexInt i2 ->
-                   begin match lex_next dictlevel arraylevel false i lexemes p opt lexobj with
-                   | LexObj ->
-                       lex_object_at i (LexObj::LexInt i2::LexInt i1::lexemes)
-                   | _ ->
-                     i.seek_in pos;
-                     rev (LexInt i1::lexemes)
-                   end
-                | _ ->
+                match
+                  lex_next
+                    dictlevel arraylevel false i (lexeme::lexemes) p opt lexobj
+                with
+                | LexStream s ->
+                  begin match
+                    lex_next
+                      dictlevel arraylevel false i
+                      (LexStream s::lexeme::lexemes) p opt lexobj
+                  with
+                  | LexEndStream ->
+                    begin match
+                      lex_next dictlevel arraylevel false i
+                      (LexEndStream::LexStream s::lexeme::lexemes)
+                      p opt lexobj
+                    with
+                    | LexEndObj ->
+                      rev
+                        (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
+                    | _ ->
+                      rev
+                        (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
+                    end
+                  | _ -> 
+                     rev (LexEndObj::LexEndStream::LexStream s::lexeme::lexemes)
+                  end
+                | _ -> i.seek_in pos; rev (lexeme::lexemes)
+              end
+            else lex_object_at i (lexeme::lexemes)
+      | LexNone ->
+          raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read object"))
+      | LexInt i1 ->
+          (* Check for the case of "x y obj", which in the case of oneonly
+          should be returned as the one object. If i is followed by something
+          other than an integer and 'obj', we must rewind and just return the
+          integer *)
+          if oneonly && !dictlevel = 0 && !arraylevel = 0 then
+            let pos = i.pos_in () in
+              begin match
+                lex_next dictlevel arraylevel false i lexemes p opt lexobj
+              with
+              | LexInt i2 ->
+                 begin match
+                   lex_next dictlevel arraylevel false i lexemes p opt lexobj
+                 with
+                 | LexObj ->
+                     lex_object_at i (LexObj::LexInt i2::LexInt i1::lexemes)
+                 | _ ->
                    i.seek_in pos;
                    rev (LexInt i1::lexemes)
-                end
-            else
-              lex_object_at i (LexInt i1::lexemes)
-        | a ->
-           (* If oneonly, then can return if not in an array or dictionary and if this lexeme was an atom. *)
-           let isatom = function
-             | LexBool _ | LexReal _ | LexString _ | LexName _ -> true
-             | _ -> false
-           in
-             if oneonly && isatom a && !dictlevel = 0 && !arraylevel = 0
-               then rev (a::lexemes)
-               else lex_object_at i (a::lexemes)
+                 end
+              | _ ->
+                 i.seek_in pos;
+                 rev (LexInt i1::lexemes)
+              end
+          else
+            lex_object_at i (LexInt i1::lexemes)
+      | a ->
+         (* If oneonly, then can return if not in an array or dictionary and if
+         this lexeme was an atom. *)
+         let isatom = function
+           | LexBool _ | LexReal _ | LexString _ | LexName _ -> true
+           | _ -> false
+         in
+           if oneonly && isatom a && !dictlevel = 0 && !arraylevel = 0
+             then rev (a::lexemes)
+             else lex_object_at i (a::lexemes)
     in
       lex_object_at i []
 
@@ -669,20 +710,25 @@ let xrefs_table_find table k =
 let xrefs_table_iter = Hashtbl.iter
 
 (* [p] is the parser. Since this will be called from within functions it also
-calls, we must store and retrieve the current file position on entry and exit. *)
+calls, we must store and retrieve the current file position on entry and exit.
+*)
 let rec lex_object i xrefs p opt n =
   let current_pos = i.pos_in () in
      let xref =
        match xrefs_table_find xrefs n with
        | Some x -> x
-       | None -> raise (Pdf.PDFError (Pdf.input_pdferror i "Object not in xref table"))
+       | None ->
+           raise
+             (Pdf.PDFError (Pdf.input_pdferror i "Object not in xref table"))
      in
        match xref with
        | XRefStream (objstm, index) ->
            assert false (*r lex object only used on XRefPlain entries *)
        | XRefPlain (o, _) ->
            i.seek_in o;
-           let result = lex_object_at false i opt p (lex_object i xrefs p opt) in
+           let result =
+             lex_object_at false i opt p (lex_object i xrefs p opt)
+           in
              i.seek_in current_pos;
              result
 
@@ -694,14 +740,21 @@ type partial_parse_element =
   | Parsed of Pdf.pdfobject
 
 let print_parseme = function
-  | Parsed p -> flprint "PARSED:"; print_string (Pdfwrite.string_of_pdf p); flprint "\n"
-  | Lexeme l -> flprint "LEXEME:"; print_lexeme l; flprint "\n" 
+  | Parsed p ->
+      flprint "PARSED:";
+      print_string (Pdfwrite.string_of_pdf p);
+      flprint "\n"
+  | Lexeme l ->
+      flprint "LEXEME:";
+      print_lexeme l;
+      flprint "\n" 
 
 (* Parse stage one. *)
 let parse_R ts =
   let rec parse_R_inner r = function
     | [] -> rev r
-    | LexInt o::LexInt _::LexR::rest -> parse_R_inner (Parsed (Pdf.Indirect o)::r) rest
+    | LexInt o::LexInt _::LexR::rest ->
+        parse_R_inner (Parsed (Pdf.Indirect o)::r) rest
     | LexComment::t -> parse_R_inner r t
     | LexNull::t -> parse_R_inner (Parsed Pdf.Null::r) t
     | LexBool b::t -> parse_R_inner (Parsed (Pdf.Boolean b)::r) t
@@ -723,7 +776,8 @@ let process_parse_dictionary elts =
       Parsed (Pdf.Dictionary (mkpairs [] elts))
     with
       Pdf.PDFError "parse_dictionary" ->
-        Printf.eprintf "Malformed file: odd length dictionary - parsed as the empty dictionary. Carrying on...\n";
+        Printf.eprintf
+          "Malformed file: odd length dictionary. Carrying on...\n";
         Parsed (Pdf.Dictionary [])
 
 let process_parse_array elts =
@@ -795,32 +849,41 @@ let parse_finish ?(failure_is_ok = false) q =
         match s with Pdf.Got b -> bytes_size b | Pdf.ToGet (_, _, l) -> l
       and lold =
         try
-          begin match lookup_failnull "/Length" d with Pdf.Integer l -> l | _ -> -1 end
+          begin match
+            lookup_failnull "/Length" d with Pdf.Integer l -> l | _ -> -1
+          end
         with
           Not_found -> -1 
       in
         if lold <> l
-          then (o, Pdf.Stream {contents = Pdf.add_dict_entry obj "/Length" (Pdf.Integer l), s})
-          else (o, Pdf.Stream {contents = obj, s})
+          then
+            (o,
+             Pdf.Stream
+               {contents = Pdf.add_dict_entry obj "/Length" (Pdf.Integer l), s})
+          else
+            (o, Pdf.Stream {contents = obj, s})
   | [Parsed d] ->
       0, d
-  | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _); Lexeme LexObj; Lexeme LexEndObj] -> o, Pdf.Null
+  | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _);
+     Lexeme LexObj; Lexeme LexEndObj] ->
+      o, Pdf.Null
   | l ->
-      (*if not failure_is_ok then begin flprint "PARSEMES:\n"; iter print_parseme l; flprint "END OF PARSEMES\n"; end;*)
       raise (Pdf.PDFError "Could not extract object")
 
 (* Parse some lexemes *)
 let parse ?(failure_is_ok = false) lexemes =
-  try parse_finish ~failure_is_ok:failure_is_ok (parse_to_tree [] (parse_R lexemes)) with
-    | Pdf.PDFError _ ->
-        (*if not failure_is_ok then
-          Printf.eprintf "Can't read object. Error was...\n%s\nCarrying on...\n" (Printexc.to_string e);*)
-        (max_int, Pdf.Null)
+  try
+    parse_finish
+      ~failure_is_ok:failure_is_ok (parse_to_tree [] (parse_R lexemes))
+  with
+    Pdf.PDFError _ -> (max_int, Pdf.Null)
 
 (* Given an object stream pdfobject and a list of object indexes to extract,
- return an [(int * Pdf.objectdata) list] representing those object number, lexeme
- pairs - assuming they exist! *)
-let lex_stream_object i xrefs parse opt obj indexes user_pw owner_pw partial_pdf gen =
+ return an [(int * Pdf.objectdata) list] representing those object number,
+ lexeme pairs - assuming they exist! *)
+let lex_stream_object
+  i xrefs parse opt obj indexes user_pw owner_pw partial_pdf gen
+=
   if !read_debug then
     begin
       Printf.printf "lexing object stream at %i\n" (i.Pdfio.pos_in ());
@@ -833,14 +896,19 @@ let lex_stream_object i xrefs parse opt obj indexes user_pw owner_pw partial_pdf
         let n =
           match Pdf.lookup_direct partial_pdf "/N" d with
           | Some (Pdf.Integer n) -> n
-          | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "missing/malformed /N"))
+          | _ ->
+              raise (Pdf.PDFError (Pdf.input_pdferror i "malformed /N"))
         in let first =
           match Pdf.lookup_direct partial_pdf "/First" d with
           | Some (Pdf.Integer n) -> n
-          | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "missing/malformed /First"))
+          | _ ->
+              raise (Pdf.PDFError (Pdf.input_pdferror i "malformed /First"))
         in
           (* Decrypt if necessary *)
-          let stmobj = Pdfcrypt.decrypt_single_stream user_pw owner_pw partial_pdf obj gen stmobj in
+          let stmobj =
+            Pdfcrypt.decrypt_single_stream
+              user_pw owner_pw partial_pdf obj gen stmobj
+          in
             Pdfcodec.decode_pdfstream partial_pdf stmobj;
             begin match stmobj with
             | Pdf.Stream {contents = _, Pdf.Got raw} ->
@@ -853,7 +921,10 @@ let lex_stream_object i xrefs parse opt obj indexes user_pw owner_pw partial_pdf
                       rawnums =|
                         match lex_number i with
                         | LexInt i -> i
-                        | k -> raise (Pdf.PDFError (Pdf.input_pdferror i "objstm offset problem"))
+                        | k ->
+                            raise
+                              (Pdf.PDFError
+                                (Pdf.input_pdferror i "objstm offset problem"))
                     done;
                     rawnums := rev !rawnums;
                     (* Read each object *)
@@ -870,25 +941,41 @@ let lex_stream_object i xrefs parse opt obj indexes user_pw owner_pw partial_pdf
                                indexes := xs;
                                i.seek_in (offset + first);
                                let lexemes =
-                                 lex_object_at true i opt parse (lex_object i xrefs parse opt)
+                                 lex_object_at
+                                   true i opt parse
+                                   (lex_object i xrefs parse opt)
                                in
-                                 let obj = (ref (Pdf.ParsedAlreadyDecrypted (snd (parse lexemes))), 0) in
+                                 let obj =
+                                   (ref
+                                     (Pdf.ParsedAlreadyDecrypted
+                                       (snd (parse lexemes))), 0)
+                                 in
                                    objects =| (objnum, obj)
                            end;
                            incr index)
                         pairs;
-                      (* FIXME: Why does this make it null rather than actually remove the object? *)
+                      (* FIXME: Why does this make it null rather than actually
+                       * remove the object? *)
                       Pdf.addobj_given_num partial_pdf (obj, Pdf.Null);
                       !objects
                 with
                   End_of_file ->
-                    raise (Pdf.PDFError (Pdf.input_pdferror i "unexpected objstream end"))
+                    raise
+                      (Pdf.PDFError
+                        (Pdf.input_pdferror i "unexpected objstream end"))
                 end
-          | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "couldn't decode objstream"))
+          | _ ->
+              raise
+                (Pdf.PDFError
+                  (Pdf.input_pdferror i "couldn't decode objstream"))
           end
-    | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "lex_stream_object: not a stream"))
+    | _ ->
+        raise
+          (Pdf.PDFError
+            (Pdf.input_pdferror i "lex_stream_object: not a stream"))
 
-(* Advance to the first thing after the current pointer which is not a comment. *)
+(* Advance to the first thing after the current pointer which is not a comment.
+*)
 let rec ignore_comments i =
   let pos = i.pos_in () in
     match i.input_char () with
@@ -896,7 +983,7 @@ let rec ignore_comments i =
     | Some _ -> i.seek_in pos
     | None -> raise End_of_file
 
-(* \section{Cross-reference tables} *)
+(* Cross-reference tables *)
 
 (* Read the cross-reference table. Supports the multiple sections created when
 a PDF file is incrementally modified. *)
@@ -938,47 +1025,52 @@ let rec read_xref_line i =
           else
             match explode line with
             | 't'::'r'::'a'::'i'::'l'::'e'::'r'::more ->
-                (* Bad files may not put newlines after the trailer, so [input_line] may
-                have taken too much, preventing us from reading the trailer
-                dictionary, so we rewind. *)
+                (* Bad files may not put newlines after the trailer, so
+                [input_line] may have taken too much, preventing us from reading
+                the trailer dictionary, so we rewind. *)
                 let leading_spaces =
                   length (takewhile (eq ' ') (explode line))
                 in
                   i.seek_in (pos + 7 + leading_spaces);
                   Finished
-            | '0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::' '::_::_::_::_::_::' '::'n'::_ ->
-                 (* Consider 0000000000 _____ n as a free entry (malformed file workaround) *)
+            | '0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::'0'::
+              ' '::_::_::_::_::_::' '::'n'::_ ->
+                 (* Consider 0000000000 _____ n as a free entry
+                 (malformed file workaround) *)
                  Free (0, 0)
             | r ->
               (* Artworks produces bad PDF with lines like xref 1 5 *)
               match Pdfgenlex.lex (input_of_string line) with
-              | [Pdfgenlex.LexName "xref"; Pdfgenlex.LexInt s; Pdfgenlex.LexInt l]
+              | [Pdfgenlex.LexName "xref";
+                 Pdfgenlex.LexInt s; Pdfgenlex.LexInt l]
               | [Pdfgenlex.LexInt s; Pdfgenlex.LexInt l] -> Section (s, l)
               | _ -> Invalid 
 
 (* Read the cross-reference table in [i] at the current position. Leaves [i] at
 the first character of the trailer dictionary. *)
 let read_xref i =
-  let fail () = raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read x-ref table"))
-  in let xrefs = ref [] in
-    begin try
-      let finished = ref false
-      in let objnumber = ref 0 in
-        while not !finished do
-          match read_xref_line i with
-          | Invalid -> fail ()
-          | Valid (offset, gen) ->
-              xrefs =| (!objnumber, XRefPlain (offset, gen));
-              incr objnumber
-          | Finished -> set finished
-          | Section (s, _) -> objnumber := s
-          | Free _ -> incr objnumber
-          | _ -> () (* Xref stream types won't have been generated. *)
-        done
-      with
-        End_of_file | Sys_error _ | Failure "int_of_string"-> fail ()
-    end;
-    !xrefs
+  let fail () =
+    raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read x-ref table"))
+  in
+    let xrefs = ref [] in
+      begin try
+        let finished = ref false
+        in let objnumber = ref 0 in
+          while not !finished do
+            match read_xref_line i with
+            | Invalid -> fail ()
+            | Valid (offset, gen) ->
+                xrefs =| (!objnumber, XRefPlain (offset, gen));
+                incr objnumber
+            | Finished -> set finished
+            | Section (s, _) -> objnumber := s
+            | Free _ -> incr objnumber
+            | _ -> () (* Xref stream types won't have been generated. *)
+          done
+        with
+          End_of_file | Sys_error _ | Failure "int_of_string"-> fail ()
+      end;
+      !xrefs
 
 (* PDF 1.5 cross-reference stream support. [i] is the input. The tuple describes
 the lengths in bytes of each of the three fields. *)
@@ -989,7 +1081,8 @@ let read_xref_line_stream i w1 w2 w3 =
       let rec read_field bytes mul =
         if bytes = 0 then 0 else
           match i.input_byte () with
-          | x when x = Pdfio.no_more -> raise (Pdf.PDFError (Pdf.input_pdferror i "Bad Xref stream"))
+          | x when x = Pdfio.no_more ->
+              raise (Pdf.PDFError (Pdf.input_pdferror i "Bad Xref stream"))
           | b -> b * mul + (read_field (bytes - 1) (mul / 256))
       in
         if bytes = 0 then 0 else (* Empty entry *)
@@ -1015,19 +1108,23 @@ let read_xref_stream i =
   in let err = Pdf.PDFError (Pdf.input_pdferror i "Bad xref stream") in
     (* Read the next token, which is the object number *)
     let xrefstream_objectnumber =
-      match lex_next (ref 0) (ref 0) false i [] (fun _ -> 0, Pdf.Null) false (fun _ -> []) with
+      match
+        lex_next (ref 0) (ref 0) false i [] (fun _ -> 0, Pdf.Null)
+        false (fun _ -> [])
+      with
       | LexInt i -> i
       | _ -> Printf.eprintf "couldn't lex object number\n"; raise err
     in
     if !read_debug then
-      Printf.printf "Object number of this xref stream is %i\n" xrefstream_objectnumber;
+      Printf.printf
+        "Object number of this xref stream is %i\n" xrefstream_objectnumber;
     (* Go back to the beginning *)
     i.seek_in original_pos;
     (* And proceed as before *)
     let rec lex_untilstream i ls =
       let lexobj = lex_object i (null_hash ()) parse false in
         match lex_next (ref 0) (ref 0) true i [] parse false lexobj with
-        | StopLexing | LexNone -> rev ls (* Added LexNone to prevent infinite loop on malformed files 14/10/09 *)
+        | StopLexing | LexNone -> rev ls (* LexNone stops loop on malformed *)
         | l -> lex_untilstream i (l::ls)
     in
       let stream, obj, gen =
@@ -1047,20 +1144,27 @@ let read_xref_stream i =
                 begin match lex_stream i parse (rev dictlex) lexobj true with
                 | LexNone -> raise err
                 | stream ->
-                    snd (parse (dictlex @ [stream] @ [LexEndStream; LexEndObj])),
+                    snd
+                      (parse (dictlex @ [stream] @ [LexEndStream; LexEndObj])),
                     obj,
                     gen
                 end
-          with _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Failure to read xref stream - malformed"))
+          with _ ->
+            raise
+              (Pdf.PDFError
+                (Pdf.input_pdferror
+                  i "Failure reading xref stream - malformed"))
         with
         | Pdf.Stream _ as stream, obj, gen -> stream, obj, gen
         | _ -> raise err
       in
-        if !read_debug then flprint "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n";
+        if !read_debug then
+          flprint "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n";
         Pdfcodec.decode_pdfstream (Pdf.empty ()) stream;
         let w1, w2, w3 =
           match Pdf.lookup_direct (Pdf.empty ()) "/W" stream with
-          | Some (Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3]) -> w1, w2, w3
+          | Some (Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3]) ->
+              w1, w2, w3
           | _ -> raise err
         in let i' =
           match stream with
@@ -1073,23 +1177,32 @@ let read_xref_stream i =
             _ -> ()
           end;
           xrefs := rev !xrefs;
-          if !read_debug then Printf.printf "****** read %i raw Xref stream entries\n" (length !xrefs);
+          if !read_debug then
+            Printf.printf
+              "****** read %i raw Xref stream entries\n" (length !xrefs);
           let starts_and_lens =
             match Pdf.lookup_direct (Pdf.empty ()) "/Index" stream with
             | Some (Pdf.Array elts) ->
-                if odd (length elts) then raise (Pdf.PDFError (Pdf.input_pdferror i "Bad /Index"));
+                if odd (length elts) then
+                  raise (Pdf.PDFError (Pdf.input_pdferror i "Bad /Index"));
                 map
                   (function
                     | (Pdf.Integer s, Pdf.Integer l) -> s, l
-                    | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Bad /Index entry")))
+                    | _ ->
+                        raise
+                          (Pdf.PDFError
+                            (Pdf.input_pdferror i "Bad /Index entry")))
                   (pairs_of_list elts)
-            | Some _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Unknown /Index"))
+            | Some _ ->
+                raise (Pdf.PDFError (Pdf.input_pdferror i "Unknown /Index"))
             | None ->
                 let size =
                   match Pdf.lookup_direct (Pdf.empty ()) "/Size" stream with
                   | Some (Pdf.Integer s) -> s
                   | _ ->
-                      raise (Pdf.PDFError (Pdf.input_pdferror i "Missing /Size in xref dict"))
+                      raise
+                        (Pdf.PDFError
+                          (Pdf.input_pdferror i "Missing /Size in xref dict"))
                 in
                   [0, size]
           in
@@ -1098,7 +1211,10 @@ let read_xref_stream i =
               (fun (start, len) ->
                 let these_xrefs =
                   try take !xrefs len with
-                    _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Bad xref stream\n"))
+                    _ ->
+                      raise
+                        (Pdf.PDFError
+                          (Pdf.input_pdferror i "Bad xref stream\n"))
                 in
                   xrefs := drop !xrefs len;
                   let objnumber = ref start in
@@ -1114,7 +1230,9 @@ let read_xref_stream i =
                       these_xrefs)
                 starts_and_lens;
               i.seek_in original_pos;
-              if !read_debug then Printf.printf "***READ_XREF_STREAM final result was %i xrefs\n" (length !xrefs');
+              if !read_debug then
+                Printf.printf "***READ_XREF_STREAM final result was %i xrefs\n"
+                (length !xrefs');
               rev !xrefs', xrefstream_objectnumber
 
 (* A suitable function for the Pdf module to use to lex and parse an object.
@@ -1150,12 +1268,14 @@ let read_pdf user_pw owner_pw opt i =
           xrefs_table_iter
             (fun n x ->
                match x with
-               | XRefPlain (offset, gen) -> objpairs =| (n, (ref Pdf.ToParse, gen))
+               | XRefPlain (offset, gen) ->
+                   objpairs =| (n, (ref Pdf.ToParse, gen))
                | _ -> ())
             xrefs;
             (* 2. Build the object map *) 
             let objects =
-              Pdf.objects_of_list (Some (get_object i xrefs)) (!objpairs @ nonstream_objects)
+              Pdf.objects_of_list
+                (Some (get_object i xrefs)) (!objpairs @ nonstream_objects)
             in
               (* 3. Build the Pdf putting the trailerdict in *)
               {(Pdf.empty ()) with
@@ -1170,7 +1290,9 @@ let read_pdf user_pw owner_pw opt i =
       startxref keyword and the byte offset on the same line. *)
       ignoreuntil false isdigit i;
       begin match takewhile isdigit (getuntil_white_or_delimiter i) with
-      | [] -> raise (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
+      | [] ->
+          raise
+            (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
       | xrefchars -> xref := int_of_string (implode xrefchars);
       end;
       if !read_debug then flprint "Reading Cross-reference table\n";
@@ -1187,7 +1309,8 @@ let read_pdf user_pw owner_pw opt i =
                 postdeletes := objnumbertodelete::!postdeletes;
                 iter addref refs
             end;
-        (* It is now assumed that [i] is at the start of the trailer dictionary. *)
+        (* It is now assumed that [i] is at the start of the trailer dictionary.
+        *)
         let trailerdict_current =
           let lexemes =
             lex_object_at true i opt parse (lex_object i xrefs parse opt)
@@ -1195,7 +1318,8 @@ let read_pdf user_pw owner_pw opt i =
             match parse lexemes with
             | (_, Pdf.Dictionary d)
             | (_, Pdf.Stream {contents = Pdf.Dictionary d, _}) -> d
-            | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
+            | _ ->
+                raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
         in
           begin
             if !first then
@@ -1216,15 +1340,19 @@ let read_pdf user_pw owner_pw opt i =
             match lookup "/Prev" trailerdict_current with
             | None -> set got_all_xref_sections
             | Some (Pdf.Integer n) -> xref := n
-            | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
+            | _ ->
+                raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
-      if !read_debug then Printf.printf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
+      if !read_debug then
+        Printf.printf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) -> i
-        | None -> raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
-        | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
+        | None ->
+            raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
+        | _ ->
+            raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
         let getgen n =
           match xrefs_table_find xrefs n with
@@ -1263,9 +1391,16 @@ let read_pdf user_pw owner_pw opt i =
                  (function (n, XRefStream _) -> true | _ -> false)
                  (list_of_hashtbl xrefs))
            in
-             (*Printf.printf "*** %i objects are in streams\n" (length streamones);
-             iter (function (n, s, i) -> Printf.printf "STREAMONES: Obj %i, Stream %i, Index %i\n" n s i) streamones;*)
-             iter (function (n, s, _) -> Hashtbl.add object_stream_ids n s) streamones;
+             (*Printf.printf
+                "*** %i objects are in streams\n" (length streamones);
+               iter
+                 (function (n, s, i) ->
+                    Printf.printf "STREAMONES: Obj %i, Stream %i, Index %i\n"
+                    n s i)
+                 streamones;*)
+             iter
+               (function (n, s, _) -> Hashtbl.add object_stream_ids n s)
+               streamones;
              if opt then
                begin
                  let cmp_objs (_, s, _) (_, s', _) = compare_i s s' in
@@ -1273,15 +1408,24 @@ let read_pdf user_pw owner_pw opt i =
                      let collated = collate cmp_objs sorted in
                        let inputs_to_lex_stream_object =
                          map
-                           (fun l -> match hd l with (_, s, _) -> s, map (fun (_, _, i) -> i) l)
+                           (fun l ->
+                             match hd l with (_, s, _) ->
+                               s, map (fun (_, _, i) -> i) l)
                            collated
                        in
                          (* Read objects from object streams now *)
                          let outputs_from_lex_stream_object =
-                           let partial = mkpartial objects_nonstream (Pdf.Dictionary !trailerdict) in
+                           let partial =
+                             mkpartial
+                               objects_nonstream (Pdf.Dictionary !trailerdict)
+                           in
                              map
                                (function (s, is) ->
-                                  let r = lex_stream_object i xrefs parse opt s is user_pw owner_pw partial (getgen s) in
+                                  let r =
+                                    lex_stream_object
+                                      i xrefs parse opt s is user_pw owner_pw
+                                      partial (getgen s)
+                                  in
                                     postdeletes := s::!postdeletes;
                                     r)
                                inputs_to_lex_stream_object
@@ -1289,9 +1433,13 @@ let read_pdf user_pw owner_pw opt i =
                            flatten outputs_from_lex_stream_object
                end
              else
-               let partial = mkpartial objects_nonstream (Pdf.Dictionary !trailerdict) in
+               let partial =
+                 mkpartial objects_nonstream (Pdf.Dictionary !trailerdict)
+               in
                  let readstream streamobjnumber indexes =
-                   lex_stream_object i xrefs parse opt streamobjnumber indexes user_pw owner_pw partial (getgen streamobjnumber)
+                   lex_stream_object
+                    i xrefs parse opt streamobjnumber indexes user_pw owner_pw
+                    partial (getgen streamobjnumber)
                  in
                    let themap =
                      let t = Hashtbl.create 200 in
@@ -1301,25 +1449,37 @@ let read_pdf user_pw owner_pw opt i =
                        in
                          iter
                            (fun group ->
-                              let pairs = map (fun (n, _, i) -> (n, i)) group in
+                              let pairs =
+                                map (fun (n, _, i) -> (n, i)) group
+                              in
                                 let all_indexes = map snd pairs in
-                                  iter (fun (n, _) -> Hashtbl.add t n all_indexes) pairs)
+                                  iter (fun (n, _) ->
+                                    Hashtbl.add t n all_indexes) pairs)
                              groups;
                              t
                    in
-                     map (function (n, s, i) -> (n, (ref (Pdf.ToParseFromObjectStream (themap, s, i, readstream)), 0))) streamones
+                     map
+                       (function (n, s, i) ->
+                         (n,
+                           (ref
+                             (Pdf.ToParseFromObjectStream
+                               (themap, s, i, readstream)), 0)))
+                       streamones
          in
           if !read_debug then
             begin
-              Printf.printf "There were %i nonstream objects\n" (length objects_nonstream);
-              Printf.printf "There were %i stream objects\n" (length objects_stream);
+              Printf.printf
+                "There were %i nonstream objects\n" (length objects_nonstream);
+              Printf.printf
+                "There were %i stream objects\n" (length objects_stream);
               flprint "\n"
             end;
           objects_stream, objects_nonstream, root, trailerdict
     in
       if !read_debug then flprint "Finishing up...\n";
       let objects = objects_stream @ objects_nonstream in
-        (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type, and DecodeParms *)
+        (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
+        and DecodeParms *)
         let trailerdict' =
           Pdf.Dictionary
             (add "/Size" (Pdf.Integer (length objects))
@@ -1334,7 +1494,8 @@ let read_pdf user_pw owner_pw opt i =
           let pdf = 
             {Pdf.major = major;
              Pdf.minor = minor;
-             Pdf.objects = Pdf.objects_of_list (Some (get_object i xrefs)) objects;
+             Pdf.objects =
+               Pdf.objects_of_list (Some (get_object i xrefs)) objects;
              Pdf.root = root;
              Pdf.trailerdict = trailerdict'}
           in
@@ -1364,7 +1525,8 @@ let read_pdf user_pw owner_pw opt i =
 
 (* Malformed file reading. *)
 
-(* We read all trailerdicts in the file, preferring entries in later dictionaries. *)
+(* We read all trailerdicts in the file, preferring entries in later
+ * dictionaries. *)
 let read_malformed_trailerdict i =
   try
     (* Move to just after the keyword trailer, if one still exists. Otherwise,
@@ -1374,16 +1536,22 @@ let read_malformed_trailerdict i =
         try implode (take (explode (input_line i)) 7) <> "trailer" with
           _ -> not (i.pos_in () = currpos)
     do () done;
-    let lexemes = lex_object_at true i true parse (lex_object i (null_hash ()) parse true) in
+    let lexemes =
+      lex_object_at true i true parse (lex_object i (null_hash ()) parse true)
+    in
       match parse lexemes with
       | (_, Pdf.Dictionary d)
       | (_, Pdf.Stream {contents = Pdf.Dictionary d, _}) -> remove "/Prev" d
-      | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed or missing trailer"))
+      | _ ->
+          raise
+            (Pdf.PDFError (Pdf.input_pdferror i "Malformed or missing trailer"))
   with
     e ->
       raise
         (Pdf.PDFError
-           (Printf.sprintf "File reconstructor: could not read trailer dictionary - %s" (Printexc.to_string e)))
+           (Printf.sprintf
+              "File reconstructor: could not read trailer dictionary - %s"
+              (Printexc.to_string e)))
 
 let read_malformed_trailerdicts i =
   i.seek_in 0;
@@ -1391,7 +1559,9 @@ let read_malformed_trailerdicts i =
     while
       try
         let currpos = i.pos_in () in
-          iter (function (k, v) -> trailerdict := add k v !trailerdict) (read_malformed_trailerdict i);
+          iter
+            (function (k, v) -> trailerdict := add k v !trailerdict)
+            (read_malformed_trailerdict i);
           i.pos_in () > currpos
       with
         _ -> false
@@ -1417,21 +1587,29 @@ let read_malformed_pdf_objects i =
     while i.pos_in () < i.in_channel_length do
       let c = i.pos_in () in
         try
-          (*Printf.printf "read_malformed_pdf_object is reading an object at %i\n" c;*)
+          (*Printf.printf
+             "read_malformed_pdf_object is reading an object at %i\n" c;*)
           let objnum, obj =
-            parse ~failure_is_ok:true (lex_object_at true i true parse (lex_object i (null_hash ()) parse true))
+            parse
+              ~failure_is_ok:true
+              (lex_object_at
+                true i true parse (lex_object i (null_hash ()) parse true))
           in
-            (*Printf.printf "Got object %i, which is %s ok\n" objnum (Pdfwrite.string_of_pdf obj);*)
+            (*Printf.printf "Got object %i, which is %s ok\n"
+                objnum (Pdfwrite.string_of_pdf obj);*)
             if objnum > 0 && objnum < max_int then objs := add objnum obj !objs;
             advance_to_integer i; (* find next possible object *)
-            if i.pos_in () = c then ignore (input_line i) (* move on if no progress. *)
+            if i.pos_in () = c then ignore (input_line i) (* no progress. *)
         with
-          e -> (*Printf.printf "Couldn't get object, moving on\n";*) ignore (input_line i) (* Move on *)
+          e ->
+            (*Printf.printf "Couldn't get object, moving on\n";*)
+            ignore (input_line i) (* Move on *)
     done;
     !objs
 
 let read_malformed_pdf upw opw i =
-  Printf.eprintf "Attempting to reconstruct the malformed pdf %s...\n" i.Pdfio.source;
+  Printf.eprintf
+    "Attempting to reconstruct the malformed pdf %s...\n" i.Pdfio.source;
   let trailerdict = read_malformed_trailerdicts i
   and major, minor = read_header i in
     i.Pdfio.seek_in 0;
@@ -1444,8 +1622,10 @@ let read_malformed_pdf upw opw i =
       let root =
         match lookup "/Root" trailerdict with
         | Some (Pdf.Indirect i) -> i
-        | None -> raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
-        | _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
+        | None ->
+            raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
+        | _ ->
+            raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
         Printf.eprintf "Malformed PDF reconstruction succeeded!\n";
         flush stderr;
@@ -1457,9 +1637,10 @@ let read_malformed_pdf upw opw i =
     
 let read_pdf upw opw opt i =
   try read_pdf upw opw opt i with
-  | Pdf.PDFError s as e when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
-      (* If it failed due to encryption not supported or user password not right, the
-      error should be passed up - it's not a malformed file. *)
+  | Pdf.PDFError s as e
+      when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
+      (* If it failed due to encryption not supported or user password not
+      right, the error should be passed up - it's not a malformed file. *)
       raise e
   | e ->
       try read_malformed_pdf upw opw i with e' ->
@@ -1468,7 +1649,8 @@ let read_pdf upw opw opt i =
              (Pdf.input_pdferror
                 i
                 (Printf.sprintf
-                   "Failed to read PDF - initial error was\n%s\n\nfinal error was \n%s\n\n"
+                   "Failed to read PDF - initial error was\n%s\n\n\
+                   final error was \n%s\n\n"
                    (Printexc.to_string e)
                    (Printexc.to_string e'))))
 
@@ -1509,7 +1691,9 @@ let what_encryption pdf =
           let metadata =
             match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
             | Some encrypt_dict ->
-                begin match Pdf.lookup_direct pdf "/EncryptMetadata" encrypt_dict with
+                begin match
+                  Pdf.lookup_direct pdf "/EncryptMetadata" encrypt_dict
+                with
                 | Some (Pdf.Boolean false) -> false
                 | _ -> true
                 end
