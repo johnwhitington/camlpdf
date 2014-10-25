@@ -59,7 +59,10 @@ type writeout =
 (* We want real numbers with no exponents (format compliance), and no trailing
 zeroes (compactness). (Jan 2012 - have added back in special case for whole
 numbers. Can still get trailing zeroes on small values e.g 0.00001 => 0.000010,
-but no printf way to prevent this). *)
+but no printf way to prevent this).
+
+If we can do it fast enough, what we need to do is print with printf at 5
+decimal places (spec says this is ok) and remove any trailing zeroes. *)
 let format_real x =
   let fl = floor x in
     if fl = x then string_of_int (int_of_float fl) else
