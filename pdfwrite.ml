@@ -63,14 +63,17 @@ but no printf way to prevent this). *)
 let format_real x =
   let fl = floor x in
     if fl = x then string_of_int (int_of_float fl) else
-      if x < 0.0001 && x > -. 0.0001 then Printf.sprintf "%f" x else string_of_float x
+      if x < 0.0001 && x > -. 0.0001
+        then Printf.sprintf "%f" x
+        else string_of_float x
 
 (* Character codes in a name < 33 or > 126 are replaced with hashed combinations
 (e.g #20 for space). If the name contains the null character, an exception is
 raised. *)
 let hexchar = function
-  | 0 -> '0' | 1 -> '1' | 2 -> '2' | 3 -> '3' | 4 -> '4' | 5 -> '5' | 6 -> '6' | 7 -> '7'
-  | 8 -> '8' | 9 -> '9' | 10 -> 'A' | 11 -> 'B' | 12 -> 'C' | 13 -> 'D' | 14 -> 'E' | 15 -> 'F'
+  | 0 -> '0' | 1 -> '1' | 2 -> '2' | 3 -> '3' | 4 -> '4' | 5 -> '5' | 6 -> '6'
+  | 7 -> '7' | 8 -> '8' | 9 -> '9' | 10 -> 'A' | 11 -> 'B' | 12 -> 'C'
+  | 13 -> 'D' | 14 -> 'E' | 15 -> 'F'
   | _ -> raise (Failure "hexchar")
 
 let make_pdf_name_inner b s =
@@ -177,7 +180,10 @@ and strings_of_pdf f changetable = function
 
 let strings_of_pdf_return obj =
   let strings = ref [] in
-    strings_of_pdf (function x -> strings := x::!strings) (Hashtbl.create 0) obj;
+    strings_of_pdf
+      (function x -> strings := x::!strings)
+      (Hashtbl.create 0)
+      obj;
     rev !strings
 
 (* Produce a single string from a PDF object. Only use for things which will
@@ -186,7 +192,10 @@ let b = Buffer.create 100
 
 let string_of_pdf s =
   Buffer.clear b;
-  strings_of_pdf (function (WString x) -> Buffer.add_string b x |  _ -> ()) (Hashtbl.create 0) s;
+  strings_of_pdf
+    (function (WString x) -> Buffer.add_string b x |  _ -> ())
+    (Hashtbl.create 0)
+    s;
   Buffer.contents b
 
 (* Inter-module recursion. *)
@@ -201,7 +210,10 @@ let debug_whole_pdf pdf =
 let strings_of_object (n, pdfobject) =
   let strings = ref [] in
   strings := [WString (string_of_int n ^ " 0 obj\n")];
-  strings_of_pdf (function x -> strings := x::!strings) (Hashtbl.create 0) pdfobject;
+  strings_of_pdf
+    (function x -> strings := x::!strings)
+    (Hashtbl.create 0)
+    pdfobject;
   strings := WString "\nendobj\n"::!strings;
   rev !strings
 
@@ -264,7 +276,9 @@ let bake_object_streams pdf numbers =
            in
              iter (Pdf.removeobj pdf) objects;
              let lengths = map String.length strings in
-               let byte_offsets = 0 :: all_but_last (cumulative_sum 0 lengths) in
+               let byte_offsets =
+                 0 :: all_but_last (cumulative_sum 0 lengths)
+               in
                  iter2
                    (fun o boff ->
                       output.Pdfio.output_string (string_of_int o);
@@ -311,11 +325,13 @@ n+1...m objects in object streams
 m+1...p objects not in object streams
 p+1 xref stream *)
 let reinstate_object_streams we_will_be_encrypting pdf =
-  if !write_debug then flprint "pdf_to_output, reinstate object streams, so trying stream preservation\n";
+  if !write_debug then
+    flprint "pdf_to_output, reinstate streams, trying stream preservation\n";
   (* Adobe Reader can't cope with the document catalog being in a stream in an
   encrypted file, despite the ISO standard clearly allowing it. Make sure that,
   if we're encrypting, we remove any existing hint *)
-  if we_will_be_encrypting then Hashtbl.remove pdf.Pdf.objects.Pdf.object_stream_ids pdf.Pdf.root;
+  if we_will_be_encrypting then
+    Hashtbl.remove pdf.Pdf.objects.Pdf.object_stream_ids pdf.Pdf.root;
   (* Build stream_objnum (streamnum, objects_for_this_stream) pairs. Take
   account of missing objects! *)
   let objects_for_streams =
@@ -323,19 +339,23 @@ let reinstate_object_streams we_will_be_encrypting pdf =
     and keys = null_hash () in
       Hashtbl.iter
         (fun objnum instream ->
-           if not (Hashtbl.mem keys instream) then Hashtbl.add keys instream ();
+           if not (Hashtbl.mem keys instream) then
+             Hashtbl.add keys instream ();
            Hashtbl.add table instream objnum)
         pdf.Pdf.objects.Pdf.object_stream_ids;
       let lists = ref [] in
         Hashtbl.iter
-          (fun instream _ -> lists =| (instream, Hashtbl.find_all table instream))
+          (fun instream _ ->
+            lists =| (instream, Hashtbl.find_all table instream))
           keys;
       !lists
   in
   (* The nonstream objects are any not included in the objects_for_streams *)
   let nonstream_objects =
     let all_in_stream = null_hash () in
-      iter (fun x -> Hashtbl.add all_in_stream x ()) (flatten (map snd objects_for_streams));
+      iter
+        (fun x -> Hashtbl.add all_in_stream x ())
+        (flatten (map snd objects_for_streams));
       option_map
         (fun x -> if not (Hashtbl.mem all_in_stream x) then Some x else None)
         (Pdf.objnumbers pdf)
@@ -350,12 +370,18 @@ let reinstate_object_streams we_will_be_encrypting pdf =
   if !write_debug then Printf.printf "m = %i\n" m;
   let changetable = null_hash () in
   (* Add all the objects_for_streams *)
-  iter2 (Hashtbl.add changetable) (map fst objects_for_streams) (indx objects_for_streams);
+  iter2
+    (Hashtbl.add changetable)
+    (map fst objects_for_streams)
+    (indx objects_for_streams);
   (* Add all the changes for the objects within streams *)
   let x = flatten (map snd objects_for_streams) in
     iter2 (Hashtbl.add changetable) x (indxn (n + 1) x);
   (* Add all the changes for the nonstream objects *)
-  iter2 (Hashtbl.add changetable) nonstream_objects (indxn (m + 1) nonstream_objects);
+  iter2
+    (Hashtbl.add changetable)
+    nonstream_objects
+    (indxn (m + 1) nonstream_objects);
   let pdf' = Pdf.renumber changetable pdf in
     pdf.Pdf.root <- pdf'.Pdf.root;
     pdf.Pdf.objects <- pdf'.Pdf.objects;
@@ -431,9 +457,12 @@ let make_xref_stream pdf xrefs renumbered_objects_for_streams =
                  [("/Type", Pdf.Name "/XRef");
                   ("/Root", Pdf.Indirect pdf.Pdf.root);
                   ("/Size", Pdf.Integer (length !entries));
-                  ("/W", Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3]);
+                  ("/W",
+                    Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3]);
                   ("/Length", Pdf.Integer (bytes_size data))]
-                 (match pdf.Pdf.trailerdict with Pdf.Dictionary d -> d | _ -> []))
+                 (match pdf.Pdf.trailerdict with
+                    Pdf.Dictionary d -> d
+                  | _ -> []))
           in
             let xrefstream = Pdf.Stream {contents = (dict, Pdf.Got data)} in
               Pdfcodec.encode_pdfstream
@@ -447,28 +476,41 @@ let make_xref_stream pdf xrefs renumbered_objects_for_streams =
 (* Build hints for object streams from nothing, optionally preserving existing
 streams. *)
 let generate_object_stream_hints we_will_be_encrypting pdf preserve_existing =
-  if !write_debug then Printf.printf "generate_object_stream_hints: %i existing hints, preserve_existing = %b"
+  if !write_debug then
+    Printf.printf
+      "generate_object_stream_hints: %i existing hints, preserve_existing = %b"
     (Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids) preserve_existing;
-  if not preserve_existing then Hashtbl.clear pdf.Pdf.objects.Pdf.object_stream_ids;
+  if not preserve_existing then
+    Hashtbl.clear pdf.Pdf.objects.Pdf.object_stream_ids;
   (* Adobe Reader can't cope with the document catalog being in a stream in an
   encrypted file, despite the ISO standard clearly allowing it. Make sure that,
   if we're encrypting, we remove any existing hint *)
-  if !write_debug then Printf.printf "***** root (catalog) is object %i\n" pdf.Pdf.root;
-  if we_will_be_encrypting then Hashtbl.remove pdf.Pdf.objects.Pdf.object_stream_ids pdf.Pdf.root;
+  if !write_debug then
+    Printf.printf "***** root (catalog) is object %i\n" pdf.Pdf.root;
+  if we_will_be_encrypting then
+    Hashtbl.remove pdf.Pdf.objects.Pdf.object_stream_ids pdf.Pdf.root;
   let biggest_hint =
     max
-      (fold_left max min_int (map snd (list_of_hashtbl pdf.Pdf.objects.Pdf.object_stream_ids)))
+      (fold_left
+         max
+         min_int
+         (map snd (list_of_hashtbl pdf.Pdf.objects.Pdf.object_stream_ids)))
       0
   in
-    if !write_debug then Printf.printf "Biggest existing hint is %i\n" biggest_hint;
+    if !write_debug then
+      Printf.printf "Biggest existing hint is %i\n" biggest_hint;
     let possibles =
       option_map
         (fun x ->
-           if not (Hashtbl.mem pdf.Pdf.objects.Pdf.object_stream_ids x) then Some x else None)
+           if not (Hashtbl.mem pdf.Pdf.objects.Pdf.object_stream_ids x)
+             then Some x
+             else None)
         (Pdf.objnumbers pdf)
     in
       if !write_debug then
-        Printf.printf "Found %i possible new objects to put into streams\n" (length possibles);
+        Printf.printf
+          "Found %i possible new objects to put into streams\n"
+          (length possibles);
       let for_streams, indirect_lengths =
         let indirect_lengths = null_hash () in
           (option_map
@@ -477,7 +519,8 @@ let generate_object_stream_hints we_will_be_encrypting pdf preserve_existing =
                | Pdf.Stream {contents = (Pdf.Dictionary d, _)} ->
                    begin
                      begin match lookup "/Length" d with
-                     | Some (Pdf.Indirect i) -> Hashtbl.add indirect_lengths i ()
+                     | Some (Pdf.Indirect i) ->
+                         Hashtbl.add indirect_lengths i ()
                      | _ -> ()
                      end;
                      None
@@ -492,40 +535,66 @@ let generate_object_stream_hints we_will_be_encrypting pdf preserve_existing =
         (* Remove indirect lengths and catalog. *)
         let final =
           option_map
-            (fun x -> if Hashtbl.mem indirect_lengths x || (x = pdf.Pdf.root && we_will_be_encrypting) then None else Some x)
+            (fun x ->
+              if
+                Hashtbl.mem indirect_lengths x ||
+                (x = pdf.Pdf.root && we_will_be_encrypting)
+              then
+                None
+              else
+                Some x)
             for_streams
         in
           if !write_debug then
-            Printf.printf "%i final objects for new object streams\n" (length final);
+            Printf.printf
+              "%i final objects for new object streams\n" (length final);
           let groups = splitinto 250 (sort compare final) in
             iter2
               (fun items groupnum ->
                  iter
                    (fun i ->
                       if !write_debug then
-                        Printf.printf "Hinting object %i as being in group %i\n" i groupnum;
-                      Hashtbl.add pdf.Pdf.objects.Pdf.object_stream_ids i groupnum)
+                        Printf.printf
+                          "Hinting object %i as being in group %i\n" i groupnum;
+                      Hashtbl.add
+                        pdf.Pdf.objects.Pdf.object_stream_ids i groupnum)
                    items)
               groups
               (indxn (biggest_hint + 1) groups)
 
 (* Flatten a PDF document to an Pdfio.output. *)
-let pdf_to_output ?(preserve_objstm = false) ?(generate_objstm = false) linearize encrypt pdf o =
+let pdf_to_output
+  ?(preserve_objstm = false) ?(generate_objstm = false) linearize encrypt pdf o
+=
   if !write_debug then
-    Printf.printf "pdf_to_output: preserve = %b, generate = %b, linearize = %b\n"
+    Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
     preserve_objstm generate_objstm linearize;
-  if linearize then raise (Pdf.PDFError "Linearization not supported since v1.8. Use an external linearizer.");
+  if linearize then
+    raise
+      (Pdf.PDFError
+        "Linearization not supported since v1.8. Use an external linearizer.");
   let renumbered_objects_for_streams, preserve_objstm =
-    if generate_objstm then generate_object_stream_hints (match encrypt with Some _ -> true | _ -> false) pdf preserve_objstm;
-    if (preserve_objstm || generate_objstm) && Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
-      then (reinstate_object_streams (match encrypt with Some _ -> true | _ -> false) pdf, true)
-      else ([], false) (* Either we weren't asked to preserve, or nothing to put in streams *)
+    if generate_objstm then
+      generate_object_stream_hints
+      (match encrypt with Some _ -> true | _ -> false) pdf preserve_objstm;
+    if
+      (preserve_objstm || generate_objstm) &&
+      Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
+    then
+      (reinstate_object_streams
+        (match encrypt with Some _ -> true | _ -> false) pdf, true)
+    else
+      ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
   in
     let pdf =
       if preserve_objstm || generate_objstm then pdf else
         begin match encrypt with
-        | Some e when e.encryption_method = AlreadyEncrypted -> pdf (* Already been renumbered *)
-        | Some _  -> Pdf.renumber (Pdf.changes pdf) pdf (* Need to renumber before encrypting. Will remove once encryption-on-demand-on-writing is done...*)
+        | Some e when e.encryption_method = AlreadyEncrypted ->
+            pdf (* Already been renumbered *)
+        | Some _  ->
+            (* Need to renumber before encrypting.
+            Will remove once encryption-on-demand-on-writing is done...*)
+            Pdf.renumber (Pdf.changes pdf) pdf
         | _ -> pdf
         end
     in
@@ -553,7 +622,8 @@ let pdf_to_output ?(preserve_objstm = false) ?(generate_objstm = false) lineariz
             (fun ob p ->
                xrefs =| o.pos_out ();
                strings_of_pdf_object
-                 (flatten_W o) (ob, p) (if preserve_objstm then ob else !currobjnum) changetable;
+                 (flatten_W o) (ob, p)
+                 (if preserve_objstm then ob else !currobjnum) changetable;
                incr currobjnum)
             pdf;
           if !write_debug then flprint "finished writing objects\n";
@@ -577,11 +647,13 @@ let pdf_to_output ?(preserve_objstm = false) ?(generate_objstm = false) lineariz
                   o.output_string (string_of_int thisnum ^ " 0 obj\n");
                   strings_of_pdf (flatten_W o) changetable xrefstream;
                   o.output_string "\nendobj\n";
-                  o.output_string ("startxref\n" ^ string_of_int xrefstart ^ "\n%%EOF\n")
+                  o.output_string
+                    ("startxref\n" ^ string_of_int xrefstart ^ "\n%%EOF\n")
             end
           else
             begin
-              if !write_debug then flprint "NORMAL NON-OBJSTREAM trailer section\n";
+              if !write_debug then
+                flprint "NORMAL NON-OBJSTREAM trailer section\n";
               write_xrefs (rev !xrefs) o;
               o.output_string "trailer\n";
               let trailerdict' =
@@ -592,7 +664,8 @@ let pdf_to_output ?(preserve_objstm = false) ?(generate_objstm = false) lineariz
                         (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))
                 | _ ->
                     raise
-                      (Pdf.PDFError "Pdf.pdf_to_channel: Bad trailer dictionary")
+                      (Pdf.PDFError
+                         "Pdf.pdf_to_channel: Bad trailer dictionary")
               in
                 strings_of_pdf (flatten_W o) changetable trailerdict';
                 if !write_debug then flprint "all done...\n";
