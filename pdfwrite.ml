@@ -25,7 +25,9 @@ let string_of_xref n =
 (* Write the cross-reference table to a channel. *)
 let write_xrefs xrefs i =
   i.output_string "xref\n";
-  i.output_string ("0 " ^ string_of_int (length xrefs + 1) ^ " \n");
+  i.output_string "0 ";
+  i.output_string (string_of_int (length xrefs + 1));
+  i.output_string " \n";
   i.output_string "0000000000 65535 f \n";
   iter (function x -> i.output_string (string_of_xref x)) xrefs
 
@@ -212,7 +214,7 @@ let debug_whole_pdf pdf =
 (* Calculate strings, one for each indirect object in the body. *)
 let strings_of_object (n, pdfobject) =
   let strings = ref [] in
-  strings := [WString (string_of_int n ^ " 0 obj\n")];
+  strings := [WString (string_of_int n); WString " 0 obj\n"];
   strings_of_pdf
     (function x -> strings := x::!strings)
     (Hashtbl.create 0)
@@ -221,7 +223,8 @@ let strings_of_object (n, pdfobject) =
   rev !strings
 
 let strings_of_pdf_object f (_, pdfobject) n' changetable =
-  f (WString (string_of_int n' ^ " 0 obj\n"));
+  f (WString (string_of_int n'));
+  f (WString " 0 obj\n");
   strings_of_pdf f changetable pdfobject;
   f (WString "\nendobj\n")
 
@@ -647,11 +650,13 @@ let pdf_to_output
                   | Some (Pdf.Integer i) -> i
                   | _ -> failwith "bad xref stream generated\n"
                 in
-                  o.output_string (string_of_int thisnum ^ " 0 obj\n");
+                  o.output_string (string_of_int thisnum);
+                  o.output_string " 0 obj\n";
                   strings_of_pdf (flatten_W o) changetable xrefstream;
                   o.output_string "\nendobj\n";
-                  o.output_string
-                    ("startxref\n" ^ string_of_int xrefstart ^ "\n%%EOF\n")
+                  o.output_string "startxref\n";
+                  o.output_string (string_of_int xrefstart);
+                  o.output_string "\n%%EOF\n"
             end
           else
             begin
@@ -672,8 +677,9 @@ let pdf_to_output
               in
                 strings_of_pdf (flatten_W o) changetable trailerdict';
                 if !write_debug then flprint "all done...\n";
-                o.output_string
-                  ("\nstartxref\n" ^ (string_of_int xrefstart) ^ "\n%%EOF\n")
+                o.output_string "\nstartxref\n";
+                o.output_string (string_of_int xrefstart);
+                o.output_string "\n%%EOF\n"
             end
 
 let change_id pdf f =

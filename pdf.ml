@@ -700,9 +700,9 @@ let unique_key prefix obj =
     | Stream {contents = Dictionary es, _} -> es
     | _ -> raise (PDFError "unique_key: Not a dictionary or stream")
   in
-    let names = fst (split elts)
-    in let name_of_num n = "/" ^ prefix ^ string_of_int n
-    in let num = ref 0 in
+    let names = fst (split elts) in
+    let name_of_num n = Printf.sprintf "/%s%i" prefix n in
+    let num = ref 0 in
       while mem (name_of_num !num) names do incr num done;
       name_of_num !num
 
