@@ -480,7 +480,7 @@ let lex_inline_image pdf resources i =
                     in
                       dict', data
                 | x, y ->
-                   Printf.eprintf "bad end to inline image %C, %C" x y;
+                   Printf.eprintf "bad end to inline image %C, %C\n" x y;
                    nocontent i
                 end
     | _ -> nocontent i
@@ -534,7 +534,8 @@ let lex_next pdf resources i =
     | Pdf.PDFError r -> 
         raise (Pdf.PDFError ("Pdfpages.lex_next => " ^ r))
     | Failure "unopt" | End_of_file -> raise LexingEnd 
-    | Couldn'tHandleContent -> raise LexingEnd
+    | Couldn'tHandleContent ->
+        raise (Pdf.PDFError "Malformed page content")
 
 let print_lexeme = function
   | Obj p -> Pdfread.print_lexeme p
