@@ -1171,11 +1171,6 @@ let print_int32s is =
   iter (fun x -> Printf.printf "%li " x) is;
   print_newline ()
 
-let slash =
-  match Sys.os_type with
-  | "Win32" -> "\\"
-  | _ -> "/"
-
 let leafnames_of_dir d =
   Array.to_list (Sys.readdir d)
 

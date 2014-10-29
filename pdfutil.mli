@@ -636,9 +636,6 @@ val box_overlap_float :
 
 (** {2 Filenames} *)
 
-(** The correct separator for filenames on the current platform. *)
-val slash : string
-
 (** Return a list of leafnames for the given folder in the current folder *)
 val leafnames_of_dir : string -> string list
 
