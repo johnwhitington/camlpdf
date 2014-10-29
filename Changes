@@ -1,3 +1,19 @@
+1.8 (November 2014)
+
+Technical
+
+o Excised linearization. We recommend qpdflib / qpdf for this task now.
+o Encryption now performed by fast C routines, replacing the OCaml ones
+o Faster parsing of delayed object streams on large files
+o New implementation of Pdf.page_reference_numbers. More robust
+o Faster parsing by using better primitive operations for I/O
+o Tighter spacing of output in Pdfwrite leading to smaller files
+o Fixed pdf_of_pages not to produce duplicate page objects when multiple parts
+of the output pdf come from the same input pdf
+o Pdfpagelabels bug fixes, especially to alphabetic labels
+o Read StemV etc. values from the AFM header directly
+o Object streams may be written uncompressed for manual inspection
+
 1.7 (30th August 2013)
 
 There have been significant changes to the API. Changes for the next released
