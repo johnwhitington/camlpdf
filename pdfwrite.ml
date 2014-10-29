@@ -272,7 +272,7 @@ let flatten_W o = function
 
 (* Functions for object streams. NB no attempt is made to catch objects which
 shouldn't be in a stream - this is the responsibility of the caller. *)
-let bake_object_streams pdf numbers =
+let bake_object_streams compress pdf numbers =
   iter
     (fun (tostream, objects) ->
        let data, first =
@@ -305,7 +305,7 @@ let bake_object_streams pdf numbers =
               ("/First", Pdf.Integer first)]
          in
            let obj = Pdf.Stream {contents = (dict, Pdf.Got data)} in
-             Pdfcodec.encode_pdfstream pdf Pdfcodec.Flate obj;
+             if compress then Pdfcodec.encode_pdfstream pdf Pdfcodec.Flate obj;
              Pdf.addobj_given_num pdf (tostream, obj))
     numbers
 
@@ -330,7 +330,7 @@ the xref stream. Hints are now invalid, of course. Numbering scheme:
 n+1...m objects in object streams
 m+1...p objects not in object streams
 p+1 xref stream *)
-let reinstate_object_streams we_will_be_encrypting pdf =
+let reinstate_object_streams compress we_will_be_encrypting pdf =
   if !write_debug then
     flprint "pdf_to_output, reinstate streams, trying stream preservation\n";
   (* Adobe Reader can't cope with the document catalog being in a stream in an
@@ -403,7 +403,7 @@ let reinstate_object_streams we_will_be_encrypting pdf =
   in
   print_data renumbered_objects_for_streams renumbered_nonstream_objects;
   (* Now build the object streams and bake them into the PDF *)
-  bake_object_streams pdf renumbered_objects_for_streams;
+  bake_object_streams compress pdf renumbered_objects_for_streams;
   renumbered_objects_for_streams
 
 (* Build the xref stream from collected data. The input xref positions 1..n and
@@ -570,7 +570,8 @@ let generate_object_stream_hints we_will_be_encrypting pdf preserve_existing =
 
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
-  ?(preserve_objstm = false) ?(generate_objstm = false) linearize encrypt pdf o
+  ?(preserve_objstm = false) ?(generate_objstm = false) ?(compress_objstm = true)
+  linearize encrypt pdf o
 =
   if !write_debug then
     Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
@@ -588,7 +589,7 @@ let pdf_to_output
       Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
     then
       (reinstate_object_streams
-        (match encrypt with Some _ -> true | _ -> false) pdf, true)
+        compress_objstm (match encrypt with Some _ -> true | _ -> false) pdf, true)
     else
       ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
   in
@@ -694,14 +695,15 @@ let change_id pdf f =
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
   ?(preserve_objstm = false) ?(generate_objstm=false)
+  ?(compress_objstm = true)
   linearize encrypt mk_id pdf ch
 =
   let pdf =
     if mk_id then change_id pdf "" else pdf
   in
     pdf_to_output
-      ~preserve_objstm ~generate_objstm linearize
-      encrypt pdf (output_of_channel ch)
+      ~preserve_objstm ~generate_objstm ~compress_objstm
+      linearize encrypt pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
 trailer dictionary is updated using the current date and time and the filename.
@@ -711,17 +713,20 @@ ones will be generated in addition. To get totally fresh object streams, set
 [preserve_objstm=false, generate_objstm=true]. *)
 let pdf_to_file_options
   ?(preserve_objstm = false) ?(generate_objstm = false)
+  ?(compress_objstm = true)
   linearize encrypt mk_id pdf f
 =
   let pdf' = if mk_id then change_id pdf f else pdf
   and ch = open_out_bin f in
     pdf_to_channel
-      ~preserve_objstm ~generate_objstm linearize encrypt false pdf' ch;
+      ~preserve_objstm ~generate_objstm ~compress_objstm
+      linearize encrypt false pdf' ch;
     close_out ch
 
 let pdf_to_file pdf f =
   pdf_to_file_options
-    ~preserve_objstm:false ~generate_objstm:false false None true pdf f
+    ~preserve_objstm:true ~generate_objstm:false ~compress_objstm:true
+    false None true pdf f
 
 let dummy_encryption =
   {encryption_method = AlreadyEncrypted;

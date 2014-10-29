@@ -34,18 +34,18 @@ original file will be preserved. If [?create_objstm] is set (default is false),
 additional new object streams will be created. The unlabelled boolean argument
 is true if linearization is required. *)
 val pdf_to_output :
-  ?preserve_objstm:bool -> ?generate_objstm:bool -> bool ->
+  ?preserve_objstm:bool -> ?generate_objstm:bool -> ?compress_objstm:bool -> bool ->
   encryption option -> Pdf.t -> Pdfio.output -> unit
 
 (** As [pdf_to_output] but to an OCaml channel. If the second boolean is set, build a new
 /ID (don't set this for encrypted documents). *)
 val pdf_to_channel :
-  ?preserve_objstm:bool -> ?generate_objstm:bool -> bool ->
+  ?preserve_objstm:bool -> ?generate_objstm:bool -> ?compress_objstm:bool -> bool ->
   encryption option -> bool -> Pdf.t -> out_channel -> unit
 
 (** As [pdf_to_channel] but to a named file. *)
 val pdf_to_file_options :
-  ?preserve_objstm:bool -> ?generate_objstm:bool -> bool ->
+  ?preserve_objstm:bool -> ?generate_objstm:bool -> ?compress_objstm:bool -> bool ->
   encryption option -> bool -> Pdf.t -> string -> unit
 
 (** Simple write to given file name. Equivalent to [pdf_to_file_options false None true] *)
