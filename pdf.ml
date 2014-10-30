@@ -800,6 +800,7 @@ let rec contents_of_nametree pdf tree =
       | _ -> raise (PDFError "contents_of_nametree: neither names nor kids")
 
 let deep_copy_pdfobjects frompdf from =
+  resolve_all_delayed_object_streams frompdf;
   let deep_copy_objdata objdata =
     let deep_copy_pdfobject = function
       | Stream _ as s ->
@@ -811,7 +812,6 @@ let deep_copy_pdfobjects frompdf from =
           end
       | x -> x
     in
-      resolve_all_delayed_object_streams frompdf;
       match objdata with
       | Parsed obj -> Parsed (deep_copy_pdfobject obj)
       | ParsedAlreadyDecrypted obj -> ParsedAlreadyDecrypted (deep_copy_pdfobject obj)

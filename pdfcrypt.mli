@@ -33,11 +33,10 @@ val is_encrypted : Pdf.t -> bool
 (**/**)
 (* only for the use of PDFWrite *)
 
-(** [recrypt_pdf original decrypted_and_modified] re-encrypts a PDF document
+(** [recrypt_pdf decrypted_and_modified] re-encrypts a PDF document
 which was decrypted using the user password and owner password from the
-original encrypted file and the same permissions and encryption parameters.
-[decrypted_and_modified] is no longer useable after the function runs. *)
-val recrypt_pdf : Pdf.t -> Pdf.t -> string -> Pdf.t
+original encrypted file and the same permissions and encryption parameters. *)
+val recrypt_pdf : Pdf.t -> string -> Pdf.t
 
 (** Encrypt a PDF documnent, using 40 bit encryption, with given user and
 owner passwords. *)

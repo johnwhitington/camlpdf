@@ -734,23 +734,23 @@ let dummy_encryption =
    user_password = "";
    permissions = []}
 
-let pdf_to_output_recrypting original decrypted_and_modified userpw output =
+let pdf_to_output_recrypting decrypted_and_modified userpw output =
   let copied = Pdf.deep_copy decrypted_and_modified in
-    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+    let recrypted = Pdfcrypt.recrypt_pdf copied userpw in
       pdf_to_output
         ~preserve_objstm:false ~generate_objstm:false false
         (Some dummy_encryption) recrypted output
 
-let pdf_to_channel_recrypting original decrypted_and_modified userpw channel =
-  let copied = Pdf.deep_copy decrypted_and_modified in
-    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+let pdf_to_channel_recrypting decrypted_and_modified userpw channel =
+  let copied = Pdf.deep_copy decrypted_and_modified in (* ETC *)
+    let recrypted = Pdfcrypt.recrypt_pdf copied userpw in
       pdf_to_channel
         ~preserve_objstm:false ~generate_objstm:false false
         (Some dummy_encryption) false recrypted channel
 
-let pdf_to_file_recrypting original decrypted_and_modified userpw filename =
-  let copied = Pdf.deep_copy decrypted_and_modified in
-    let recrypted = Pdfcrypt.recrypt_pdf original copied userpw in
+let pdf_to_file_recrypting decrypted_and_modified userpw filename =
+  let copied = Pdf.deep_copy decrypted_and_modified in (* ETC *)
+    let recrypted = Pdfcrypt.recrypt_pdf copied userpw in
       pdf_to_file_options
         false (Some dummy_encryption) false recrypted filename
 
