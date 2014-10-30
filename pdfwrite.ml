@@ -568,11 +568,24 @@ let generate_object_stream_hints we_will_be_encrypting pdf preserve_existing =
               groups
               (indxn (biggest_hint + 1) groups)
 
+(* Used when recrypting *)
+let dummy_encryption =
+  {encryption_method = AlreadyEncrypted;
+   owner_password = "";
+   user_password = "";
+   permissions = []}
+
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
   ?(preserve_objstm = false) ?(generate_objstm = false) ?(compress_objstm = true)
+  ?(recrypt = None)
   linearize encrypt pdf o
 =
+  let encrypt, pdf  =
+    match recrypt with
+      None -> (encrypt, pdf)
+    | Some pw -> (Some dummy_encryption, Pdfcrypt.recrypt_pdf pdf pw)
+  in
   if !write_debug then
     Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
     preserve_objstm generate_objstm linearize;
@@ -694,8 +707,10 @@ let change_id pdf f =
 
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
-  ?(preserve_objstm = false) ?(generate_objstm=false)
+  ?(preserve_objstm = false)
+  ?(generate_objstm = false)
   ?(compress_objstm = true)
+  ?(recrypt = None)
   linearize encrypt mk_id pdf ch
 =
   let pdf =
@@ -712,8 +727,10 @@ existing object streams will be preserved. If [generate_objstm] is set, new
 ones will be generated in addition. To get totally fresh object streams, set
 [preserve_objstm=false, generate_objstm=true]. *)
 let pdf_to_file_options
-  ?(preserve_objstm = false) ?(generate_objstm = false)
+  ?(preserve_objstm = false)
+  ?(generate_objstm = false)
   ?(compress_objstm = true)
+  ?(recrypt = None)
   linearize encrypt mk_id pdf f
 =
   let pdf' = if mk_id then change_id pdf f else pdf
@@ -728,13 +745,8 @@ let pdf_to_file pdf f =
     ~preserve_objstm:true ~generate_objstm:false ~compress_objstm:true
     false None true pdf f
 
-let dummy_encryption =
-  {encryption_method = AlreadyEncrypted;
-   owner_password = "";
-   user_password = "";
-   permissions = []}
 
-let pdf_to_output_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw output =
+(*let pdf_to_output_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw output =
   let recrypted = Pdfcrypt.recrypt_pdf pdf userpw in
     pdf_to_output
       ~preserve_objstm ~generate_objstm false
@@ -749,6 +761,6 @@ let pdf_to_channel_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) 
 let pdf_to_file_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw filename =
   let recrypted = Pdfcrypt.recrypt_pdf pdf userpw in
     pdf_to_file_options
-      ~preserve_objstm ~generate_objstm
-      false (Some dummy_encryption) false recrypted filename
+      ~preserve_objstm ~generate_objstm false
+      (Some dummy_encryption) false recrypted filename*)
 
