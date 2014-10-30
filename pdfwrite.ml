@@ -584,7 +584,7 @@ let pdf_to_output
   let encrypt, pdf  =
     match recrypt with
       None -> (encrypt, pdf)
-    | Some pw -> (Some dummy_encryption, Pdfcrypt.recrypt_pdf pdf pw)
+    | Some pw -> flprint "pdf_to_output: recrypting\n"; (Some dummy_encryption, Pdfcrypt.recrypt_pdf pdf pw)
   in
   if !write_debug then
     Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
@@ -717,7 +717,7 @@ let pdf_to_channel
     if mk_id then change_id pdf "" else pdf
   in
     pdf_to_output
-      ~preserve_objstm ~generate_objstm ~compress_objstm
+      ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
       linearize encrypt pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
@@ -736,7 +736,7 @@ let pdf_to_file_options
   let pdf' = if mk_id then change_id pdf f else pdf
   and ch = open_out_bin f in
     pdf_to_channel
-      ~preserve_objstm ~generate_objstm ~compress_objstm
+      ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
       linearize encrypt false pdf' ch;
     close_out ch
 
@@ -744,23 +744,4 @@ let pdf_to_file pdf f =
   pdf_to_file_options
     ~preserve_objstm:true ~generate_objstm:false ~compress_objstm:true
     false None true pdf f
-
-
-(*let pdf_to_output_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw output =
-  let recrypted = Pdfcrypt.recrypt_pdf pdf userpw in
-    pdf_to_output
-      ~preserve_objstm ~generate_objstm false
-      (Some dummy_encryption) recrypted output
-
-let pdf_to_channel_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw channel =
-  let recrypted = Pdfcrypt.recrypt_pdf pdf userpw in
-    pdf_to_channel
-      ~preserve_objstm ~generate_objstm false
-      (Some dummy_encryption) false recrypted channel
-
-let pdf_to_file_recrypting ?(preserve_objstm=false) ?(generate_objstm=false) pdf userpw filename =
-  let recrypted = Pdfcrypt.recrypt_pdf pdf userpw in
-    pdf_to_file_options
-      ~preserve_objstm ~generate_objstm false
-      (Some dummy_encryption) false recrypted filename*)
 
