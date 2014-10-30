@@ -7,10 +7,10 @@ let crypt_debug = ref false
 (* ARC4 = old style or crypt filter with V2. AESV2 = Crypt filter with AESV2.
 AESV3 is 256 bit AES encryption from the PDF 1.7 Extensions, or the new ISO one.
 *)
-type encryption =
+(*type encryption =
   | ARC4 of int * int (* keylength, r (= 2 or 3 or 4) *)
   | AESV2 (* v = 4, r = 4 *)
-  | AESV3 of bool (* v = 5, r = 5 or v = 5, r = 6 if true *)
+  | AESV3 of bool (* v = 5, r = 5 or v = 5, r = 6 if true *)*)
 
 (* Given an object number, generation number, input key and key length in bits,
 apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
@@ -24,7 +24,7 @@ let find_hash crypt_type obj gen key keylength =
     [| i32toi (land32 gen 0x000000ffl);
        i32toi (lsr32 (land32 gen 0x0000ff00l) 8) |]
   in let extra =
-    if crypt_type = AESV2 then [| 0x73; 0x41; 0x6C; 0x54 |] else [| |]
+    if crypt_type = Pdf.AESV2 then [| 0x73; 0x41; 0x6C; 0x54 |] else [| |]
   in
     let digest_input = string_of_int_arrays [key; from_obj; from_gen; extra] in
       int_array_of_string
@@ -140,11 +140,11 @@ let rec decrypt
       | {contents = Pdf.ParsedAlreadyDecrypted _} -> Pdf.String s
       | _ (* Will always be Parsed for now...*) ->
         let f =
-          (if crypt_type = AESV2 then
+          (if crypt_type = Pdf.AESV2 then
             (if encrypt
                then Pdfcryptprimitives.aes_encrypt_data 4
                else Pdfcryptprimitives.aes_decrypt_data 4)
-           else if (match crypt_type with AESV3 _ -> true | _ -> false) then
+           else if (match crypt_type with Pdf.AESV3 _ -> true | _ -> false) then
             (if encrypt
                then Pdfcryptprimitives.aes_encrypt_data 8
                else Pdfcryptprimitives.aes_decrypt_data 8)
@@ -232,11 +232,11 @@ and decrypt_stream
       else
         let data' =
           let f =
-            (if crypt_type = AESV2 then
+            (if crypt_type = Pdf.AESV2 then
                (if encrypt
                   then Pdfcryptprimitives.aes_encrypt_data 4
                   else Pdfcryptprimitives.aes_decrypt_data 4)
-             else if (match crypt_type with AESV3 _ -> true | _ -> false) then
+             else if (match crypt_type with Pdf.AESV3 _ -> true | _ -> false) then
                (if encrypt
                   then Pdfcryptprimitives.aes_encrypt_data 8
                   else Pdfcryptprimitives.aes_decrypt_data 8)
@@ -330,10 +330,10 @@ let get_encryption_values pdf =
         with
         | Some (Pdf.Name "/Standard"), Some (Pdf.Integer 1), _, Some (Pdf.Integer r)
         | Some (Pdf.Name "/Standard"), Some (Pdf.Integer 2), None, Some (Pdf.Integer r) ->
-            Some (ARC4 (40, r))
+            Some (Pdf.ARC4 (40, r))
         | Some (Pdf.Name "/Standard"), Some (Pdf.Integer 2), Some (Pdf.Integer n), _
             when n mod 8 = 0 && n >= 40 && n <= 128 ->
-              Some (ARC4 (n, 3))
+              Some (Pdf.ARC4 (n, 3))
         | Some (Pdf.Name "/Standard"), Some (Pdf.Integer (4 | 5)), length, Some (Pdf.Integer r) ->
             begin match Pdf.lookup_direct pdf "/CF" encryptdict with
             | Some cfdict ->
@@ -342,16 +342,15 @@ let get_encryption_values pdf =
                     begin match Pdf.lookup_direct pdf "/CFM" stdcfdict with
                     | Some (Pdf.Name "/V2") ->
                         begin match length with
-                        | Some (Pdf.Integer i) -> Some (ARC4 (i, 4))
+                        | Some (Pdf.Integer i) -> Some (Pdf.ARC4 (i, 4))
                         | _ ->
                             begin match Pdf.lookup_direct pdf "/Length" cfdict with
-                            | Some (Pdf.Integer i) -> Some (ARC4 (i, 4))
+                            | Some (Pdf.Integer i) -> Some (Pdf.ARC4 (i, 4))
                             | _ -> None
                             end
                         end
-                    | Some (Pdf.Name "/AESV2") -> Some AESV2
-                    | Some (Pdf.Name "/AESV3") ->
-                        Some (AESV3 (r = 6))
+                    | Some (Pdf.Name "/AESV2") -> Some Pdf.AESV2
+                    | Some (Pdf.Name "/AESV3") -> Some (Pdf.AESV3 (r = 6))
                     | _ -> None
                     end
                 | _ -> None
@@ -361,7 +360,7 @@ let get_encryption_values pdf =
         | _ -> None
       in
         let chop_string3248 n s =
-          let need = match crypt_type with Some (AESV3 _) -> 48 | _ -> 32 in
+          let need = match crypt_type with Some (Pdf.AESV3 _) -> 48 | _ -> 32 in
             if String.length s < need then
               raise (Pdf.PDFError (n ^ ": too small in get_encryption_values"))
             else
@@ -604,8 +603,8 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
      let crypt_type, u, o, p, id, ue, oe = get_encryption_values pdf in
        let r, keylength, file_encryption_key =
          match crypt_type with
-         | AESV2 -> 4, 128, None
-         | AESV3 iso ->
+         | Pdf.AESV2 -> 4, 128, None
+         | Pdf.AESV3 iso ->
              begin match oe, ue with
              | Some _, Some ue ->
                  begin match keyfromowner with
@@ -626,12 +625,16 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
                  end
              | _ -> raise (Failure "decrypt_pdf: no oe")
              end
-         | ARC4 (k, r) -> r, k, None
+         | Pdf.ARC4 (k, r) -> r, k, None
        in let encrypt_metadata =
          match Pdf.lookup_direct pdf "/EncryptMetadata" encrypt_dict with
          | Some (Pdf.Boolean false) -> false
          | _ -> true
        in
+         pdf.Pdf.saved_encryption <-
+           Some
+             {Pdf.from_get_encryption_values = (crypt_type, u, o, p, id, ue, oe);
+              Pdf.encrypt_metadata = encrypt_metadata};
          process_cryption (not encrypt_metadata) false pdf crypt_type user_pw r u o p id keylength file_encryption_key,
          banlist_of_p p
 
@@ -672,9 +675,9 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
      let crypt_type, u, o, p, id, ue, oe = get_encryption_values pdf in
        let r, keylength =
          match crypt_type with
-         | AESV2 -> 4, 128
-         | AESV3 b -> (if b then 6 else 5), 256
-         | ARC4 (k, r) -> r, k
+         | Pdf.AESV2 -> 4, 128
+         | Pdf.AESV3 b -> (if b then 6 else 5), 256
+         | Pdf.ARC4 (k, r) -> r, k
        in let no_encrypt_metadata =
          match Pdf.lookup_direct pdf "/EncryptMetadata" encrypt_dict with
          | Some (Pdf.Boolean false) -> true
@@ -738,9 +741,9 @@ let decrypt_pdf_owner owner_pw pdf =
       let crypt_type, u, o, _, _, _, oe = get_encryption_values pdf in
         let r, keylength =
           match crypt_type with
-          | AESV2 -> 4, 128
-          | AESV3 x -> (if x then 6 else 5), 256
-          | ARC4 (k, r) -> r, k
+          | Pdf.AESV2 -> 4, 128
+          | Pdf.AESV3 x -> (if x then 6 else 5), 256
+          | Pdf.ARC4 (k, r) -> r, k
         in
           if r = 5 || r = 6 then
             if authenticate_owner_password_aesv3 (r = 6) (make_utf8 owner_pw) u o then
@@ -830,7 +833,7 @@ let encrypt_pdf_40bit_inner owner user p user_pw id pdf =
        "/U", Pdf.String user;
        "/P", Pdf.Integer (i32toi p)]
   in
-    match process_cryption false false pdf (ARC4 (40, 2)) user_pw 2 user owner p id 40 None with
+    match process_cryption false false pdf (Pdf.ARC4 (40, 2)) user_pw 2 user owner p id 40 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
@@ -857,7 +860,7 @@ let encrypt_pdf_128bit_inner owner user p user_pw id pdf =
        "/Length", Pdf.Integer 128;
        "/P", Pdf.Integer (i32toi p)]
   in
-    match process_cryption false false pdf (ARC4 (128, 3)) user_pw 3 user owner p id 128 None with
+    match process_cryption false false pdf (Pdf.ARC4 (128, 3)) user_pw 3 user owner p id 128 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
@@ -885,7 +888,7 @@ let encrypt_pdf_128bit_inner_r4 owner user p user_pw id pdf encrypt_metadata =
        "/StrF", Pdf.Name "/StdCF";
        "/StmF", Pdf.Name "/StdCF"]
   in
-    match process_cryption (not encrypt_metadata) false pdf (ARC4 (128, 4)) user_pw 4 user owner p id 128 None with
+    match process_cryption (not encrypt_metadata) false pdf (Pdf.ARC4 (128, 4)) user_pw 4 user owner p id 128 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
@@ -923,7 +926,7 @@ let encrypt_pdf_AES_inner owner user p user_pw id encrypt_metadata pdf =
   in
     match 
       process_cryption
-        (not encrypt_metadata) true pdf AESV2 user_pw 4 user owner p id 128 None
+        (not encrypt_metadata) true pdf Pdf.AESV2 user_pw 4 user owner p id 128 None
     with
     | Some pdf ->
         {pdf with
@@ -965,7 +968,7 @@ let encrypt_pdf_AES256_inner iso encrypt_metadata owner user p perms oe ue id ke
   in
     match
       process_cryption
-        (not encrypt_metadata) true pdf (AESV3 iso) "" (if iso then 6 else 5) user owner p id 256 (Some key)
+        (not encrypt_metadata) true pdf (Pdf.AESV3 iso) "" (if iso then 6 else 5) user owner p id 256 (Some key)
     with
     | Some pdf ->
         {pdf with
@@ -1088,7 +1091,7 @@ let recrypt_pdf original modified user_pw =
        | _ -> true
      in
        match crypt_type with
-       | AESV3 iso ->
+       | Pdf.AESV3 iso ->
            let oe, ue =
              begin
                match oe with
@@ -1113,13 +1116,13 @@ let recrypt_pdf original modified user_pw =
                  (string_of_bytes
                    (perms_of_p iso encrypt_metadata p user_pw o oe u))
                  oe ue id (string_of_bytes key) modified
-       | AESV2 ->
+       | Pdf.AESV2 ->
            encrypt_pdf_AES_inner o u p user_pw id encrypt_metadata modified
-       | ARC4 (40, _) -> encrypt_pdf_40bit_inner o u p user_pw id modified
-       | ARC4 (128, 4) ->
+       | Pdf.ARC4 (40, _) -> encrypt_pdf_40bit_inner o u p user_pw id modified
+       | Pdf.ARC4 (128, 4) ->
            encrypt_pdf_128bit_inner_r4
              o u p user_pw id modified encrypt_metadata
-       | ARC4 (128, _) ->
+       | Pdf.ARC4 (128, _) ->
            encrypt_pdf_128bit_inner o u p user_pw id modified
        | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
 

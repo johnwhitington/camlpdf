@@ -59,13 +59,8 @@ val encrypt_pdf_AES256ISO : bool -> string -> string -> permission list -> Pdf.t
 val decrypt_single_stream :
   string option -> string option -> Pdf.t -> int -> int -> Pdf.pdfobject -> Pdf.pdfobject
 
-type encryption =
-  | ARC4 of int * int
-  | AESV2
-  | AESV3 of bool (* true = iso, false = old algorithm *)
-
 (* Don't call on an unencrypted PDF *)
-val get_encryption_values : Pdf.t -> encryption * string * string * int32 * string * string option * string option
+val get_encryption_values : Pdf.t -> Pdf.encryption * string * string * int32 * string * string option * string option
 
 val banlist_of_p : int32 -> permission list
 
