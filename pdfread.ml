@@ -1497,7 +1497,8 @@ let read_pdf user_pw owner_pw opt i =
              Pdf.objects =
                Pdf.objects_of_list (Some (get_object i xrefs)) objects;
              Pdf.root = root;
-             Pdf.trailerdict = trailerdict'}
+             Pdf.trailerdict = trailerdict';
+             Pdf.saved_encryption = None}
           in
             (* Delete items in !postdeletes - these are any xref streams, and
             object streams (if finished with).  This allows decryption to be
@@ -1633,7 +1634,8 @@ let read_malformed_pdf upw opw i =
          Pdf.minor = minor;
          Pdf.root = root;
          Pdf.objects = Pdf.objects_of_list None objects;
-         Pdf.trailerdict = Pdf.Dictionary trailerdict}
+         Pdf.trailerdict = Pdf.Dictionary trailerdict;
+         Pdf.saved_encryption = None}
     
 let read_pdf upw opw opt i =
   try read_pdf upw opw opt i with

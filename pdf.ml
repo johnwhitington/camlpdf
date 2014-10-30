@@ -79,6 +79,16 @@ type pdfobjects =
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t}
 
+type encryption = 
+  | ARC4 of int * int
+  | AESV2
+  | AESV3 of bool (* true = iso, false = old algorithm *)
+
+type saved_encryption =
+  {from_get_encryption_values :
+     encryption * string * string * int32 * string * string option * string option;
+   encrypt_metadata : bool}
+
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
 
@@ -89,7 +99,8 @@ type t =
    mutable minor : int;
    mutable root : int;
    mutable objects : pdfobjects; 
-   mutable trailerdict : pdfobject}
+   mutable trailerdict : pdfobject;
+   mutable saved_encryption : saved_encryption option}
 
 (* The null PDF document. *)
 let empty () =
@@ -101,7 +112,8 @@ let empty () =
       parse = None;
       pdfobjects = pdfobjmap_empty ();
       object_stream_ids = null_hash ()};
-   trailerdict = Dictionary []}
+   trailerdict = Dictionary [];
+   saved_encryption = None}
 
 (* General exception for low-level errors. *)
 exception PDFError of string
@@ -823,5 +835,6 @@ let deep_copy from =
       parse = from.objects.parse;
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
       object_stream_ids = Hashtbl.copy from.objects.object_stream_ids};
-   trailerdict = from.trailerdict}
+   trailerdict = from.trailerdict;
+   saved_encryption = from.saved_encryption}
 

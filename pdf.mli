@@ -63,6 +63,16 @@ type pdfobjects =
 
 (** {2 The PDF document} *)
 
+type encryption = 
+  | ARC4 of int * int
+  | AESV2
+  | AESV3 of bool (* true = iso, false = old algorithm *)
+
+type saved_encryption =
+  {from_get_encryption_values :
+     encryption * string * string * int32 * string * string option * string option;
+   encrypt_metadata : bool}
+
 (** A Pdf document. Major and minor version numbers, object number of root, the
 objects objects and the trailer dictionary as a [Dictionary] [pdfobject]. *)
 type t =
@@ -70,7 +80,8 @@ type t =
    mutable minor : int;
    mutable root : int;
    mutable objects : pdfobjects;
-   mutable trailerdict : pdfobject}
+   mutable trailerdict : pdfobject;
+   mutable saved_encryption : saved_encryption option}
 
 (** The empty document (PDF 1.0, no objects, no root, empty trailer dictionary).
 Note this is not a well-formed PDF. *)
