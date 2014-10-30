@@ -57,11 +57,11 @@ val pdf_to_file : Pdf.t -> string -> unit
 a filename, write the modified PDF as a file, encrypted with the original
 encryption, but modified contents. This allows modifying an encrypted file
 directly without knowledge of the owner password. *)
-val pdf_to_file_recrypting : Pdf.t -> string -> string -> unit
+val pdf_to_file_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> string -> unit
 
-val pdf_to_channel_recrypting : Pdf.t -> string -> out_channel -> unit
+val pdf_to_channel_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> out_channel -> unit
 
-val pdf_to_output_recrypting : Pdf.t -> string -> Pdfio.output -> unit
+val pdf_to_output_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> Pdfio.output -> unit
 
 (** {2 String of a PDF object} *)
 
