@@ -11,7 +11,8 @@ let header pdf =
     pdf.Pdf.major
     pdf.Pdf.minor
 
-(* Build a cross-reference table string. *)
+(* Build a cross-reference table string. (With new GADT printf, this may be
+faster with printf -- check). *)
 let pad_to_ten ch s =
   let l = String.length s in
     if l > 10 then raise (Pdf.PDFError "xref too big") else
@@ -19,8 +20,9 @@ let pad_to_ten ch s =
         String.blit s 0 t (10 - l) l;
         t
 
-let string_of_xref n =
-  pad_to_ten '0' (string_of_int n) ^ " 00000 n \n" 
+let output_string_of_xref i n =
+  i.output_string (pad_to_ten '0' (string_of_int n));
+  i.output_string " 00000 n \n" 
 
 (* Write the cross-reference table to a channel. *)
 let write_xrefs xrefs i =
@@ -29,7 +31,7 @@ let write_xrefs xrefs i =
   i.output_string (string_of_int (length xrefs + 1));
   i.output_string " \n";
   i.output_string "0000000000 65535 f \n";
-  iter (function x -> i.output_string (string_of_xref x)) xrefs
+  iter (output_string_of_xref i) xrefs
 
 (* Convert a string to one suitable for output. The function [escape] escapes
 parentheses and backslashes. *)
@@ -98,7 +100,7 @@ let make_pdf_name_inner b s =
 character, since a '/' is a delimter, and this is fine... *)
 let rec needs_processing_inner s p l =
   (p <= l - 1) &&
-    (match s.[p] with
+    (match String.unsafe_get s p with
     | '\000' -> raise (Pdf.PDFError "Name cannot contain the null character")
     | x when x < '\033' || x > '\126' || Pdf.is_delimiter x || x = '#' -> true
     | _ -> needs_processing_inner s (p + 1) l)
@@ -112,7 +114,7 @@ let b = Buffer.create 30
 
 let make_pdf_name n =
   if needs_processing n then
-    if n = "" || String.get n 0 <> '/' then raise (Pdf.PDFError "bad name") else
+    if n = "" || String.unsafe_get n 0 <> '/' then raise (Pdf.PDFError "bad name") else
       begin
         Buffer.clear b;
         Buffer.add_char b '/';
