@@ -1074,11 +1074,10 @@ let is_encrypted pdf =
   | Some _ -> true
   | None -> false
 
-(* recrypt_pdf decrypted_and_modified user_password_used
-re-encrypts a PDF document which was decrypted with the user password given
-using that same user password, the owner password from the original encrypted
-file and the same permissions and encryption parameters. *)
-let recrypt_pdf pdf user_pw =
+(* recrypt_pdf pdf password re-encrypts a PDF document which was decrypted with
+the user or owner password given using that same user or owner password *)
+let recrypt_pdf pdf pw =
+  Printf.printf "recrypt_pdf, password = %s\n%!" pw;
   let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
     let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata =
       match pdf.Pdf.saved_encryption with
@@ -1087,37 +1086,31 @@ let recrypt_pdf pdf user_pw =
     in
       match crypt_type with
       | Pdf.AESV3 iso ->
-          let oe, ue =
-            begin
-              match oe with
-                Some oe -> oe
-              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
-            end,
-            begin
-              match ue with
-                Some ue -> ue
-              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
-            end
+          let oe =
+            match oe with
+              Some oe -> oe
+            | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
+          and ue =
+            match ue with
+              Some ue -> ue
+            | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
           in
             let key =
-              if authenticate_user_password_aesv3 iso (make_utf8 user_pw) u
-                then
-                  file_encryption_key_aesv3_user iso (make_utf8 user_pw) u ue
-                else
-                  raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
+              if authenticate_user_password_aesv3 iso (make_utf8 pw) u
+                then file_encryption_key_aesv3_user iso (make_utf8 pw) u ue
+                else raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
             in
               encrypt_pdf_AES256_inner
                 iso encrypt_metadata o u p
-                (string_of_bytes
-                  (perms_of_p iso encrypt_metadata p user_pw o oe u))
+                (string_of_bytes (perms_of_p iso encrypt_metadata p pw o oe u))
                 oe ue id (string_of_bytes key) pdf
       | Pdf.AESV2 ->
-          encrypt_pdf_AES_inner o u p user_pw id encrypt_metadata pdf
-      | Pdf.ARC4 (40, _) -> encrypt_pdf_40bit_inner o u p user_pw id pdf
+          encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
+      | Pdf.ARC4 (40, _) ->
+          encrypt_pdf_40bit_inner o u p pw id pdf
       | Pdf.ARC4 (128, 4) ->
-         encrypt_pdf_128bit_inner_r4
-           o u p user_pw id pdf encrypt_metadata
+          encrypt_pdf_128bit_inner_r4 o u p pw id pdf encrypt_metadata
       | Pdf.ARC4 (128, _) ->
-          encrypt_pdf_128bit_inner o u p user_pw id pdf
+          encrypt_pdf_128bit_inner o u p pw id pdf
       | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
 

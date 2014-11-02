@@ -583,11 +583,11 @@ let pdf_to_output
   ?(recrypt = None)
   linearize encrypt pdf o
 =
-  let encrypt, pdf  =
-    match recrypt with
-      None -> (encrypt, pdf)
-    | Some pw -> flprint "pdf_to_output: recrypting\n"; (Some dummy_encryption, Pdfcrypt.recrypt_pdf pdf pw)
-  in
+  if !write_debug then
+  begin
+    flprint "****pdf_to_output\n";
+    debug_whole_pdf pdf
+  end;
   if !write_debug then
     Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
     preserve_objstm generate_objstm linearize;
@@ -608,6 +608,16 @@ let pdf_to_output
     else
       ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
   in
+  if !write_debug then
+  begin
+    flprint "****after object streams built\n";
+    debug_whole_pdf pdf
+  end;
+    let encrypt =
+      match recrypt with
+        None -> encrypt
+      | Some _ -> Some dummy_encryption
+    in
     let pdf =
       if preserve_objstm || generate_objstm then pdf else
         begin match encrypt with
@@ -621,12 +631,27 @@ let pdf_to_output
         end
     in
       if !write_debug then flprint "Finished renumber\n";
+  if !write_debug then
+    begin
+      flprint "****after renumbering\n";
+      debug_whole_pdf pdf
+    end;
+      let pdf =
+        match recrypt with
+          None -> pdf
+        | Some pw -> Pdfcrypt.recrypt_pdf pdf pw
+      in
       let pdf = crypt_if_necessary pdf encrypt in
         if !write_debug then
           begin
             flprint "crypt_if_necessary done...\n";
             if Pdfcrypt.is_encrypted pdf then flprint "FILE IS ENCRYPTED\n"
           end;
+  if !write_debug then
+    begin
+      flprint "****crypted, ready to write\n";
+      debug_whole_pdf pdf
+    end;
         o.output_string (header pdf);
         let xrefs = ref []
         and objiter =
