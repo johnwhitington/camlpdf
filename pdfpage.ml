@@ -753,7 +753,8 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
           {pdf with
              Pdf.major = basepdf.Pdf.major;
              Pdf.minor = basepdf.Pdf.minor;
-             Pdf.trailerdict = basepdf.Pdf.trailerdict}
+             Pdf.trailerdict = basepdf.Pdf.trailerdict;
+             Pdf.saved_encryption = basepdf.Pdf.saved_encryption}
         in
           let existing_root_entries =
             try

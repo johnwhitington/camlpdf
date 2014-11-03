@@ -4,14 +4,6 @@ open Pdfio
 
 let crypt_debug = ref false
 
-(* ARC4 = old style or crypt filter with V2. AESV2 = Crypt filter with AESV2.
-AESV3 is 256 bit AES encryption from the PDF 1.7 Extensions, or the new ISO one.
-*)
-(*type encryption =
-  | ARC4 of int * int (* keylength, r (= 2 or 3 or 4) *)
-  | AESV2 (* v = 4, r = 4 *)
-  | AESV3 of bool (* v = 5, r = 5 or v = 5, r = 6 if true *)*)
-
 (* Given an object number, generation number, input key and key length in bits,
 apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
 by the encryption function. *)
@@ -1175,5 +1167,8 @@ let recrypt_pdf_owner pdf owner_pw =
         | _ -> raise (Pdf.PDFError "recrypt_pdf_owner: bad encryption")
 
 let recrypt_pdf pdf pw =
-  try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
+  try
+    try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
+  with
+    _ -> raise (Pdf.PDFError "recrypt_pdf failed. Wrong password?")
 
