@@ -71,7 +71,8 @@ type encryption =
 type saved_encryption =
   {from_get_encryption_values :
      encryption * string * string * int32 * string * string option * string option;
-   encrypt_metadata : bool}
+   encrypt_metadata : bool;
+   perms : string}
 
 (** A Pdf document. Major and minor version numbers, object number of root, the
 objects objects and the trailer dictionary as a [Dictionary] [pdfobject]. *)

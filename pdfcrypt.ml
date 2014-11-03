@@ -631,12 +631,20 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
          | Some (Pdf.Boolean false) -> false
          | _ -> true
        in
-         pdf.Pdf.saved_encryption <-
-           Some
-             {Pdf.from_get_encryption_values = (crypt_type, u, o, p, id, ue, oe);
-              Pdf.encrypt_metadata = encrypt_metadata};
-         process_cryption (not encrypt_metadata) false pdf crypt_type user_pw r u o p id keylength file_encryption_key,
-         banlist_of_p p
+         let perms =
+           match Pdf.lookup_direct pdf "/Perms" encrypt_dict with
+           | Some (Pdf.String s) -> s
+           | _ -> ""
+         in
+           pdf.Pdf.saved_encryption <-
+             Some
+               {Pdf.from_get_encryption_values = (crypt_type, u, o, p, id, ue, oe);
+                Pdf.encrypt_metadata = encrypt_metadata;
+                perms};
+           (process_cryption
+             (not encrypt_metadata) false pdf crypt_type user_pw r u o p id
+             keylength file_encryption_key,
+            banlist_of_p p)
 
 (* Calculate the owner key from the padded owner password (as calculated by
 pad_password) *)
@@ -731,46 +739,57 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
              else
                raise (Pdf.PDFError "Encryption: Bad password when decrypting single stream")
 
+let key_or_user_password_from_owner ?encryption_values owner_pw pdf =
+  let padded_owner = pad_password (int_array_of_string owner_pw) in
+    let crypt_type, u, o, oe =
+      match encryption_values with
+        Some e -> e
+      | None ->
+          let crypt_type, u, o, _, _, _, oe = get_encryption_values pdf in
+            crypt_type, u, o, oe
+    in
+      let r, keylength =
+        match crypt_type with
+        | Pdf.AESV2 -> 4, 128
+        | Pdf.AESV3 x -> (if x then 6 else 5), 256
+        | Pdf.ARC4 (k, r) -> r, k
+      in
+        if r = 5 || r = 6 then
+          if authenticate_owner_password_aesv3 (r = 6) (make_utf8 owner_pw) u o then
+          begin
+            match oe with
+            | None -> raise (Pdf.PDFError "decrypt_pdf_owner: No /OE entry found")
+            | Some oe ->
+                let key = string_of_bytes (file_encryption_key_aesv3 (r = 6) (make_utf8 owner_pw) o oe u) in
+                  Some (key, "")
+          end
+          else
+             None
+        else
+          let user_pw =
+            let key = owner_key padded_owner keylength r in
+              if r = 2 then
+                string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string o))
+              else (* r >= 3 *)
+                begin
+                  let acc = ref (bytes_of_string o) in
+                    for x = 19 downto 0 do
+                      acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
+                    done;
+                    string_of_bytes !acc 
+                end
+          in
+            Some ("", user_pw)
+
 (* Decrypt with the owner password. *)
 let decrypt_pdf_owner owner_pw pdf =
   (*Printf.printf "decrypt_pdf_owner with owner pw A%sA\n" owner_pw; flprint "\n";*)
   match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
-  | None -> Some pdf
+    None -> Some pdf
   | _ ->
-    let padded_owner = pad_password (int_array_of_string owner_pw) in
-      let crypt_type, u, o, _, _, _, oe = get_encryption_values pdf in
-        let r, keylength =
-          match crypt_type with
-          | Pdf.AESV2 -> 4, 128
-          | Pdf.AESV3 x -> (if x then 6 else 5), 256
-          | Pdf.ARC4 (k, r) -> r, k
-        in
-          if r = 5 || r = 6 then
-            if authenticate_owner_password_aesv3 (r = 6) (make_utf8 owner_pw) u o then
-            begin
-              match oe with
-              | None -> raise (Pdf.PDFError "decrypt_pdf_owner: No /OE entry found")
-              | Some oe ->
-                  let key = string_of_bytes (file_encryption_key_aesv3 (r = 6) (make_utf8 owner_pw) o oe u) in
-                    fst (decrypt_pdf "" ~keyfromowner:key pdf)
-            end
-            else
-                None
-          else
-            let user_pw =
-              let key = owner_key padded_owner keylength r in
-                if r = 2 then
-                  string_of_bytes (Pdfcryptprimitives.crypt key (bytes_of_string o))
-                else (* r >= 3 *)
-                  begin
-                    let acc = ref (bytes_of_string o) in
-                      for x = 19 downto 0 do
-                        acc := Pdfcryptprimitives.crypt (mkkey key x) !acc
-                      done;
-                      string_of_bytes !acc 
-                  end
-            in
-              fst (decrypt_pdf user_pw pdf)
+    match key_or_user_password_from_owner owner_pw pdf with
+      None -> None
+    | Some (key, user_pw) -> fst (decrypt_pdf user_pw ~keyfromowner:key pdf)
 
 (* Make an owner password *)
 let mk_owner r owner_pw user_pw keylength =
@@ -1075,9 +1094,8 @@ let is_encrypted pdf =
   | None -> false
 
 (* recrypt_pdf pdf password re-encrypts a PDF document which was decrypted with
-the user or owner password given using that same user or owner password *)
-let recrypt_pdf pdf pw =
-  Printf.printf "recrypt_pdf, password = %s\n%!" pw;
+the user or owner password given using that same user password *)
+let recrypt_pdf_user pdf pw =
   let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
     let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata =
       match pdf.Pdf.saved_encryption with
@@ -1113,4 +1131,49 @@ let recrypt_pdf pdf pw =
       | Pdf.ARC4 (128, _) ->
           encrypt_pdf_128bit_inner o u p pw id pdf
       | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
+
+(* recrypt_pdf_owner  password re-encrypts a PDF document which was decrypted with
+the user or owner password given using that same owner password *)
+let recrypt_pdf_owner pdf owner_pw =
+  let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
+    let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
+      match pdf.Pdf.saved_encryption with
+        None ->
+          raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
+      | Some x ->
+          (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
+    in
+      let key, pw =
+        match
+          key_or_user_password_from_owner
+            ~encryption_values:(crypt_type, u, o, oe) owner_pw pdf
+        with
+          None -> raise (Pdf.PDFError "Recrypt with owner password failed.")
+        | Some (key, pw) -> (key, pw) 
+      in
+        match crypt_type with
+        | Pdf.AESV3 iso ->
+            let oe =
+              match oe with
+                Some oe -> oe
+              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
+            and ue =
+              match ue with
+                Some ue -> ue
+              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
+            in
+              encrypt_pdf_AES256_inner
+                iso encrypt_metadata o u p perms oe ue id key pdf
+        | Pdf.AESV2 ->
+            encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
+        | Pdf.ARC4 (40, _) ->
+            encrypt_pdf_40bit_inner o u p pw id pdf
+        | Pdf.ARC4 (128, 4) ->
+            encrypt_pdf_128bit_inner_r4 o u p pw id pdf encrypt_metadata
+        | Pdf.ARC4 (128, _) ->
+            encrypt_pdf_128bit_inner o u p pw id pdf
+        | _ -> raise (Pdf.PDFError "recrypt_pdf_owner: bad encryption")
+
+let recrypt_pdf pdf pw =
+  try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
 
