@@ -1089,10 +1089,10 @@ let is_encrypted pdf =
 the user or owner password given using that same user password *)
 let recrypt_pdf_user pdf pw =
   let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
-    let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata =
+    let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
       match pdf.Pdf.saved_encryption with
         None -> raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
-      | Some x -> (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata)
+      | Some x -> (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
     in
       match crypt_type with
       | Pdf.AESV3 iso ->
@@ -1111,9 +1111,8 @@ let recrypt_pdf_user pdf pw =
                 else raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
             in
               encrypt_pdf_AES256_inner
-                iso encrypt_metadata o u p
-                (string_of_bytes (perms_of_p iso encrypt_metadata p pw o oe u))
-                oe ue id (string_of_bytes key) pdf
+                iso encrypt_metadata o u p perms oe ue id
+                (string_of_bytes key) pdf
       | Pdf.AESV2 ->
           encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
       | Pdf.ARC4 (40, _) ->
