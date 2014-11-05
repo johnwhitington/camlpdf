@@ -13,6 +13,7 @@ of the output pdf come from the same input pdf
 o Pdfpagelabels bug fixes, especially to alphabetic labels
 o Read StemV etc. values from the AFM header directly
 o Object streams may be written uncompressed for manual inspection
+o Recrypting overhauled. Now a first class citizen.
 
 1.7 (30th August 2013)
 

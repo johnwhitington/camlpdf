@@ -93,6 +93,14 @@ let split5 l =
   in
     split5_inner ([], [], [], [], []) l
 
+let split6 l =
+  let rec split6_inner (l1, l2, l3, l4, l5, l6) = function
+    | [] -> rev l1, rev l2, rev l3, rev l4, rev l5, rev l6
+    | (a, b, c, d, e, f)::t ->
+        split6_inner (a::l1, b::l2, c::l3, d::l4, e::l5, f::l6) t
+  in
+    split6_inner ([], [], [], [], [], []) l
+
 let split8 l =
   let rec split8_inner (l1, l2, l3, l4, l5, l6, l7, l8) = function
     | [] -> rev l1, rev l2, rev l3, rev l4, rev l5, rev l6, rev l7, rev l8

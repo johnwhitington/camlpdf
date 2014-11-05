@@ -55,6 +55,8 @@ val map2 : ('a -> 'b -> 'c) -> 'a list -> 'b list -> 'c list
 val split : ('a * 'b) list -> 'a list * 'b list
 val split3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
 val split5 : ('a * 'b * 'c * 'd * 'e) list -> 'a list * 'b list * 'c list * 'd list * 'e list
+val split6 : ('a * 'b * 'c * 'd * 'e * 'f) list -> 'a list * 'b list * 'c list *
+'d list * 'e list * 'f list
 val split8 : ('a * 'b * 'c * 'd * 'e * 'f * 'g * 'h) list ->
   'a list * 'b list * 'c list * 'd list * 'e list * 'f list * 'g list * 'h list
 val combine : 'a list -> 'b list -> ('a * 'b) list
