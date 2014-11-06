@@ -579,15 +579,11 @@ let dummy_encryption =
 
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
-  ?(preserve_objstm = false) ?(generate_objstm = false) ?(compress_objstm = true)
-  ?(recrypt = None)
-  linearize encrypt pdf o
+  ?(preserve_objstm = false) ?(generate_objstm = false)
+  ?(compress_objstm = true) ?(recrypt = None) linearize encrypt pdf o
 =
   if !write_debug then
-  begin
-    flprint "****pdf_to_output\n";
-    debug_whole_pdf pdf
-  end;
+  begin flprint "****pdf_to_output\n"; debug_whole_pdf pdf end;
   if !write_debug then
     Printf.printf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
     preserve_objstm generate_objstm linearize;
@@ -609,10 +605,7 @@ let pdf_to_output
       ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
   in
   if !write_debug then
-  begin
-    flprint "****after object streams built\n";
-    debug_whole_pdf pdf
-  end;
+  begin flprint "****after object streams built\n"; debug_whole_pdf pdf end;
     let encrypt =
       match recrypt with
         None -> encrypt
@@ -632,15 +625,16 @@ let pdf_to_output
     in
       if !write_debug then flprint "Finished renumber\n";
   if !write_debug then
-    begin
-      flprint "****after renumbering\n";
-      debug_whole_pdf pdf
-    end;
+    begin flprint "****after renumbering\n"; debug_whole_pdf pdf end;
       let pdf =
         match recrypt with
           None -> pdf
-        | Some pw -> Pdfcrypt.recrypt_pdf pdf pw
+        | Some pw ->
+            Pdfcrypt.recrypt_pdf
+              ~renumber:(not (preserve_objstm || generate_objstm)) pdf pw
       in
+  if !write_debug then
+    begin flprint "****just before crypt_if_necessary\n"; debug_whole_pdf pdf end;
       let pdf = crypt_if_necessary pdf encrypt in
         if !write_debug then
           begin
@@ -648,10 +642,7 @@ let pdf_to_output
             if Pdfcrypt.is_encrypted pdf then flprint "FILE IS ENCRYPTED\n"
           end;
   if !write_debug then
-    begin
-      flprint "****crypted, ready to write\n";
-      debug_whole_pdf pdf
-    end;
+    begin flprint "****crypted, ready to write\n"; debug_whole_pdf pdf end;
         o.output_string (header pdf);
         let xrefs = ref []
         and objiter =
@@ -734,15 +725,11 @@ let change_id pdf f =
 
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
-  ?(preserve_objstm = false)
-  ?(generate_objstm = false)
-  ?(compress_objstm = true)
-  ?(recrypt = None)
+  ?(preserve_objstm = false) ?(generate_objstm = false)
+  ?(compress_objstm = true) ?(recrypt = None)
   linearize encrypt mk_id pdf ch
 =
-  let pdf =
-    if mk_id then change_id pdf "" else pdf
-  in
+  let pdf = if mk_id then change_id pdf "" else pdf in
     pdf_to_output
       ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
       linearize encrypt pdf (output_of_channel ch)
@@ -754,18 +741,19 @@ existing object streams will be preserved. If [generate_objstm] is set, new
 ones will be generated in addition. To get totally fresh object streams, set
 [preserve_objstm=false, generate_objstm=true]. *)
 let pdf_to_file_options
-  ?(preserve_objstm = false)
-  ?(generate_objstm = false)
-  ?(compress_objstm = true)
-  ?(recrypt = None)
+  ?(preserve_objstm = false) ?(generate_objstm = false)
+  ?(compress_objstm = true) ?(recrypt = None)
   linearize encrypt mk_id pdf f
 =
   let pdf' = if mk_id then change_id pdf f else pdf
   and ch = open_out_bin f in
-    pdf_to_channel
-      ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-      linearize encrypt false pdf' ch;
-    close_out ch
+    try
+      pdf_to_channel
+        ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
+        linearize encrypt false pdf' ch;
+      close_out ch
+    with
+      e -> close_out ch; raise e
 
 let pdf_to_file pdf f =
   pdf_to_file_options

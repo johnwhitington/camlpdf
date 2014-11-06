@@ -36,7 +36,7 @@ val is_encrypted : Pdf.t -> bool
 (** [recrypt_pdf decrypted_and_modified] re-encrypts a PDF document
 which was decrypted using the user password and owner password from the
 original encrypted file and the same permissions and encryption parameters. *)
-val recrypt_pdf : Pdf.t -> string -> Pdf.t
+val recrypt_pdf : ?renumber:bool -> Pdf.t -> string -> Pdf.t
 
 (** Encrypt a PDF documnent, using 40 bit encryption, with given user and
 owner passwords. *)

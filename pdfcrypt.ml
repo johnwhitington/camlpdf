@@ -4,6 +4,10 @@ open Pdfio
 
 let crypt_debug = ref false
 
+let nums pdf =
+  Pdf.objiter (fun n _ -> Printf.printf "%n " n) pdf;
+  flprint "\n"
+
 (* Given an object number, generation number, input key and key length in bits,
 apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
 by the encryption function. *)
@@ -1088,11 +1092,57 @@ let is_encrypted pdf =
 (* recrypt_pdf pdf password re-encrypts a PDF document which was decrypted with
 the user or owner password given using that same user password *)
 let recrypt_pdf_user pdf pw =
-  let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
-    let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
-      match pdf.Pdf.saved_encryption with
-        None -> raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
-      | Some x -> (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
+  let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
+    match pdf.Pdf.saved_encryption with
+      None -> raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
+    | Some x -> (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
+  in
+    match crypt_type with
+    | Pdf.AESV3 iso ->
+        let oe =
+          match oe with
+            Some oe -> oe
+          | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
+        and ue =
+          match ue with
+            Some ue -> ue
+          | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
+        in
+          let key =
+            if authenticate_user_password_aesv3 iso (make_utf8 pw) u
+              then file_encryption_key_aesv3_user iso (make_utf8 pw) u ue
+              else raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
+          in
+            encrypt_pdf_AES256_inner
+              iso encrypt_metadata o u p perms oe ue id
+              (string_of_bytes key) pdf
+    | Pdf.AESV2 ->
+        encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
+    | Pdf.ARC4 (40, _) ->
+        encrypt_pdf_40bit_inner o u p pw id pdf
+    | Pdf.ARC4 (128, 4) ->
+        encrypt_pdf_128bit_inner_r4 o u p pw id pdf encrypt_metadata
+    | Pdf.ARC4 (128, _) ->
+        encrypt_pdf_128bit_inner o u p pw id pdf
+    | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
+
+(* recrypt_pdf_owner  password re-encrypts a PDF document which was decrypted with
+the user or owner password given using that same owner password *)
+let recrypt_pdf_owner pdf owner_pw =
+  let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
+    match pdf.Pdf.saved_encryption with
+      None ->
+        raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
+    | Some x ->
+        (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
+  in
+    let key, pw =
+      match
+        key_or_user_password_from_owner
+          ~encryption_values:(crypt_type, u, o, oe) owner_pw pdf
+      with
+        None -> raise (Pdf.PDFError "Recrypt with owner password failed.")
+      | Some (key, pw) -> (key, pw) 
     in
       match crypt_type with
       | Pdf.AESV3 iso ->
@@ -1105,14 +1155,8 @@ let recrypt_pdf_user pdf pw =
               Some ue -> ue
             | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
           in
-            let key =
-              if authenticate_user_password_aesv3 iso (make_utf8 pw) u
-                then file_encryption_key_aesv3_user iso (make_utf8 pw) u ue
-                else raise (Pdf.PDFError "recrypt_pdf: failed AESV3 fek.")
-            in
-              encrypt_pdf_AES256_inner
-                iso encrypt_metadata o u p perms oe ue id
-                (string_of_bytes key) pdf
+            encrypt_pdf_AES256_inner
+              iso encrypt_metadata o u p perms oe ue id key pdf
       | Pdf.AESV2 ->
           encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
       | Pdf.ARC4 (40, _) ->
@@ -1121,53 +1165,16 @@ let recrypt_pdf_user pdf pw =
           encrypt_pdf_128bit_inner_r4 o u p pw id pdf encrypt_metadata
       | Pdf.ARC4 (128, _) ->
           encrypt_pdf_128bit_inner o u p pw id pdf
-      | _ -> raise (Pdf.PDFError "recrypt_pdf: bad encryption")
+      | _ -> raise (Pdf.PDFError "recrypt_pdf_owner: bad encryption")
 
-(* recrypt_pdf_owner  password re-encrypts a PDF document which was decrypted with
-the user or owner password given using that same owner password *)
-let recrypt_pdf_owner pdf owner_pw =
-  let pdf = Pdf.renumber (Pdf.changes pdf) pdf in
-    let (crypt_type, u, o, p, id, ue, oe), encrypt_metadata, perms =
-      match pdf.Pdf.saved_encryption with
-        None ->
-          raise (Pdf.PDFError "recrypt_pdf: no saved encryption")
-      | Some x ->
-          (x.Pdf.from_get_encryption_values, x.Pdf.encrypt_metadata, x.Pdf.perms)
-    in
-      let key, pw =
-        match
-          key_or_user_password_from_owner
-            ~encryption_values:(crypt_type, u, o, oe) owner_pw pdf
-        with
-          None -> raise (Pdf.PDFError "Recrypt with owner password failed.")
-        | Some (key, pw) -> (key, pw) 
-      in
-        match crypt_type with
-        | Pdf.AESV3 iso ->
-            let oe =
-              match oe with
-                Some oe -> oe
-              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /oe")
-            and ue =
-              match ue with
-                Some ue -> ue
-              | None -> raise (Pdf.PDFError "recrypt_pdf: bad /ue")
-            in
-              encrypt_pdf_AES256_inner
-                iso encrypt_metadata o u p perms oe ue id key pdf
-        | Pdf.AESV2 ->
-            encrypt_pdf_AES_inner o u p pw id encrypt_metadata pdf
-        | Pdf.ARC4 (40, _) ->
-            encrypt_pdf_40bit_inner o u p pw id pdf
-        | Pdf.ARC4 (128, 4) ->
-            encrypt_pdf_128bit_inner_r4 o u p pw id pdf encrypt_metadata
-        | Pdf.ARC4 (128, _) ->
-            encrypt_pdf_128bit_inner o u p pw id pdf
-        | _ -> raise (Pdf.PDFError "recrypt_pdf_owner: bad encryption")
-
-let recrypt_pdf pdf pw =
-  try
-    try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
-  with
-    _ -> raise (Pdf.PDFError "recrypt_pdf failed. Wrong password?")
+let recrypt_pdf ?(renumber=true) pdf pw =
+  Printf.printf "******************************************recrypt_pdf, renumber = %b\n" renumber;
+  let pdf =
+    if renumber then Pdf.renumber (Pdf.changes pdf) pdf 
+    else pdf
+  in
+    try
+      try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
+    with
+      _ -> raise (Pdf.PDFError "recrypt_pdf failed. Wrong password?")
 
