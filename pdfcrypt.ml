@@ -4,10 +4,6 @@ open Pdfio
 
 let crypt_debug = ref false
 
-let nums pdf =
-  Pdf.objiter (fun n _ -> Printf.printf "%n " n) pdf;
-  flprint "\n"
-
 (* Given an object number, generation number, input key and key length in bits,
 apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
 by the encryption function. *)
@@ -1168,10 +1164,8 @@ let recrypt_pdf_owner pdf owner_pw =
       | _ -> raise (Pdf.PDFError "recrypt_pdf_owner: bad encryption")
 
 let recrypt_pdf ?(renumber=true) pdf pw =
-  Printf.printf "******************************************recrypt_pdf, renumber = %b\n" renumber;
   let pdf =
-    if renumber then Pdf.renumber (Pdf.changes pdf) pdf 
-    else pdf
+    if renumber then Pdf.renumber (Pdf.changes pdf) pdf else pdf
   in
     try
       try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
