@@ -124,7 +124,8 @@ let rec ignoreuntil f i =
 let dropwhite i =
   ignoreuntil is_not_whitespace i
 
-(* Get a quoted string, including the quotes. Any quotes inside must be escaped. *)
+(* Get a quoted string, including the quotes. Any quotes inside must be
+escaped. *)
 let rec get_string_inner b i =
   match i.Pdfio.input_byte () with
   | x when x = Pdfio.no_more -> raise End_of_file

@@ -345,7 +345,8 @@ let interleave e l =
   in
     interleave_inner [] e l
 
-(* Interleave two same-length lists together, taking from the first list first. *)
+(* Interleave two same-length lists together, taking from the first list first.
+*)
 let interleave_lists a b =
   let rec interleave_lists_inner r a b =
     match a, b with
@@ -500,7 +501,8 @@ let setify_simple l =
     setify_inner [] l
 
 (* The same, preserving the order of the first occurance of each distinct
-element in the input list. FIXME: This is still n^2, of course. How to improve? *)
+element in the input list. FIXME: This is still n^2, of course. How to improve?
+*)
 let setify_preserving_order l =
   setify_simple (rev l)
 
@@ -575,8 +577,8 @@ let really_drop_evens l =
   in
     really_drop_evens_inner [] l
 
-(* Remove the first, third etc. The last odd element is not saved. e.g [drop_odds
-  [1;2;3;4;5;6;7] is [2;4;6]]. *)
+(* Remove the first, third etc. The last odd element is not saved. e.g
+[drop_odds [1;2;3;4;5;6;7] is [2;4;6]]. *)
 let drop_odds l =
   let rec drop_odds_inner r = function
     | _::h'::t -> drop_odds_inner (h'::r) t
@@ -801,7 +803,8 @@ let rec splitinto_small n l =
       let first = takeatmost n l in
         first :: splitinto_small n (dropatmost n l)
 
-(* Split a list [l] at the given points. Point 1 means after the first element. *)
+(* Split a list [l] at the given points. Point 1 means after the first element.
+*)
 let rec splitat_inner prev l = function
   | [] -> begin match l with [] -> rev prev | _ -> rev (l::prev) end
   | h::t ->
