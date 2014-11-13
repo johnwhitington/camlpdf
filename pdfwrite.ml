@@ -705,7 +705,7 @@ let pdf_to_output
                 | _ ->
                     raise
                       (Pdf.PDFError
-                         "Pdf.pdf_to_channel: Bad trailer dictionary")
+                         "Pdf.pdf_to_output: Bad trailer dictionary")
               in
                 strings_of_pdf (flatten_W o) changetable trailerdict';
                 if !write_debug then flprint "all done...\n";
