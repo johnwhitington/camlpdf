@@ -22,7 +22,7 @@ OCAMLLDFLAGS = -g
 all : native-code-library byte-code-library htdoc
 
 clean ::
-	rm -rf doc
+	rm -rf doc foo foo2 out.pdf out2.pdf
 
 install : libinstall
 
