@@ -83,8 +83,9 @@ let add_label endpage ls l e =
         | _ ->
             match beforeorduringorequal with [] -> [] | _ ->
               let lst = last beforeorduringorequal in
-                [{lst with startpage = e + 1;
-                           startvalue = e + 1 + (lst.startvalue - lst.startpage)}]
+                [{lst with
+                    startpage = e + 1;
+                    startvalue = e + 1 + (lst.startvalue - lst.startpage)}]
       and before =
         lose
           (function x -> x.startpage > l.startpage && x.startpage <= e)
@@ -202,11 +203,13 @@ let write pdf labels =
       let root = Pdf.lookup_obj pdf pdf.Pdf.root in
         let rootnum =
           Pdf.addobj pdf
-            (Pdf.add_dict_entry root "/PageLabels" (Pdf.Dictionary ["/Nums", Pdf.Array arr]))
+            (Pdf.add_dict_entry
+              root "/PageLabels" (Pdf.Dictionary ["/Nums", Pdf.Array arr]))
         in
           pdf.Pdf.root <- rootnum;
           pdf.Pdf.trailerdict <-
-            Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
+            Pdf.add_dict_entry
+              pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
 
 let remove pdf =
   let root = Pdf.lookup_obj pdf pdf.Pdf.root in

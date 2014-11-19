@@ -6,9 +6,11 @@ external aes_cook_encrypt_key : string -> string = "caml_aes_cook_encrypt_key"
 
 external aes_cook_decrypt_key : string -> string = "caml_aes_cook_decrypt_key"
 
-external aes_encrypt : string -> string -> int -> string -> int -> unit = "caml_aes_encrypt"
+external aes_encrypt : string -> string -> int -> string -> int -> unit =
+  "caml_aes_encrypt"
 
-external aes_decrypt : string -> string -> int -> string -> int -> unit = "caml_aes_decrypt"
+external aes_decrypt : string -> string -> int -> string -> int -> unit =
+  "caml_aes_decrypt"
 
 external sha_256 : string -> string = "caml_sha256"
 
@@ -16,9 +18,11 @@ external sha_384 : string -> string = "caml_sha384"
 
 external sha_512 : string -> string = "caml_sha512"
 
-let key_expansion nk key = aes_cook_encrypt_key (string_of_int_array key)
+let key_expansion nk key =
+  aes_cook_encrypt_key (string_of_int_array key)
 
-let key_expansion_decrypt nk key = aes_cook_decrypt_key (string_of_int_array key)
+let key_expansion_decrypt nk key =
+  aes_cook_decrypt_key (string_of_int_array key)
 
 (* 40bit / 128bit Encryption/Decryption Primitives *)
 
@@ -39,7 +43,9 @@ let prga s pi pj =
   s.((s.(!pi) + s.(!pj)) mod 256)
 
 let crypt key data =
-  let s, pi, pj, out = Array.make 256 0, ref 0, ref 0, mkbytes (bytes_size data) in
+  let s, pi, pj, out =
+    Array.make 256 0, ref 0, ref 0, mkbytes (bytes_size data)
+  in
     ksa s key;
     for x = 0 to bytes_size data - 1 do
       bset out x (bget data x lxor prga s pi pj)
@@ -139,16 +145,26 @@ let aes_decrypt_data ?(remove_padding = true) nk key data =
     if len <= 16 then mkbytes 0 else
       let output = mkbytes (len - 16)
       and prev_ciphertext = mkbytes 16 in
-        for x = 0 to 15 do bset_unsafe prev_ciphertext x (bget_unsafe data x) done;
+        for x = 0 to 15 do
+          bset_unsafe prev_ciphertext x (bget_unsafe data x)
+        done;
         let pos = ref 16 in
           while !pos < len do
             let i = String.make 16 ' '
             and o = String.make 16 ' ' in
-              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
-              aes_decrypt key i 0 o 0;
-              for x = 0 to 15 do bset output (x + !pos - 16) (int_of_char o.[x]) done;
               for x = 0 to 15 do
-                bset_unsafe output (x + !pos - 16) (bget_unsafe prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
+                i.[x] <- char_of_int (bget data (x + !pos))
+              done;
+              aes_decrypt key i 0 o 0;
+              for x = 0 to 15 do
+                bset output (x + !pos - 16) (int_of_char o.[x])
+              done;
+              for x = 0 to 15 do
+                bset_unsafe
+                  output
+                  (x + !pos - 16)
+                  (bget_unsafe
+                    prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
                 bset_unsafe prev_ciphertext x (bget_unsafe data (x + !pos))
               done;
               pos += 16
@@ -165,9 +181,13 @@ let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
           while !pos < size do
             let i = String.make 16 ' '
             and o = String.make 16 ' ' in
-              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
+              for x = 0 to 15 do i.[x] <-
+                char_of_int (bget data (x + !pos))
+              done;
               aes_decrypt key i 0 o 0;
-              for x = 0 to 15 do bset output (x + !pos) (int_of_char o.[x]) done;
+              for x = 0 to 15 do
+                bset output (x + !pos) (int_of_char o.[x])
+              done;
               pos += 16
           done;
           (if remove_padding then cutshort else ident) output
@@ -180,7 +200,8 @@ let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
       iter
         (fun block ->
           let ciphertext =
-            let src = string_of_int_array ((array_map2 (lxor)) block !prev_ciphertext)
+            let src =
+              string_of_int_array ((array_map2 (lxor)) block !prev_ciphertext)
             and dst = String.make 16 ' ' in
             aes_encrypt key src 0 dst 0;
             (int_array_of_string dst)
@@ -200,9 +221,13 @@ let aes_encrypt_data_ecb nk key data =
           while !pos < size do
             let i = String.make 16 ' '
             and o = String.make 16 ' ' in
-              for x = 0 to 15 do i.[x] <- char_of_int (bget data (x + !pos)) done;
+              for x = 0 to 15 do i.[x] <-
+                char_of_int (bget data (x + !pos))
+              done;
               aes_encrypt key i 0 o 0;
-              for x = 0 to 15 do bset output (x + !pos) (int_of_char o.[x]) done;
+              for x = 0 to 15 do
+                bset output (x + !pos) (int_of_char o.[x])
+              done;
               pos += 16
           done;
           output
