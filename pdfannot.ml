@@ -67,7 +67,8 @@ let rec read_annotation pdf annot =
         begin match Pdf.direct pdf annot with
         | Pdf.Dictionary d ->
             begin match lookup "/Parent" d with
-            | Some (Pdf.Indirect i) -> Popup (read_annotation pdf (Pdf.Indirect i))
+            | Some (Pdf.Indirect i) ->
+                Popup (read_annotation pdf (Pdf.Indirect i))
             | _ -> Unknown
             end
         | _ -> raise (Pdf.PDFError "read_annotation failed")
@@ -103,7 +104,8 @@ let rec read_annotation pdf annot =
         in let dasharray =
           match Pdf.lookup_direct pdf "/D" bsdict with
           | Some (Pdf.Array dash) ->
-              Array.of_list (map int_of_float (map Pdf.getnum (map (Pdf.direct pdf) dash)))
+              Array.of_list
+                (map int_of_float (map Pdf.getnum (map (Pdf.direct pdf) dash)))
           | _ -> [||]
         in
           {width = width;
@@ -124,7 +126,11 @@ let rec read_annotation pdf annot =
              vradius = Pdf.getnum (Pdf.direct pdf v);
              hradius = Pdf.getnum (Pdf.direct pdf h);
              style = NoStyle;
-             dasharray = Array.of_list (map int_of_float (map Pdf.getnum (map (Pdf.direct pdf) dash)))}
+             dasharray =
+               Array.of_list
+                 (map
+                   int_of_float
+                   (map Pdf.getnum (map (Pdf.direct pdf) dash)))}
         | _ ->
             {width = 1.;
              vradius = 0.;
@@ -142,7 +148,9 @@ let rec read_annotation pdf annot =
     match Pdf.direct pdf annot with
     | Pdf.Dictionary entries ->
         Pdf.Dictionary
-          (lose (fun (k, _) -> mem k ["/Subtype"; "/Contents"; "/Rect"; "/Border"]) entries)
+          (lose
+            (fun (k, _) -> mem k ["/Subtype"; "/Contents"; "/Rect"; "/Border"])
+            entries)
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary")
   in
     {subtype = subtype;
@@ -160,7 +168,7 @@ let get_popup_parent pdf annotation =
       | Some (Pdf.Indirect i) -> Some i
       | _ -> None
       end
-  | _ -> raise (Pdf.PDFError "Pdfannot.get_popup_parent: this is not a dictionary")
+  | _ -> raise (Pdf.PDFError "Pdfannot.get_popup_parent: not a dictionary")
 
 (* Read the annotations from a page. *)
 let annotations_of_page pdf page =
@@ -174,7 +182,9 @@ let annotations_of_page pdf page =
       in
         map
           (read_annotation pdf)
-          (lose (function Pdf.Indirect i -> mem i popup_parents | _ -> false) annotations)
+          (lose
+            (function Pdf.Indirect i -> mem i popup_parents | _ -> false)
+            annotations)
   | _ -> []
 
 (* Add an annotation to a page *)

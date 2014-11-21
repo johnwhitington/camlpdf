@@ -228,7 +228,9 @@ and decrypt_stream
                (if encrypt
                   then Pdfcryptprimitives.aes_encrypt_data 4
                   else Pdfcryptprimitives.aes_decrypt_data 4)
-             else if (match crypt_type with Pdf.AESV3 _ -> true | _ -> false) then
+             else if
+               (match crypt_type with Pdf.AESV3 _ -> true | _ -> false)
+             then
                (if encrypt
                   then Pdfcryptprimitives.aes_encrypt_data 8
                   else Pdfcryptprimitives.aes_decrypt_data 8)

@@ -45,12 +45,19 @@ let string_starts_with sub s =
 
 let get_tables lines =
   let char_metrics_lines =
-    isolate (string_starts_with "StartCharMetrics") (string_starts_with "EndCharMetrics") lines
+    isolate
+      (string_starts_with "StartCharMetrics")
+      (string_starts_with "EndCharMetrics")
+      lines
   and kern_lines =
-    isolate (string_starts_with "StartKernPairs") (string_starts_with "EndKernPairs") lines
+    isolate
+      (string_starts_with "StartKernPairs")
+      (string_starts_with "EndKernPairs")
+      lines
   and header_lines =
     map
-      (fun s -> let a, b = cleavewhile (neq ' ') (explode s) in (implode a, implode b))
+      (fun s ->
+         let a, b = cleavewhile (neq ' ') (explode s) in (implode a, implode b))
       (takewhile (notpred (string_starts_with "C ")) lines)
   in
     let remove_empty = lose (fun x -> String.length x < 5) in

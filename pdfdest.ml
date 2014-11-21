@@ -42,20 +42,27 @@ let rec read_destination pdf pdfobject =
     match Pdf.direct pdf pdfobject with
     | Pdf.Dictionary d ->
         begin
-          match Pdf.lookup_direct pdf "/D" (Pdf.Dictionary d) with (* We're discarding any other dictionary entries here... *)
+          (* We're discarding any other dictionary entries here... *)
+          match Pdf.lookup_direct pdf "/D" (Pdf.Dictionary d) with
           | Some dest -> read_destination pdf dest
           | None -> NullDestination
         end
-    | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/XYZ"; l; t; z] ->
-        XYZ (read_targetpage p, option_getnum l, option_getnum t, option_getnum z) 
+    | Pdf.Array
+        [(Pdf.Indirect _ | Pdf.Integer _) as p;
+         Pdf.Name "/XYZ"; l; t; z] ->
+        XYZ
+          (read_targetpage p, option_getnum l, option_getnum t, option_getnum z) 
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/Fit"] ->
         Fit (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitH"; t] ->
         FitH (read_targetpage p, Pdf.getnum t)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitV"; l] ->
         FitV (read_targetpage p, Pdf.getnum l)
-    | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitR"; l; b; r; t] ->
-        FitR (read_targetpage p, Pdf.getnum l, Pdf.getnum b, Pdf.getnum r, Pdf.getnum t)
+    | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p;
+                  Pdf.Name "/FitR"; l; b; r; t] ->
+        FitR
+          (read_targetpage p, Pdf.getnum l, Pdf.getnum b,
+           Pdf.getnum r, Pdf.getnum t)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitB"] ->
         FitB (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBH"; t] ->
@@ -83,7 +90,9 @@ let rec read_destination pdf pdfobject =
         | Some namedict ->
             begin match Pdf.lookup_direct pdf "/Dests" namedict with
             | Some destsdict ->
-                begin match Pdf.nametree_lookup pdf (Pdf.String s) destsdict with
+                begin match
+                  Pdf.nametree_lookup pdf (Pdf.String s) destsdict
+                with
                 | None -> read_destination_error "D" s
                 | Some dest -> read_destination pdf (Pdf.direct pdf dest)
                 end
@@ -109,7 +118,9 @@ let pdfobject_of_destination = function
   | FitV (p, left) ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitV"; Pdf.Real left]
   | FitR (p, left, bottom, right, top) ->
-      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitR"; Pdf.Real left; Pdf.Real bottom; Pdf.Real right; Pdf.Real top]
+      Pdf.Array
+        [pdf_of_targetpage p; Pdf.Name "/FitR"; Pdf.Real left;
+        Pdf.Real bottom; Pdf.Real right; Pdf.Real top]
   | FitB p ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitB"]
   | FitBH (p, top) ->
