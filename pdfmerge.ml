@@ -1,7 +1,5 @@
 open Pdfutil
 
-type rotation = DNR | N | S | E | W | L | R | D
-
 (* We read all the files, read their pages and concatenate them, dealing with
 clashing object numbers. We then build a new page tree, and build the output
 PDF document, with a new root and trailer dictionary. We then remove any
@@ -246,8 +244,7 @@ let copied_from_first_document pdf =
         | Some x -> Some (name, x))
       names
 
-let merge_pdfs ?rotations retain_numbering do_remove_duplicate_fonts (names : string list) pdfs ranges =
-  let rotations = match rotations with Some r -> r | None -> many DNR (length pdfs) in
+let merge_pdfs retain_numbering do_remove_duplicate_fonts (names : string list) pdfs ranges =
   (*Printf.printf "merge_pdfs: retain_numbering = %b, do_remove_duplicate_fonts = %b \n %i names, %i pdfs, %i ranges\n"
   retain_numbering do_remove_duplicate_fonts (length names) (length pdfs) (length ranges);
   flprint "names:\n";
@@ -264,20 +261,7 @@ let merge_pdfs ?rotations retain_numbering do_remove_duplicate_fonts (names : st
             iter (fun n -> pages =| select n pagelist) range;
             rev !pages
         in
-          let newrotation rotate = function
-            | DNR -> rotate
-            | N -> Pdfpage.Rotate0
-            | S -> Pdfpage.Rotate180
-            | E -> Pdfpage.Rotate90
-            | W -> Pdfpage.Rotate270
-            | L -> Pdfpage.rotation_of_int ((Pdfpage.int_of_rotation rotate - 90) mod 360) 
-            | R -> Pdfpage.rotation_of_int ((Pdfpage.int_of_rotation rotate + 90) mod 360) 
-            | D -> Pdfpage.rotation_of_int ((Pdfpage.int_of_rotation rotate + 180) mod 360) 
-          in
-          let rotate_pages pages rotation =
-            map (function p -> {p with Pdfpage.rotate = newrotation p.Pdfpage.rotate rotation}) pages
-          in
-          let pages = flatten (map2 rotate_pages (map2 select_pages ranges pagelists) rotations) in
+          let pages = flatten (map2 select_pages ranges pagelists) in
             iter (Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v)))) pdfs;
             (* Make the hints for preserving... *)
             let pdf, pagetree_num = Pdfpage.add_pagetree pages pdf in
