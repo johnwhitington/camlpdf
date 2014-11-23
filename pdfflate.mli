@@ -1,5 +1,5 @@
-(** Interface to miniz.c via Zlib-like functions. This is very slightly
-modified from Leroy's CamlZip. *)
+(** Interface to miniz.c via Zlib-like functions. This is very slightly modified
+from Leroy's CamlZip. *)
 
 (** Raised on an error in either compression or decompression. *)
 exception Error of string * string
