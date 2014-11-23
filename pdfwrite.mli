@@ -31,8 +31,10 @@ type encryption =
 linearizing. For now, linearization will not preserve object streams. If
 [?preserve_objstm] is set (default is false), object streams which were in the
 original file will be preserved. If [?create_objstm] is set (default is false),
-additional new object streams will be created. The unlabelled boolean argument
-is true if linearization is required. *)
+additional new object streams will be created. To re-encrypt the file using its
+existing encryption, provide the user or owner password in the [?recrypt]
+argument. The unlabelled boolean argument is true if linearization is required.
+*)
 val pdf_to_output :
   ?preserve_objstm:bool ->
   ?generate_objstm:bool ->
@@ -60,18 +62,6 @@ val pdf_to_file_options :
 (** Simple write to given file name. Equivalent to [pdf_to_file_options false None true] *)
 val pdf_to_file : Pdf.t -> string -> unit
 
-(** {2 Recrypting} *)
-
-(** Given an original PDF, a decrypted-and-modified PDF, the user password and
-a filename, write the modified PDF as a file, encrypted with the original
-encryption, but modified contents. This allows modifying an encrypted file
-directly without knowledge of the owner password. *)
-(*val pdf_to_file_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> string -> unit
-
-val pdf_to_channel_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> out_channel -> unit
-
-val pdf_to_output_recrypting : ?preserve_objstm:bool -> ?generate_objstm:bool -> Pdf.t -> string -> Pdfio.output -> unit
-*)
 (** {2 String of a PDF object} *)
 
 (** Calculate a string of a pdf object. Due to OCaml's modest limit
@@ -80,9 +70,6 @@ known to be limited (for example for debug purposes). *)
 val string_of_pdf : Pdf.pdfobject -> string
 
 (**/**)
-
-(* For internal module recursion use only *)
-(*val pagetree_make_explicit : (Pdf.t -> Pdf.t) ref*)
 
 (* For debug, print out the PDFs objects to standard output *)
 val debug_whole_pdf : Pdf.t -> unit
