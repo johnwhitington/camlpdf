@@ -112,6 +112,7 @@ type t =
    mutable root : int;
    mutable objects : pdfobjects; 
    mutable trailerdict : pdfobject;
+   mutable was_linearized : bool;
    mutable saved_encryption : saved_encryption option}
 
 (* The null PDF document. *)
@@ -125,6 +126,7 @@ let empty () =
       pdfobjects = pdfobjmap_empty ();
       object_stream_ids = null_hash ()};
    trailerdict = Dictionary [];
+   was_linearized = false;
    saved_encryption = None}
 
 (* General exception for low-level errors. *)
@@ -907,5 +909,6 @@ let deep_copy from =
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
       object_stream_ids = Hashtbl.copy from.objects.object_stream_ids};
    trailerdict = from.trailerdict;
+   was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption}
 

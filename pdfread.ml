@@ -61,7 +61,7 @@ let get9chars i =
 let rec read_header_inner pos i =
   try
     if pos > 1024 then raise End_of_file else
-      i.seek_in pos;
+      i.Pdfio.seek_in pos;
       match get9chars i with
       | '%'::'P'::'D'::'F'::'-'::_::'.'::minor ->
           let minorchars = takewhile isdigit minor in
@@ -1241,9 +1241,22 @@ let get_object i xrefs n =
   let lexemes = lex_object i xrefs parse false n in
     snd (parse lexemes)
 
+let is_linearized i =
+  try
+    ignore (read_header i);
+    let lexemes = lex_dictionary i in
+      let _, parsed = parse ~failure_is_ok:true lexemes in
+        match Pdf.lookup_direct (Pdf.empty ()) "/Linearized" parsed with
+        | Some (Pdf.Integer _ | Pdf.Real _) -> true
+        | _ -> false
+  with
+    _ -> false
+
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. *)
 let read_pdf user_pw owner_pw opt i =
+  let was_linearized = is_linearized i in
+  i.seek_in 0;
   if !read_debug then
     begin
       flprint "Start of read_pdf\n";
@@ -1498,6 +1511,7 @@ let read_pdf user_pw owner_pw opt i =
                Pdf.objects_of_list (Some (get_object i xrefs)) objects;
              Pdf.root = root;
              Pdf.trailerdict = trailerdict';
+             Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None}
           in
             (* Delete items in !postdeletes - these are any xref streams, and
@@ -1628,14 +1642,17 @@ let read_malformed_pdf upw opw i =
         | _ ->
             raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
-        Printf.eprintf "Malformed PDF reconstruction succeeded!\n";
-        flush stderr;
-        {Pdf.major = major;
-         Pdf.minor = minor;
-         Pdf.root = root;
-         Pdf.objects = Pdf.objects_of_list None objects;
-         Pdf.trailerdict = Pdf.Dictionary trailerdict;
-         Pdf.saved_encryption = None}
+        i.Pdfio.seek_in 0;
+        let was_linearized = is_linearized i in
+          Printf.eprintf "Malformed PDF reconstruction succeeded!\n";
+          flush stderr;
+          {Pdf.major = major;
+           Pdf.minor = minor;
+           Pdf.root = root;
+           Pdf.objects = Pdf.objects_of_list None objects;
+           Pdf.trailerdict = Pdf.Dictionary trailerdict;
+           Pdf.was_linearized = was_linearized;
+           Pdf.saved_encryption = None}
     
 let read_pdf upw opw opt i =
   try read_pdf upw opw opt i with
@@ -1717,15 +1734,4 @@ let permissions pdf =
       Pdfcrypt.banlist_of_p p
   else
     []
-
-let is_linearized i =
-  try
-    ignore (read_header i);
-    let lexemes = lex_dictionary i in
-      let _, parsed = parse ~failure_is_ok:true lexemes in
-        match Pdf.lookup_direct (Pdf.empty ()) "/Linearized" parsed with
-        | Some (Pdf.Integer _ | Pdf.Real _) -> true
-        | _ -> false
-  with
-    _ -> false
 

@@ -82,6 +82,7 @@ type t =
    mutable root : int;
    mutable objects : pdfobjects;
    mutable trailerdict : pdfobject;
+   mutable was_linearized : bool;
    mutable saved_encryption : saved_encryption option}
 
 (** The empty document (PDF 1.0, no objects, no root, empty trailer dictionary).
