@@ -1310,6 +1310,7 @@ let read_pdf user_pw owner_pw opt i =
       end;
       if !read_debug then flprint "Reading Cross-reference table\n";
       while not !got_all_xref_sections do
+        if !read_debug then Printf.printf "Reading xref section at %i\n" !xref;
         i.seek_in !xref;
         (* Distinguish between xref table and xref stream. *)
         dropwhite i;
