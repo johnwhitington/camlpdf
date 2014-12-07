@@ -1,6 +1,6 @@
 export PACKS = camlpdf
-export OCAMLBCFLAGS = -g
-export OCAMLNCFLAGS = -g 
+export OCAMLBCFLAGS = -g -w -3
+export OCAMLNCFLAGS = -g -w -3
 export OCAMLLDFLAGS = -g
 
 define PROJ_pdfhello
