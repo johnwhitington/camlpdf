@@ -4,21 +4,21 @@ val read_debug : bool ref
 
 (** Read a PDF from a [Pdfio.input], with an optional user password which, if
 absent, is assumed to be the empty string, and optional owner password. *)
-val pdf_of_input : string option -> string option -> Pdfio.input -> Pdf.t
+val pdf_of_input : ?revision:int -> string option -> string option -> Pdfio.input -> Pdf.t
 
 (** Same as [pdf_of_input], but delay loading of streams and parsing of objects
 (they will be loaded and parsed when needed). Useful if we only intend to do
 something simple, like read metadata.  *)
-val pdf_of_input_lazy : string option -> string option -> Pdfio.input -> Pdf.t
+val pdf_of_input_lazy : ?revision:int -> string option -> string option -> Pdfio.input -> Pdf.t
 
 (** Same as [pdf_of_input], but from an OCaml channel. *)
-val pdf_of_channel : ?source:string -> string option -> string option -> in_channel -> Pdf.t
+val pdf_of_channel : ?revision:int -> ?source:string -> string option -> string option -> in_channel -> Pdf.t
 
 (** As [pdf_of_channel], but delay loading of streams and parsing of objects like [pdf_of_input_lazy]. *)
-val pdf_of_channel_lazy : ?source:string -> string option -> string option -> in_channel -> Pdf.t
+val pdf_of_channel_lazy : ?revision:int -> ?source:string -> string option -> string option -> in_channel -> Pdf.t
 
 (** Read a PDF from the given filename with optional user and owner passwords. *)
-val pdf_of_file : string option -> string option -> string -> Pdf.t
+val pdf_of_file : ?revision:int -> string option -> string option -> string -> Pdf.t
 
 (** Read the number of revisions of the document, by performing a dummy read. For
 example, if this function returns 3, then appropriate values to pass to

@@ -1674,8 +1674,8 @@ let read_malformed_pdf upw opw i =
            Pdf.was_linearized = was_linearized;
            Pdf.saved_encryption = None}
     
-let read_pdf upw opw opt i =
-  try read_pdf upw opw opt i with
+let read_pdf revision upw opw opt i =
+  try read_pdf ?revision upw opw opt i with
   | Pdf.PDFError s as e
       when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
       (* If it failed due to encryption not supported or user password not
@@ -1694,26 +1694,26 @@ let read_pdf upw opw opt i =
                    (Printexc.to_string e'))))
 
 (* Read a PDF into memory, including its streams. *)
-let pdf_of_channel ?(source = "channel") upw opw ch =
-  read_pdf upw opw true (input_of_channel ~source ch) 
+let pdf_of_channel ?revision ?(source = "channel") upw opw ch =
+  read_pdf revision upw opw true (input_of_channel ~source ch) 
 
 (* Same, but delay reading of streams. *)
-let pdf_of_channel_lazy ?(source = "channel") upw opw ch =
-  read_pdf upw opw false (input_of_channel ~source ch)
+let pdf_of_channel_lazy ?revision ?(source = "channel") upw opw ch =
+  read_pdf revision upw opw false (input_of_channel ~source ch)
 
 (* Similarly for inputs. *)
-let pdf_of_input upw opw i =
-  read_pdf upw opw true i
+let pdf_of_input ?revision upw opw i =
+  read_pdf revision upw opw true i
 
 (* And lazy on inputs. *)
-let pdf_of_input_lazy upw opw i =
-  read_pdf upw opw false i
+let pdf_of_input_lazy ?revision upw opw i =
+  read_pdf revision upw opw false i
 
 (* Read a whole PDF file into memory. Closes file. *)
-let pdf_of_file upw opw f =
+let pdf_of_file ?revision upw opw f =
   try 
     let fh = open_in_bin f in
-      let pdf = pdf_of_channel ~source:f upw opw fh in
+      let pdf = pdf_of_channel ?revision ~source:f upw opw fh in
         close_in fh;
         pdf
   with
