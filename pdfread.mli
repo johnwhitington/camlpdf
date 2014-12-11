@@ -20,6 +20,11 @@ val pdf_of_channel_lazy : ?source:string -> string option -> string option -> in
 (** Read a PDF from the given filename with optional user and owner passwords. *)
 val pdf_of_file : string option -> string option -> string -> Pdf.t
 
+(** Read the number of revisions of the document, by performing a dummy read. For
+example, if this function returns 3, then appropriate values to pass to
+[?revision] in a subsequent call to pdf_of_input are 1, 2, and 3. *)
+val revisions : Pdfio.input -> int
+
 (**/**)
 
 (* For internal use by other parts of the library *)

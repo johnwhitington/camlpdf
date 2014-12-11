@@ -1252,9 +1252,14 @@ let is_linearized i =
   with
     _ -> false
 
+exception Revisions of int
+
 (* Read a PDF from a channel. If [opt], streams are read immediately into
-memory. *)
-let read_pdf user_pw owner_pw opt i =
+memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
+revision (default). If revision = -1, the file is not read, but instead the
+exception Revisions x is raised, giving the number of revisions. *)
+let read_pdf ?(revision=max_int) user_pw owner_pw opt i =
+  let revisions = ref 1 in
   let was_linearized = is_linearized i in
   i.seek_in 0;
   if !read_debug then
@@ -1353,11 +1358,14 @@ let read_pdf user_pw owner_pw opt i =
             (* Is there another to do? *)
             match lookup "/Prev" trailerdict_current with
             | None -> set got_all_xref_sections
-            | Some (Pdf.Integer n) -> xref := n
+            | Some (Pdf.Integer n) ->
+                revisions := !revisions + 1;
+                xref := n
             | _ ->
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
+      if revision = (-1) then raise (Revisions !revisions) else
       if !read_debug then
         Printf.printf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
@@ -1538,6 +1546,17 @@ let read_pdf user_pw owner_pw opt i =
                 | Some _ -> flprint "***File is encrypted\n" | _ -> ()
               end;
             pdf
+
+(* Read the number of revisions of the document, by performing a dummy read. For
+example, if this function returns 3, then appropriate values to pass to
+?revision in a subsequent call to read_pdf are 1, 2, and 3. The position of
+input after this runs is unspecified. *)
+let revisions i =
+  try
+    ignore (read_pdf ~revision:(-1) None None false i);
+    assert false
+  with
+    Revisions n -> n
 
 (* Malformed file reading. *)
 
