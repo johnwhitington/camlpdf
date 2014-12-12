@@ -1258,8 +1258,11 @@ exception Revisions of int
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
-let read_pdf ?(revision=max_int) user_pw owner_pw opt i =
+let read_pdf ?revision user_pw owner_pw opt i =
+  Printf.printf "read_pdf, revision is %s\n%!"
+  (match revision with None -> "None" | Some x -> string_of_int x);
   let revisions = ref 1 in
+  let current_revision = ref 0 in
   let was_linearized = is_linearized i in
   i.seek_in 0;
   if !read_debug then
@@ -1317,17 +1320,25 @@ let read_pdf ?(revision=max_int) user_pw owner_pw opt i =
       while not !got_all_xref_sections do
         if !read_debug then Printf.printf "Reading xref section at %i\n" !xref;
         i.seek_in !xref;
+        incr current_revision;
         (* Distinguish between xref table and xref stream. *)
         dropwhite i;
         (* Read cross-reference table *)
-        if peek_char i = Some 'x'
-          then iter addref (read_xref i)
-          else
-            begin
+        let read_table () =
+          Printf.eprintf "Reading table for revision %i\n" !current_revision;
+          if peek_char i = Some 'x'
+            then
+              iter addref (read_xref i)
+            else
               let refs, objnumbertodelete = read_xref_stream i in
-                postdeletes := objnumbertodelete::!postdeletes;
-                iter addref refs
-            end;
+                (postdeletes := objnumbertodelete::!postdeletes;
+                 iter addref refs)
+        in
+        begin match revision with
+          None -> read_table ()
+        | Some r when r <= !current_revision -> read_table ()
+        | _ -> ()
+        end;
         (* It is now assumed that [i] is at the start of the trailer dictionary.
         *)
         let trailerdict_current =
@@ -1350,9 +1361,17 @@ let read_pdf ?(revision=max_int) user_pw owner_pw opt i =
             begin match lookup "/XRefStm" trailerdict_current with
             | Some (Pdf.Integer n) ->
                 i.seek_in n;
-                let refs, objnumbertodelete = read_xref_stream i in
-                  postdeletes := objnumbertodelete::!postdeletes;
-                  iter addref refs;
+                let read_table () =
+                  Printf.eprintf "Reading table for revision %i\n" !current_revision;
+                  let refs, objnumbertodelete = read_xref_stream i in
+                    postdeletes := objnumbertodelete::!postdeletes;
+                    iter addref refs
+                in
+                  begin match revision with
+                    None -> read_table ()
+                  | Some r when r <= !current_revision -> read_table ()
+                  | _ -> ()
+                  end;
             | _ -> ()
             end;
             (* Is there another to do? *)
@@ -1365,7 +1384,7 @@ let read_pdf ?(revision=max_int) user_pw owner_pw opt i =
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
-      if revision = (-1) then raise (Revisions !revisions) else
+      if revision = Some (-1) then raise (Revisions !revisions) else
       if !read_debug then
         Printf.printf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
