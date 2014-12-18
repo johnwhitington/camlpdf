@@ -63,7 +63,7 @@ let rec read_header_inner pos i =
     if pos > 1024 then raise End_of_file else
       i.Pdfio.seek_in pos;
       match get9chars i with
-      | '%'::'P'::'D'::'F'::'-'::_::'.'::minor ->
+      | '%'::'P'::'D'::'F'::'-'::major::'.'::minor ->
           let minorchars = takewhile isdigit minor in
             if minorchars = []
               then
@@ -72,7 +72,7 @@ let rec read_header_inner pos i =
               else
                 begin
                   i.set_offset pos;
-                  1, int_of_string (implode minorchars)
+                  int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
       | _ ->
           read_header_inner (pos + 1) i
