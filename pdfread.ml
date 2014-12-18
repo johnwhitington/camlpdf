@@ -1569,7 +1569,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
 (* Read the number of revisions of the document, by performing a dummy read. For
 example, if this function returns 3, then appropriate values to pass to
 ?revision in a subsequent call to read_pdf are 1, 2, and 3. The position of
-input after this runs is unspecified. *)
+input after this runs is unspecified. On a malformed PDF, will raise whatever
+error [read_pdf] does. *)
 let revisions i =
   try
     ignore (read_pdf ~revision:(-1) None None false i);
