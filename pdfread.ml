@@ -886,9 +886,9 @@ let lex_stream_object
 =
   if !read_debug then
     begin
-      Printf.printf "lexing object stream at %i\n" (i.Pdfio.pos_in ());
-      Printf.printf "lexing object stream %i\nTo find the indexes:\n" obj;
-      iter (Printf.printf "%i ") indexes; flprint "\n"
+      Printf.eprintf "lexing object stream at %i\n" (i.Pdfio.pos_in ());
+      Printf.eprintf "lexing object stream %i\nTo find the indexes:\n" obj;
+      iter (Printf.eprintf "%i ") indexes; Printf.eprintf "\n"
     end;
   let _, stmobj = parse (lex_object i xrefs parse opt obj) in
     match stmobj with
@@ -1091,7 +1091,7 @@ let read_xref_line_stream i w1 w2 w3 =
       let f1 = read_field w1 in
         let f2 = read_field w2 in
           let f3 = read_field w3 in
-            if !read_debug then Printf.printf "%i %i %i\n" f1 f2 f3;
+            if !read_debug then Printf.eprintf "%i %i %i\n" f1 f2 f3;
             match f1 with
             | 0 -> StreamFree (f2, f3)
             | 1 -> Valid (f2, f3)
@@ -1116,7 +1116,7 @@ let read_xref_stream i =
       | _ -> Printf.eprintf "couldn't lex object number\n"; raise err
     in
     if !read_debug then
-      Printf.printf
+      Printf.eprintf
         "Object number of this xref stream is %i\n" xrefstream_objectnumber;
     (* Go back to the beginning *)
     i.seek_in original_pos;
@@ -1159,7 +1159,7 @@ let read_xref_stream i =
         | _ -> raise err
       in
         if !read_debug then
-          flprint "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n";
+          Printf.eprintf "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n";
         Pdfcodec.decode_pdfstream (Pdf.empty ()) stream;
         let w1, w2, w3 =
           match Pdf.lookup_direct (Pdf.empty ()) "/W" stream with
@@ -1178,7 +1178,7 @@ let read_xref_stream i =
           end;
           xrefs := rev !xrefs;
           if !read_debug then
-            Printf.printf
+            Printf.eprintf
               "****** read %i raw Xref stream entries\n" (length !xrefs);
           let starts_and_lens =
             match Pdf.lookup_direct (Pdf.empty ()) "/Index" stream with
@@ -1231,7 +1231,7 @@ let read_xref_stream i =
                 starts_and_lens;
               i.seek_in original_pos;
               if !read_debug then
-                Printf.printf "***READ_XREF_STREAM final result was %i xrefs\n"
+                Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n"
                 (length !xrefs');
               rev !xrefs', xrefstream_objectnumber
 
@@ -1259,7 +1259,7 @@ memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
-  Printf.printf "read_pdf, revision is %s\n%!"
+  Printf.eprintf "read_pdf, revision is %s\n%!"
   (match revision with None -> "None" | Some x -> string_of_int x);
   let revisions = ref 1 in
   let current_revision = ref 0 in
@@ -1267,9 +1267,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
   i.seek_in 0;
   if !read_debug then
     begin
-      flprint "Start of read_pdf\n";
-      Printf.printf "%s\n" i.Pdfio.source;
-      flprint "opt is "; Printf.printf "%b" opt; flprint "\n"
+      Printf.eprintf "Start of read_pdf\n";
+      Printf.eprintf "%s\n" i.Pdfio.source;
+      Printf.eprintf "opt is "; Printf.eprintf "%b" opt; Printf.eprintf "\n"
     end;
   let postdeletes = ref [] in
   let object_stream_ids = null_hash () in
@@ -1316,9 +1316,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
       | xrefchars -> xref := int_of_string (implode xrefchars);
       end;
-      if !read_debug then flprint "Reading Cross-reference table\n";
+      if !read_debug then Printf.eprintf "Reading Cross-reference table\n";
       while not !got_all_xref_sections do
-        if !read_debug then Printf.printf "Reading xref section at %i\n" !xref;
+        if !read_debug then Printf.eprintf "Reading xref section at %i\n" !xref;
         i.seek_in !xref;
         incr current_revision;
         (* Distinguish between xref table and xref stream. *)
@@ -1362,7 +1362,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
             | Some (Pdf.Integer n) ->
                 i.seek_in n;
                 let read_table () =
-                  Printf.eprintf "Reading table for revision %i\n" !current_revision;
+                  Printf.eprintf "Reading table for revision stm %i\n" !current_revision;
                   let refs, objnumbertodelete = read_xref_stream i in
                     postdeletes := objnumbertodelete::!postdeletes;
                     iter addref refs
@@ -1386,7 +1386,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
       done;
       if revision = Some (-1) then raise (Revisions !revisions) else
       if !read_debug then
-        Printf.printf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
+        Printf.eprintf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) -> i
@@ -1401,7 +1401,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           | Some (XRefStream _) -> 0
           | None -> raise Not_found
         in
-        if !read_debug then flprint "Reading non-stream objects\n";
+        if !read_debug then Printf.eprintf "Reading non-stream objects\n";
         let objects_nonstream =
           let objnumbers = ref [] in
             xrefs_table_iter
@@ -1421,7 +1421,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                      fun o -> o, (ref Pdf.ToParse, getgen o))
                 !objnumbers
           in
-          if !read_debug then flprint "Reading stream objects\n";
+          if !read_debug then Printf.eprintf "Reading stream objects\n";
           let objects_stream =
            let streamones =
              map
@@ -1509,15 +1509,15 @@ let read_pdf ?revision user_pw owner_pw opt i =
          in
           if !read_debug then
             begin
-              Printf.printf
+              Printf.eprintf
                 "There were %i nonstream objects\n" (length objects_nonstream);
-              Printf.printf
+              Printf.eprintf
                 "There were %i stream objects\n" (length objects_stream);
-              flprint "\n"
+              Printf.eprintf "\n"
             end;
           objects_stream, objects_nonstream, root, trailerdict
     in
-      if !read_debug then flprint "Finishing up...\n";
+      if !read_debug then Printf.eprintf "Finishing up...\n";
       let objects = objects_stream @ objects_nonstream in
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
@@ -1552,17 +1552,17 @@ let read_pdf ?revision user_pw owner_pw opt i =
             pdf.Pdf.objects.Pdf.object_stream_ids <- object_stream_ids;
             if !read_debug then
               begin
-                flprint "Object stream IDs:\n";
+                Printf.eprintf "Object stream IDs:\n";
                 Hashtbl.iter
                   (fun o s ->
-                     Printf.printf "Object %i was in stream %i\n" o s)
+                     Printf.eprintf "Object %i was in stream %i\n" o s)
                   object_stream_ids
               end;
             if !read_debug then
               begin
-                flprint "Done.\n";
+                Printf.eprintf "Done.\n";
                 match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
-                | Some _ -> flprint "***File is encrypted\n" | _ -> ()
+                | Some _ -> Printf.eprintf "***File is encrypted\n" | _ -> ()
               end;
             pdf
 
