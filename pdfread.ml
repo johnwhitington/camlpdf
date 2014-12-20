@@ -1259,7 +1259,7 @@ memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
-  Printf.eprintf "read_pdf, revision is %s\n%!"
+  if !read_debug then Printf.eprintf "read_pdf, revision is %s\n%!"
   (match revision with None -> "None" | Some x -> string_of_int x);
   let revisions = ref 1 in
   let current_revision = ref 0 in
@@ -1324,23 +1324,27 @@ let read_pdf ?revision user_pw owner_pw opt i =
         (* Distinguish between xref table and xref stream. *)
         dropwhite i;
         (* Read cross-reference table *)
-        let read_table () =
-          Printf.eprintf "Reading table for revision %i\n" !current_revision;
+        let read_table skip =
+          if !read_debug then
+            Printf.eprintf "Reading table for revision %i, skip = %b\n"
+            !current_revision skip;
           if peek_char i = Some 'x'
             then
-              iter addref (read_xref i)
+              iter (if skip then (function _ -> ()) else addref) (read_xref i)
             else
-              let refs, objnumbertodelete = read_xref_stream i in
-                (postdeletes := objnumbertodelete::!postdeletes;
-                 iter addref refs)
+              if not skip then
+                let refs, objnumbertodelete = read_xref_stream i in
+                  (postdeletes := objnumbertodelete::!postdeletes;
+                   iter addref refs)
         in
         begin match revision with
-          None -> read_table ()
-        | Some r when r <= !current_revision -> read_table ()
-        | _ -> ()
+          None -> read_table false
+        | Some r when r <= !current_revision -> read_table false
+        | _ ->
+            if !read_debug then Printf.eprintf "Skipping revision %i\n" !current_revision;
+            read_table true
         end;
-        (* It is now assumed that [i] is at the start of the trailer dictionary.
-        *)
+        (* It is now assumed that [i] is at the start of the trailer dictionary.  *)
         let trailerdict_current =
           let lexemes =
             lex_object_at true i opt parse (lex_object i xrefs parse opt)
@@ -1370,7 +1374,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                   begin match revision with
                     None -> read_table ()
                   | Some r when r <= !current_revision -> read_table ()
-                  | _ -> ()
+                  | _ -> Printf.eprintf "Skipping /XRefStm in revision %i\n" !current_revision
                   end;
             | _ -> ()
             end;
