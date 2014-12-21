@@ -1,6 +1,7 @@
 2.2
 
 o Keeps was_linearized flag with every loaded PDF
+o Can count the number of revisions in a PDF, and load a specified revision
 
 2.1 (November 2014)
 
