@@ -275,7 +275,7 @@ let input_of_string ?(source = "string") s =
        else
          begin
            pos := !pos + 1;
-           Some (s.[!pos - 1])
+           Some (String.unsafe_get s (!pos - 1))
          end
    in
      {pos_in =
@@ -301,9 +301,11 @@ let input_of_string ?(source = "string") s =
       in_channel_length =
         String.length s;
       set_offset =
-        (fun _ -> raise (Failure "input_of_string: no set_offset"));
-      caml_channel = None;
-      source = source}
+        (fun _ -> ());
+      caml_channel =
+        None;
+      source =
+        source}
 
 (* Output functions over channels *)
 let output_of_channel ch =

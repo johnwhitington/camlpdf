@@ -44,9 +44,8 @@ let backline i =
   read_back_until is_newline i;
   nudge i
 
-(* Read the major and minor version numbers  from a PDF [1.x] file. Fail if
-header invalid or major version number is not 1.  *)
-let get9chars i =
+(* Read the major and minor version numbers *)
+let get8chars i =
   let c1 = i.input_char () in
   let c2 = i.input_char () in
   let c3 = i.input_char () in
@@ -55,14 +54,13 @@ let get9chars i =
   let c6 = i.input_char () in
   let c7 = i.input_char () in
   let c8 = i.input_char () in
-  let c9 = i.input_char () in
-    try map unopt [c1; c2; c3; c4; c5; c6; c7; c8; c9] with _ -> []
+    try map unopt [c1; c2; c3; c4; c5; c6; c7; c8] with _ -> []
 
 let rec read_header_inner pos i =
   try
     if pos > 1024 then raise End_of_file else
       i.Pdfio.seek_in pos;
-      match get9chars i with
+      match get8chars i with
       | '%'::'P'::'D'::'F'::'-'::major::'.'::minor ->
           let minorchars = takewhile isdigit minor in
             if minorchars = []
@@ -75,6 +73,7 @@ let rec read_header_inner pos i =
                   int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
       | _ ->
+          flprint "getninechars did not\n";
           read_header_inner (pos + 1) i
   with
     End_of_file | Failure "int_of_string" ->
@@ -1393,7 +1392,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
         Printf.eprintf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
         match lookup "/Root" !trailerdict with
-        | Some (Pdf.Indirect i) -> i
+        | Some (Pdf.Indirect i) ->
+            i
         | None ->
             raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
         | _ ->
@@ -1546,6 +1546,25 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None}
           in
+          (* Check for a /Version in the document catalog *)
+          begin match Pdf.lookup_direct pdf "/Version" (Pdf.lookup_obj pdf root) with
+            Some (Pdf.Name s) ->
+              Printf.printf "Found version %s\n" s;
+              let major, minor =
+                try
+                  read_header
+                    (Pdfio.input_of_string
+                       (let s = "%PDF-" ^ String.sub s 1 (String.length s - 1)
+                       in Printf.printf "|%s|" s; s))
+                with
+                  e ->
+                    flprint (Printexc.to_string e);
+                    (pdf.Pdf.major, pdf.Pdf.minor)
+              in
+                pdf.Pdf.major <- major;
+                pdf.Pdf.minor <- minor
+          | _ -> ()
+          end;
             (* Delete items in !postdeletes - these are any xref streams, and
             object streams (if finished with).  This allows decryption to be
             performed without accidently trying to decrypt these streams -
