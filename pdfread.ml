@@ -1253,13 +1253,20 @@ let is_linearized i =
 
 exception Revisions of int
 
+exception BadRevision
+
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
-  if !read_debug then Printf.eprintf "read_pdf, revision is %s\n%!"
-  (match revision with None -> "None" | Some x -> string_of_int x);
+  if !read_debug then
+    Printf.eprintf "read_pdf, revision is %s\n%!"
+      (match revision with None -> "None" | Some x -> string_of_int x);
+  begin match revision with
+     Some x when x < 1 && x <> (-1) -> raise BadRevision
+   | _ -> ()
+  end;
   let revisions = ref 1 in
   let current_revision = ref 0 in
   let was_linearized = is_linearized i in
@@ -1365,7 +1372,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
             | Some (Pdf.Integer n) ->
                 i.seek_in n;
                 let read_table () =
-                  Printf.eprintf "Reading table for revision stm %i\n" !current_revision;
+                  if !read_debug then
+                    Printf.eprintf "Reading table for revision stm %i\n" !current_revision;
                   let refs, objnumbertodelete = read_xref_stream i in
                     postdeletes := objnumbertodelete::!postdeletes;
                     iter addref refs
@@ -1373,7 +1381,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
                   begin match revision with
                     None -> read_table ()
                   | Some r when r <= !current_revision -> read_table ()
-                  | _ -> Printf.eprintf "Skipping /XRefStm in revision %i\n" !current_revision
+                  | _ ->
+                      if !read_debug then
+                        Printf.eprintf "Skipping /XRefStm in revision %i\n" !current_revision
                   end;
             | _ -> ()
             end;
@@ -1387,7 +1397,18 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
-      if revision = Some (-1) then raise (Revisions !revisions) else
+      if revision = Some (-1) then
+        (* If there are exactly two "revisions", and the file is linearized,
+        then we return 1, since there is only one real revision. If there are
+        more than 2, we assume it has been incrementally updated, is not really
+        "linearized" at all, and so we return !revisions - 1, (the original
+        linearized part counting for two). Thus, one can never accidently read
+        half the original linearized file. *)
+        let real_revisions =
+          if was_linearized then !revisions - 1 else !revisions
+        in
+          raise (Revisions real_revisions)
+      else
       if !read_debug then
         Printf.eprintf "*** READ %i XREF entries\n" (Hashtbl.length xrefs);
       let root =
@@ -1554,8 +1575,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 try
                   read_header
                     (Pdfio.input_of_string
-                       (let s = "%PDF-" ^ String.sub s 1 (String.length s - 1)
-                       in Printf.printf "|%s|" s; s))
+                       ("%PDF-" ^ String.sub s 1 (String.length s - 1)))
                 with
                   e ->
                     flprint (Printexc.to_string e);
@@ -1724,6 +1744,8 @@ let read_pdf revision upw opw opt i =
       (* If it failed due to encryption not supported or user password not
       right, the error should be passed up - it's not a malformed file. *)
       raise e
+  | BadRevision ->
+      raise (Pdf.PDFError "Revision number too low when reading PDF")
   | e ->
       try read_malformed_pdf upw opw i with e' ->
         raise
