@@ -1570,7 +1570,6 @@ let read_pdf ?revision user_pw owner_pw opt i =
           (* Check for a /Version in the document catalog *)
           begin match Pdf.lookup_direct pdf "/Version" (Pdf.lookup_obj pdf root) with
             Some (Pdf.Name s) ->
-              Printf.printf "Found version %s\n" s;
               let major, minor =
                 try
                   read_header
