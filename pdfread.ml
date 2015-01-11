@@ -73,7 +73,6 @@ let rec read_header_inner pos i =
                   int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
       | _ ->
-          flprint "getninechars did not\n";
           read_header_inner (pos + 1) i
   with
     End_of_file | Failure "int_of_string" ->
