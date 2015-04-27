@@ -474,60 +474,52 @@ let mod3 b =
     !x mod 3
 
 let prs s =
-  String.iter (fun x -> Printf.printf "%02x" (int_of_char x)) (if String.length s > 16 then String.sub s 0 16 else s);
+  String.iter
+    (fun x -> Printf.printf "%02x" (int_of_char x))
+    (if String.length s > 16 then String.sub s 0 16 else s);
   flprint "\n"
 
-let shamix password udata i =
-  if !crypt_debug then
-    begin
-      flprint "Beginning of shamix\n";
-      flprint "Password is\n";
-      prs password;
-      flprint "udata is\n";
-      prs (match udata with None -> "" | Some x -> x);
-    end;
-  let k = ref (Pdfcryptprimitives.sha256 i)
-  and fin = ref false
-  and round = ref 0
-  and last_e = ref 0 in
-    (*flprint "initial hash is\n";
-    prs !k;*)
-    while not !fin do
-      round += 1;
-      (*Printf.printf "THIS IS ROUND %i\n" !round;*)
-      let k1 = password ^ !k ^ match udata with None -> "" | Some x -> x in
-        (*flprint "K1 is\n";
-        prs k1;*)
-        let k1_64 = String.concat "" (many k1 64) in
-          let e =
-            let key = int_array_of_string (String.sub !k 0 16) 
-            and firstblock = int_array_of_string (String.sub !k 16 16) in
-              let raw =
-                string_of_bytes (Pdfcryptprimitives.aes_encrypt_data ~firstblock:firstblock 4 key (Pdfio.bytes_of_string k1_64))
-              in
-                String.sub raw 16 (String.length raw - 32)
-          in
-            (*flprint "E is:\n";
-            prs e;*)
-            last_e := int_of_char e.[String.length e - 1];
-            k := (match mod3 e with
-                    0 -> (*flprint "using sha256\n";*) Pdfcryptprimitives.sha256
-                    | 1 -> (*flprint "using sha384\n";*) Pdfcryptprimitives.sha384
-                    | _ -> (*flprint "using sha512\n";*) Pdfcryptprimitives.sha512) (Pdfio.input_of_string e);
-            (*flprint "New k is:\n";
-            prs !k;
-      Printf.printf "!last_e = %i, !round - 32 = %i\n" !last_e (!round - 32);*)
-      fin := !round >= 64 && !last_e <= !round - 32
-    done;
-    let result =
-    String.sub !k 0 32
-    in
+let shamix_cache = Hashtbl.create 16
+
+let shamix password udata s =
+  try Hashtbl.find shamix_cache (password, udata, s) with
+    Not_found ->
+      let i = input_of_string s in
       if !crypt_debug then
         begin
-          flprint "RESULT:\n";
-          prs result
+          flprint "Beginning of shamix\n Password is\n"; prs password; flprint "udata is\n";
+          prs (match udata with None -> "" | Some x -> x);
         end;
-      result
+      let k = ref (Pdfcryptprimitives.sha256 i)
+      and fin = ref false
+      and round = ref 0
+      and last_e = ref 0 in
+        while not !fin do
+          round += 1;
+          let k1 = password ^ !k ^ match udata with None -> "" | Some x -> x in
+            let k1_64 = String.concat "" (many k1 64) in
+              let e =
+                let key = int_array_of_string (String.sub !k 0 16) 
+                and firstblock = int_array_of_string (String.sub !k 16 16) in
+                  let raw =
+                    string_of_bytes
+                      (Pdfcryptprimitives.aes_encrypt_data
+                         ~firstblock:firstblock 4 key (Pdfio.bytes_of_string k1_64))
+                  in
+                    String.sub raw 16 (String.length raw - 32)
+              in
+                last_e := int_of_char e.[String.length e - 1];
+                k := (match mod3 e with
+                          0 -> Pdfcryptprimitives.sha256
+                        | 1 -> Pdfcryptprimitives.sha384
+                        | _ -> Pdfcryptprimitives.sha512) (Pdfio.input_of_string e);
+          fin := !round >= 64 && !last_e <= !round - 32
+        done;
+        let result = String.sub !k 0 32 in
+          if !crypt_debug then
+            begin flprint "RESULT:\n"; prs result end;
+          Hashtbl.add shamix_cache (password, udata, s) result;
+          result
 
 (* Conversion via unicode and SASLprep required here for complicated passwords. *)
 let make_utf8 pw =
@@ -546,8 +538,9 @@ let file_encryption_key_aesv3 ?digest iso utf8pw o oe u =
       | None ->
           let i =
             int_array_of_string
-            ((if iso then shamix utf8pw (Some u) else Pdfcryptprimitives.sha256)
-                (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub o 40 8; String.sub u 0 48])))
+            ((if iso then shamix utf8pw (Some u) else (fun x ->
+              Pdfcryptprimitives.sha256 (Pdfio.input_of_string x)))
+                (String.concat "" [utf8pw; String.sub o 40 8; String.sub u 0 48]))
           in
             if Array.length i <> 32 then Printf.printf "file_encryption_key_aesv3 made length %i\n" (Array.length i);
             i
@@ -558,7 +551,10 @@ let file_encryption_key_aesv3_user iso utf8pw u ue =
   if String.length u < 48 then raise (Pdf.PDFError "/U too short in file_encryption_key_aesv3_user") else
     Pdfcryptprimitives.aes_decrypt_data ~remove_padding:false
       8
-      (int_array_of_string ((if iso then shamix utf8pw None else Pdfcryptprimitives.sha256) (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub u 40 8]))))
+      (int_array_of_string
+        ((if iso then shamix utf8pw None else (fun x ->
+          Pdfcryptprimitives.sha256 (Pdfio.input_of_string x)))
+         (String.concat "" [utf8pw; String.sub u 40 8])))
       (bytes_of_string (zero_iv ^ ue))
 
 (* Algorithm 3.12 - Authenticating the owner password. *)
@@ -566,15 +562,19 @@ let authenticate_owner_password_aesv3 iso utf8pw u o =
   if String.length o < 48 || String.length u < 48 then
     raise (Pdf.PDFError "/O too short in authenticate_owner_password")
   else
-      (if iso then shamix utf8pw (Some u) else Pdfcryptprimitives.sha256)
-      (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub o 32 8; String.sub u 0 48]))
+      (if iso then shamix utf8pw (Some u) else (fun x ->
+        Pdfcryptprimitives.sha256 (Pdfio.input_of_string x)))
+      (String.concat "" [utf8pw; String.sub o 32 8; String.sub u 0 48])
     =
       String.sub o 0 32
 
 (* Algorithm 3.11 - Authenticating the user password. *)
 let authenticate_user_password_aesv3 iso utf8pw u =
   if String.length u < 48 then raise (Pdf.PDFError "/U too short in authenticate_owner_password") else
-    (if iso then shamix utf8pw None else Pdfcryptprimitives.sha256) (Pdfio.input_of_string (String.concat "" [utf8pw; String.sub u 32 8])) = String.sub u 0 32
+    (if iso then shamix utf8pw None else (fun x -> Pdfcryptprimitives.sha256
+    (Pdfio.input_of_string x)))
+    (String.concat "" [utf8pw; String.sub u 32 8])
+  = String.sub u 0 32
 
 (* Part of algorithm 3.2a - return p from perms so we can check they match *)
 let p_of_perms key perms =
@@ -1009,16 +1009,16 @@ let perms_of_p ?digest iso encrypt_metadata p utf8pw o oe u =
 (* Algorithm 3.8. Returns u, ue. *)
 let make_ue iso file_encryption_key user_pw user_validation_salt user_key_salt =
   let hash =
-    if iso then shamix user_pw None else Pdfcryptprimitives.sha256
+    if iso then shamix user_pw None else (fun x -> Pdfcryptprimitives.sha256 (Pdfio.input_of_string x))
   in
   let u =
     String.concat
       ""
-      [(hash (Pdfio.input_of_string (String.concat "" [user_pw; user_validation_salt]))); user_validation_salt; user_key_salt]
+      [(hash (String.concat "" [user_pw; user_validation_salt])); user_validation_salt; user_key_salt]
   in
     let ue = 
       Pdfcryptprimitives.aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8
-        (int_array_of_string (hash (Pdfio.input_of_string (String.concat "" [user_pw; user_key_salt]))))
+        (int_array_of_string (hash (String.concat "" [user_pw; user_key_salt])))
         file_encryption_key
     in
       u, String.sub (string_of_bytes ue) 16 32
@@ -1026,15 +1026,15 @@ let make_ue iso file_encryption_key user_pw user_validation_salt user_key_salt =
 (* Algorithm 3.9 *)
 let make_oe iso file_encryption_key owner_pw owner_validation_salt owner_key_salt u =
   let hash =
-    if iso then shamix owner_pw (Some u) else Pdfcryptprimitives.sha256
+    if iso then shamix owner_pw (Some u) else (fun x -> Pdfcryptprimitives.sha256 (Pdfio.input_of_string x))
   in
     let o =
       String.concat
        ""
-       [(hash (Pdfio.input_of_string (String.concat "" [owner_pw; owner_validation_salt; u]))); owner_validation_salt; owner_key_salt]
+       [(hash (String.concat "" [owner_pw; owner_validation_salt; u])); owner_validation_salt; owner_key_salt]
     in
       let digest =
-        int_array_of_string (hash (Pdfio.input_of_string (String.concat "" [owner_pw; owner_key_salt; u])))
+        int_array_of_string (hash (String.concat "" [owner_pw; owner_key_salt; u]))
       in
         let oe = Pdfcryptprimitives.aes_encrypt_data ~firstblock:(int_array_of_string zero_iv) 8 digest file_encryption_key in
           o, String.sub (string_of_bytes oe) 16 32, digest
