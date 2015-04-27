@@ -10,9 +10,15 @@ let is_delimiter = function
 
 (* Streams of binary data, byte-addressable, can either be in memory (Got) or
 still in an input channel (ToGet). *)
+type toget = input * int * int
+
+let toget i p l = (i, p, l)
+
+let length_of_toget (_, _, l) = l
+
 type stream =
   | Got of bytes
-  | ToGet of input * int * int (*r input, position, length *)
+  | ToGet of toget
 
 (* Type for individual PDF objects. A Name includes the initial `/'. A
 Stream consists of a reference to a pair of the stream dictionary (another
@@ -149,6 +155,8 @@ let is_not_whitespace = function
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function
   | Stream ({contents = (d, ToGet (i, o, l))} as stream) ->
+      (* FIXME: Fix up Pdfio to export, for each input a way of using getinit
+      for speed *)
       if l = 0 then stream := (d, Got (mkbytes 0)) else
         let s = mkbytes l in
           begin try

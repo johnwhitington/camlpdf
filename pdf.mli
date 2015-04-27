@@ -4,9 +4,15 @@
 
 (** A stream is either in memory, or at a position and of a length in an
 [Pdfio.input]. *)
+type toget
+
+val toget : Pdfio.input -> int -> int -> toget
+
+val length_of_toget : toget -> int
+
 type stream =
   | Got of Pdfio.bytes
-  | ToGet of Pdfio.input * int * int
+  | ToGet of toget
 
 (** PDF objects. An object is a tree-like structure containing various things.
 A PDF file is basically a directed graph of objects. *)

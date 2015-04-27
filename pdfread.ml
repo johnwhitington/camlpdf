@@ -478,7 +478,7 @@ let lex_stream_data i l opt =
           i.seek_in (pos + l);
           if is_malformed i
             then (i.seek_in original_pos; lex_malformed_stream_data i)
-            else (i.seek_in (pos + l); LexStream (Pdf.ToGet (i, pos, l)))
+            else (i.seek_in (pos + l); LexStream (Pdf.ToGet (Pdf.toget i pos l)))
         end
     with
       _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "lex_stream_data"))
@@ -844,7 +844,7 @@ let parse_finish ?(failure_is_ok = false) q =
     Lexeme LexEndStream::_ ->
       (* Fix up length, if necessary *)
       let l =
-        match s with Pdf.Got b -> bytes_size b | Pdf.ToGet (_, _, l) -> l
+        match s with Pdf.Got b -> bytes_size b | Pdf.ToGet t -> Pdf.length_of_toget t
       and lold =
         try
           begin match

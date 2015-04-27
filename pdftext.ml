@@ -741,7 +741,7 @@ let rec parse_tounicode pdf tounicode =
           end
       | _ -> assert false
       end
-  | Pdf.Stream {contents = (_, Pdf.ToGet (_, _, _))} ->
+  | Pdf.Stream {contents = (_, Pdf.ToGet _)} ->
       Pdf.getstream tounicode;
       parse_tounicode pdf tounicode
   | e -> raise (Pdf.PDFError (Printf.sprintf "Bad /ToUnicode %s" (Pdfwrite.string_of_pdf e)))
