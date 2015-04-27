@@ -9,7 +9,8 @@ let is_delimiter = function
   | _ -> false
 
 (* Streams of binary data, byte-addressable, can either be in memory (Got) or
-still in an input channel (ToGet). *)
+still in an input channel (ToGet). Soon the ToGet type will be extended to allow
+preprocessing for lazy decryption. *)
 type toget = input * int * int
 
 let toget i p l = (i, p, l)
