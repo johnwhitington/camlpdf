@@ -155,22 +155,10 @@ let is_not_whitespace = function
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function
   | Stream ({contents = (d, ToGet (i, o, l))} as stream) ->
-      (* FIXME: Fix up Pdfio to export, for each input a way of using getinit
-      for speed *)
       if l = 0 then stream := (d, Got (mkbytes 0)) else
-        let s = mkbytes l in
-          begin try
-            i.seek_in o;
-            for c = 0 to l - 1 do
-              match i.input_byte () with
-              | b when b = Pdfio.no_more -> raise End_of_file
-              | b -> bset_unsafe s c b
-            done;
-            stream := (d, Got s)
-          with
-            End_of_file ->
-              raise (PDFError "Pdf.getstream: can't read stream.")
-          end
+        begin try stream := (d, Got (Pdfio.bytes_of_input i o l)) with
+          End_of_file | _ -> raise (PDFError "Pdf.getstream: can't read stream")
+        end
   | Stream _ -> ()
   | _ -> raise (PDFError "Pdf.getstream: not a stream")
 

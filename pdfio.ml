@@ -466,6 +466,14 @@ let setinit_string i s o l =
       | None ->
           for x = o to o + l - 1 do String.unsafe_set s x (Char.unsafe_chr (i.input_byte ())) done
 
+let bytes_of_input i o l =
+  let s = String.create l in
+    setinit_string i s o l;
+    if l <= Sys.max_string_length then
+      Short s
+    else
+      bytes_of_string s
+
 let getinit i s o l =
   let max = bytes_size s - 1
   and last = o + 1 - 1 in
