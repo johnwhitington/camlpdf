@@ -11,18 +11,12 @@ let header pdf =
     pdf.Pdf.major
     pdf.Pdf.minor
 
-(* Build a cross-reference table string. (With new GADT printf, this may be
-faster with printf -- check). *)
-let pad_to_ten ch s =
-  let l = String.length s in
-    if l > 10 then raise (Pdf.PDFError "xref too big") else
-      let t = String.make 10 ch in
-        String.blit s 0 t (10 - l) l;
-        t
-
 let output_string_of_xref i n =
-  i.output_string (pad_to_ten '0' (string_of_int n));
-  i.output_string " 00000 n \n" 
+  let s = string_of_int n in
+    let l = String.length s in
+      for x = 0 to 10 - l - 1 do i.output_char '0' done;
+      i.output_string s;
+      i.output_string " 00000 n \n" 
 
 (* Write the cross-reference table to a channel. *)
 let write_xrefs xrefs i =
