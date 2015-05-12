@@ -14,6 +14,10 @@ special linking exception. See "LICENCE" for details.
 To Build
 ---
 
+If downloading from Github, obtain the correct source. This means choosing the tag for a
+particaular version, such as "v2.1.1". The head of the master branch is
+unstable.
+
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
 documentation (in doc/camlpdf/html).
 
