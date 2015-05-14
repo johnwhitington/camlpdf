@@ -158,7 +158,10 @@ let getstream = function
   | Stream ({contents = (d, ToGet (i, o, l))} as stream) ->
       if l = 0 then stream := (d, Got (mkbytes 0)) else
         begin try stream := (d, Got (Pdfio.bytes_of_input i o l)) with
-          End_of_file | _ -> raise (PDFError "Pdf.getstream: can't read stream")
+          e ->
+            raise
+              (PDFError
+                ("Pdf.getstream: can't read stream" ^ Printexc.to_string e))
         end
   | Stream _ -> ()
   | _ -> raise (PDFError "Pdf.getstream: not a stream")

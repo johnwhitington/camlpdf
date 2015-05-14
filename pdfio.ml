@@ -457,9 +457,10 @@ let setinit i s o l =
           for x = o to o + l - 1 do bigarray_unsafe_set s x (i.input_byte ()) done
 
 let setinit_string i s o l =
+  Printf.printf "setinit_string: s len = %i, o = %i, l = %i\n" (String.length s) o l;
   let max = String.length s - 1
   and last = o + 1 - 1 in
-    if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit") else
+    if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit_string") else
       match i.caml_channel with
       | Some ch ->
           really_input ch s o l
@@ -467,8 +468,9 @@ let setinit_string i s o l =
           for x = o to o + l - 1 do String.unsafe_set s x (Char.unsafe_chr (i.input_byte ())) done
 
 let bytes_of_input i o l =
+  i.seek_in o;
   let s = String.create l in
-    setinit_string i s o l;
+    setinit_string i s 0 l;
     if l <= Sys.max_string_length then
       Short s
     else
