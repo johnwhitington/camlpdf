@@ -457,7 +457,6 @@ let setinit i s o l =
           for x = o to o + l - 1 do bigarray_unsafe_set s x (i.input_byte ()) done
 
 let setinit_string i s o l =
-  Printf.printf "setinit_string: s len = %i, o = %i, l = %i\n" (String.length s) o l;
   let max = String.length s - 1
   and last = o + 1 - 1 in
     if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit_string") else
