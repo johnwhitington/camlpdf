@@ -234,6 +234,8 @@ let make_changes pdf pages =
                 entries;
               table
 
+(* FIXME: Perhaps use lookup_option all the time, warning about malformities on
+stderr. We have seen a file with a malformed BDC at least *)
 let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_Tf (f, s) ->
       Pdfops.Op_Tf (lookup "/Font" seqnum f, s)
@@ -260,7 +262,12 @@ let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_DP (n, Pdf.Name p) ->
       Pdfops.Op_DP (n, Pdf.Name (lookup "/Properties" seqnum p))
   | Pdfops.Op_BDC (n, Pdf.Name p) ->
-      Pdfops.Op_BDC (n, Pdf.Name (lookup "/Properties" seqnum p))
+      begin match lookup_option "/Properties" seqnum p with
+        | Some x ->
+            Printf.eprintf "Warning: Missing Op_BDC /Properties entry";
+            Pdfops.Op_BDC (n, Pdf.Name x)
+        | None -> Pdfops.Op_BDC (n, Pdf.Name p)
+      end
   | Pdfops.InlineImage (dict, bytes) ->
       (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
       let dict' =
