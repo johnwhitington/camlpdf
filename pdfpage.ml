@@ -264,7 +264,7 @@ let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_BDC (n, Pdf.Name p) ->
       begin match lookup_option "/Properties" seqnum p with
         | Some x ->
-            Printf.eprintf "Warning: Missing Op_BDC /Properties entry";
+            Printf.eprintf "Warning: Missing Op_BDC /Properties entry\n";
             Pdfops.Op_BDC (n, Pdf.Name x)
         | None -> Pdfops.Op_BDC (n, Pdf.Name p)
       end
