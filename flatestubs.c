@@ -19,6 +19,8 @@
 
 #include "miniz.c" //Modified to use miniz.c rather than zlib 
 
+#include <stdint.h>
+
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/callback.h>
