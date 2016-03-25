@@ -737,7 +737,7 @@ let rec eval_function f inputs =
                             * c d; *)
                            fun x -> interpolate x a b c d
                        with
-                         Invalid_argument "select" ->
+                         Invalid_argument _ (*"select"*) ->
                            raise (BadFunctionEvaluation "stitching: encode/domain")
                      in
                        eval_function f [encode i]

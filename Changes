@@ -22,10 +22,6 @@ o Recrypting overhauled. Now a first class citizen.
 
 1.7 (30th August 2013)
 
-There have been significant changes to the API. Changes for the next released
-version (1.8) will be less significant. Thereafter, all changes will be
-backward-compatible.
-
 Technical
 
 o Support for writing with object streams

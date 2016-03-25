@@ -75,7 +75,7 @@ let rec read_header_inner pos i =
       | _ ->
           read_header_inner (pos + 1) i
   with
-    End_of_file | Failure "int_of_string" ->
+    End_of_file | Failure _ (*"int_of_string"*) ->
       raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read PDF header"))
 
 let read_header =
@@ -208,9 +208,10 @@ let lex_number i =
       | Pdfgenlex.LexReal f -> LexReal f
       | _ -> LexNone
     with
-    | Failure "hd" -> LexNone
+    (* FIXME: Heed warning 52 *)
+    | Failure x when x = "hd" -> LexNone
     | Pdf.PDFError _ (* can't cope with floats with leading point. *)
-    | Failure "int_of_string" ->
+    | Failure _ (*"int_of_string"*) ->
         LexReal
           (float_of_string
              (i.seek_in pos; (getuntil_white_or_delimiter_string i)))
@@ -325,7 +326,7 @@ let lex_string i =
     done;
     LexString (Buffer.contents str)
   with
-    | Failure "unopt" ->
+    | Failure _ (*"unopt"*) ->
         raise (Pdf.PDFError (Pdf.input_pdferror i "lex_string failure"))
 
 (* Lex a hexadecimal string. *)
@@ -358,7 +359,7 @@ let lex_hexstring i =
               LexString (Buffer.contents str)
        with
          | End_of_file -> LexString (Buffer.contents str)
-         | Failure "unopt" ->
+         | Failure _ (*"unopt"*) ->
              raise (Pdf.PDFError (Pdf.input_pdferror i "lex_hexstring"))
 
 (* Lex a keyword. *)
@@ -1066,7 +1067,8 @@ let read_xref i =
             | _ -> () (* Xref stream types won't have been generated. *)
           done
         with
-          End_of_file | Sys_error _ | Failure "int_of_string"-> fail ()
+          End_of_file | Sys_error _
+          | Failure _ (*"int_of_string"*) -> fail ()
       end;
       !xrefs
 

@@ -817,7 +817,8 @@ let splitat points l =
 (* Select the nth element in a list (first is element 1) *)
 let select n l =
   try hd (drop l (n - 1)) with
-    Invalid_argument "drop" | Failure "hd" -> raise (Invalid_argument "select")
+    Invalid_argument _ (*"drop"*)
+  | Failure _ (*"hd"*) -> raise (Invalid_argument "select")
 
 (* Replace the nth element of a list (first is element 1) *)
 let rec replace_number_inner prev n e = function

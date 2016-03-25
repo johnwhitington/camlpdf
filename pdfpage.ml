@@ -625,7 +625,7 @@ let page_object_number pdf destpage =
     Some (select destpage (Pdf.page_reference_numbers pdf))
   with
     (* The page might not exist in the output *)
-    Invalid_argument "select" -> None
+    Invalid_argument _ (*"select"*) -> None
 
 let target_of_pagenumber pdf i =
   match page_object_number pdf i with

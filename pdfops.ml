@@ -533,7 +533,7 @@ let lex_next pdf resources i =
   with
     | Pdf.PDFError r -> 
         raise (Pdf.PDFError ("Pdfpages.lex_next => " ^ r))
-    | Failure "unopt" | End_of_file -> raise LexingEnd 
+    | Failure _ (*"unopt"*) | End_of_file -> raise LexingEnd 
     | Couldn'tHandleContent ->
         raise (Pdf.PDFError "Malformed page content")
 
