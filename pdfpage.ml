@@ -13,7 +13,7 @@ containing the graphical content stream (see the Pdfops module), mediabox
 the page size, resources the page's resource dictionary, rotate its rotation
 and rest any other entries to reside in the page dictionary. *)
 type t =
-  {content : Pdf.pdfobject list;
+  {content : Pdf.pdfobject list; (*FIXME Change this to int list, to ensure sharing? *)
    mediabox : Pdf.pdfobject;
    resources : Pdf.pdfobject;
    rotate : rotation;
@@ -114,7 +114,18 @@ let rec find_pages pages pdf resources mediabox rotate =
         | Some x -> Some x
         | None -> mediabox
       in let contents =
-        Pdf.lookup_direct pdf "/Contents" pages
+        (* 28th March 2016. We modify this to always create an array of one
+        indirect if just a single contents stream, rather than following
+        through to the actual object. Other code can then preserve the
+        sharing. *)
+        begin match pages with
+          Pdf.Dictionary d ->
+            begin match lookup "/Contents" d with
+              Some (Pdf.Indirect i) -> Some (Pdf.Array [Pdf.Indirect i])
+            | _ -> Pdf.lookup_direct pdf "/Contents" pages
+            end
+        | _ -> assert false
+        end
       in let rotate =
         match Pdf.lookup_direct pdf "/Rotate" pages with
         | Some (Pdf.Integer r) -> rotation_of_int r
@@ -264,9 +275,10 @@ let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_BDC (n, Pdf.Name p) ->
       begin match lookup_option "/Properties" seqnum p with
         | Some x ->
-            Printf.eprintf "Warning: Missing Op_BDC /Properties entry\n";
             Pdfops.Op_BDC (n, Pdf.Name x)
-        | None -> Pdfops.Op_BDC (n, Pdf.Name p)
+        | None ->
+            Printf.eprintf "Warning: Missing Op_BDC /Properties entry\n";
+            Pdfops.Op_BDC (n, Pdf.Name p)
       end
   | Pdfops.InlineImage (dict, bytes) ->
       (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
@@ -290,6 +302,8 @@ let change_operator pdf lookup lookup_option seqnum = function
         Pdfops.InlineImage (dict', bytes)
   | x -> x
 
+(* Only for use with twoup now. FIXME: Can blow up shared content streams. Needs
+a cunning new method to preserve sharing. *)
 let renumber_pages pdf pages =
   match pages with
   | [] -> []
@@ -407,7 +421,7 @@ let mkpage getobjnum parent page =
             (map
               (function
                  | Pdf.Indirect i -> Pdf.Indirect i, None
-                 | c -> let i = getobjnum () in Pdf.Indirect i, Some (i, c))
+                 | c -> Printf.printf "X"; let i = getobjnum () in Pdf.Indirect i, Some (i, c))
               cs)
         in
           [("/Contents", Pdf.Array indirects)], losenones objects 
@@ -426,6 +440,7 @@ let mkpage getobjnum parent page =
       @ 
         content)
     in
+      if List.length extras > 0 then Printf.printf "mkpage: made extras\n";
       getobjnum (), page, extras
 
 (* Build a list of objnum, pdfobject pairs from the ptree. The pages in the
@@ -532,6 +547,11 @@ let add_pagetree pages pdf =
         let ptree = pagetree getobjnum pages 0 in
           let objects = objects_of_ptree getobjnum extras ptree in
             let topnode = match hd objects with (n, _) -> n in
+              (*Printf.printf "There were %i objects_of_ptree\n" (List.length objects);
+              List.iter (fun (i, x) -> Printf.printf "%i: %s\n" i (Pdfwrite.string_of_pdf x)) objects;
+              Printf.printf "There were %i extras\n" (List.length !extras);
+              List.iter (fun (i, x) -> Printf.printf "%i: %s\n" i
+              (Pdfwrite.string_of_pdf x)) !extras;*)
               iter (fun x -> ignore (Pdf.addobj_given_num pdf x)) (objects @ !extras);
               pdf, topnode
 
