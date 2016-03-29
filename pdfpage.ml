@@ -245,8 +245,6 @@ let make_changes pdf pages =
                 entries;
               table
 
-(* FIXME: Perhaps use lookup_option all the time, warning about malformities on
-stderr. We have seen a file with a malformed BDC at least *)
 let change_operator pdf lookup lookup_option seqnum = function
   | Pdfops.Op_Tf (f, s) ->
       Pdfops.Op_Tf (lookup "/Font" seqnum f, s)
@@ -991,5 +989,24 @@ let shortest_unused_prefix pdf =
   a) Add the prefix to any name in /Resources
   b) Add the prefix to any name used in any content streams, keeping track of
   the streams we have processed to preserve sharing *)
-let add_prefix pdf prefix = ()
+let add_prefix pdf prefix =
+  Pdf.objiter
+    (fun n obj ->
+       match obj with
+         (Pdf.Dictionary _ | Pdf.Stream {contents = (Pdf.Dictionary _, _)} as d) ->
+           begin match Pdf.lookup_direct pdf "/Type" d with
+             Some (Pdf.Name ("/Page" | "/Pages")) ->
+               begin match Pdf.lookup_direct pdf "/Resources" obj with
+                 Some resources -> ()
+               | _ -> ()
+               end;
+               begin match Pdf.lookup_direct pdf "/Contents" obj with
+                 Some contents -> ()
+               | _ -> ()
+               end
+           | _ -> ()
+           end
+       | _ -> ()
+    )
+    pdf
 
