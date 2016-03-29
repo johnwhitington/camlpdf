@@ -927,3 +927,69 @@ let pagetree_make_explicit pdf =
 (*let _ =
   Pdfwrite.pagetree_make_explicit := pagetree_make_explicit*)
 
+(* Source of possible prefix strings. String is always copied. *)
+let next_string s =
+  if s = "" then "a" else
+    if s.[0] = 'z' then "a" ^ s else
+      let s' = String.copy s in
+         s'.[0] <- char_of_int (int_of_char s'.[0] + 1);
+         s'
+
+(* True if one string [p] is a prefix of another [n] *)
+let is_prefix p n =
+  String.length p <= String.length n &&
+  String.sub n 0 (String.length p) = p
+
+(* a) List every name used in a /Resources in a /Type /Page or
+ /Type /Pages (without the leading "/"
+   b) Find the shortest lower-case alphabetic string which is not a prefix of any of these
+   strings. This prefix can be added to the other PDF's names, and will never
+   clash with any of these. *)
+let names_used pdf =
+  let names = ref [] in
+  let unslash x =
+    if x = "" then "" else String.sub x 0 (String.length x - 1)
+  in
+    Pdf.objiter
+      (fun n obj ->
+        match obj with
+          Pdf.Dictionary d | Pdf.Stream {contents = (Pdf.Dictionary d, _)} ->
+            begin match lookup "/Type" d with
+              Some (Pdf.Name ("/Page" | "/Pages")) ->
+                begin match Pdf.lookup_direct pdf "/Resources" obj with
+                  Some resources ->
+                    List.iter
+                      (fun key ->
+                         match Pdf.lookup_direct pdf key resources with
+                           Some (Pdf.Dictionary d) ->
+                             List.iter
+                               (fun (k, _) -> names := unslash k::!names)
+                               d
+                         | _ -> ())
+                      resource_keys
+                | _ -> ()
+                end
+            | _ -> ()
+            end
+        | _ -> ()
+      )
+      pdf;
+    setify !names
+
+let shortest names =
+  let rec loop prefix =
+    if List.exists (is_prefix prefix) names
+      then loop (next_string prefix)
+      else prefix
+  in
+    loop "a"
+
+let shortest_unused_prefix pdf =
+  shortest (names_used pdf)
+
+(* For each object in the PDF with /Type /Page or /Type /Pages:
+  a) Add the prefix to any name in /Resources
+  b) Add the prefix to any name used in any content streams, keeping track of
+  the streams we have processed to preserve sharing *)
+let add_prefix pdf prefix = ()
+

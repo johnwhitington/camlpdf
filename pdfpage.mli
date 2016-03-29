@@ -73,6 +73,10 @@ val pdf_of_pages : ?retain_numbering:bool -> Pdf.t -> int list -> Pdf.t
 
 (**/**)
 
+val shortest_unused_prefix : Pdf.t -> string
+
+val add_prefix : Pdf.t -> string -> unit
+
 val prepend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
 
 val postpend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
