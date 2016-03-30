@@ -985,25 +985,97 @@ let shortest names =
 let shortest_unused_prefix pdf =
   shortest (names_used pdf)
 
+let addp p n =
+  if n = "" then raise (Pdf.PDFError "addp: blank name") else
+    "/" ^ p ^ String.sub n 1 (String.length n - 1)
+
+let prefix_operator pdf p = function
+  | Pdfops.Op_Tf (f, s) -> Pdfops.Op_Tf (addp p f, s)
+  | Pdfops.Op_gs n -> Pdfops.Op_gs (addp p n)
+  | Pdfops.Op_CS n -> Pdfops.Op_CS (addp p n)
+  | Pdfops.Op_cs n -> Pdfops.Op_cs (addp p n)
+  | Pdfops.Op_SCNName (s, ns) -> Pdfops.Op_SCNName (addp p s, ns)
+  | Pdfops.Op_scnName (s, ns) -> Pdfops.Op_scnName (addp p s, ns)
+  | Pdfops.Op_sh s -> Pdfops.Op_sh (addp p s)
+  | Pdfops.Op_Do x -> Pdfops.Op_Do (addp p x)
+  | Pdfops.Op_DP (n, Pdf.Name x) -> Pdfops.Op_DP (n, Pdf.Name (addp p x))
+  | Pdfops.Op_BDC (n, Pdf.Name x) -> Pdfops.Op_BDC (n, Pdf.Name (addp p x))
+  | Pdfops.InlineImage (dict, bytes) ->
+      (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
+      let dict' =
+        match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
+        | Some (Pdf.Name "/DeviceGray")
+        | Some (Pdf.Name "/DeviceRGB")
+        | Some (Pdf.Name "/DeviceCMYK")
+        | Some (Pdf.Name "/G")
+        | Some (Pdf.Name "/RGB")
+        | Some (Pdf.Name "/CMYK") -> dict
+        | Some (Pdf.Name n) ->
+            Pdf.add_dict_entry
+              (Pdf.remove_dict_entry
+                (Pdf.remove_dict_entry dict "/ColorSpace")
+                "/CS")
+              "/CS"
+              (Pdf.Name (addp p n))
+        | _ -> dict
+      in
+        Pdfops.InlineImage (dict', bytes)
+  | x -> x
+
+let change_resources pdf prefix resources =
+  let newdict name =
+    match Pdf.lookup_direct pdf name resources with
+    | Some (Pdf.Dictionary fonts) ->
+        Pdf.Dictionary (map (fun (k, v) -> addp prefix k, v) fonts)
+    | _ -> Pdf.Dictionary []
+  in
+    let newdicts = map newdict resource_keys in
+      let resources = ref resources in
+        iter2
+          (fun k v ->
+            resources := Pdf.add_dict_entry !resources k v)
+          resource_keys
+          newdicts;
+        !resources
+
 (* For each object in the PDF with /Type /Page or /Type /Pages:
   a) Add the prefix to any name in /Resources
   b) Add the prefix to any name used in any content streams, keeping track of
   the streams we have processed to preserve sharing *)
 let add_prefix pdf prefix =
+  let fixed_streams = Hashtbl.create 100 in
+  let fix_stream resources i =
+    match i with Pdf.Indirect i ->
+      if not (Hashtbl.mem fixed_streams i) then
+        (* FIXME: Must fallback to old system if a single content stream
+        cannot be lexed in isolation (pre-ISO PDFs) *)
+        let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
+          let operators' = map (prefix_operator pdf prefix) operators in
+            Pdf.addobj_given_num pdf (i, Pdfops.stream_of_ops operators');
+            Printf.printf "Content Done stream %i\n" i;
+            Hashtbl.add fixed_streams i ()
+      else
+        Printf.printf "Avoided re-doing content stream %i\n" i
+    | _ -> failwith "add_prefix: not indirect"
+  in
   Pdf.objiter
     (fun n obj ->
        match obj with
-         (Pdf.Dictionary _ | Pdf.Stream {contents = (Pdf.Dictionary _, _)} as d) ->
+         Pdf.Dictionary dict as d ->
            begin match Pdf.lookup_direct pdf "/Type" d with
              Some (Pdf.Name ("/Page" | "/Pages")) ->
-               begin match Pdf.lookup_direct pdf "/Resources" obj with
-                 Some resources -> ()
-               | _ -> ()
-               end;
-               begin match Pdf.lookup_direct pdf "/Contents" obj with
-                 Some contents -> ()
-               | _ -> ()
-               end
+               let resources =
+                 begin match Pdf.lookup_direct pdf "/Resources" obj with
+                   Some resources -> change_resources pdf prefix resources
+                 | _ -> (); Pdf.Dictionary [] (* FIXME: No need to add empty resources? *)
+                 end
+               in
+                 begin match Pdf.lookup_direct pdf "/Contents" obj with
+                   Some (Pdf.Indirect i) -> fix_stream resources (Pdf.Indirect i)
+                 | Some (Pdf.Array a) -> List.iter (fix_stream resources) a
+                 | _ -> ()
+                 end;
+                 Pdf.addobj_given_num pdf (n, Pdf.add_dict_entry resources "/Resources" d)
            | _ -> ()
            end
        | _ -> ()
