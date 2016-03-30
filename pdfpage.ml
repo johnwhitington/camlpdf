@@ -419,7 +419,7 @@ let mkpage getobjnum parent page =
             (map
               (function
                  | Pdf.Indirect i -> Pdf.Indirect i, None
-                 | c -> Printf.printf "X"; let i = getobjnum () in Pdf.Indirect i, Some (i, c))
+                 | c -> (*FIXME Printf.printf "X";*) let i = getobjnum () in Pdf.Indirect i, Some (i, c))
               cs)
         in
           [("/Contents", Pdf.Array indirects)], losenones objects 
@@ -438,7 +438,7 @@ let mkpage getobjnum parent page =
       @ 
         content)
     in
-      if List.length extras > 0 then Printf.printf "mkpage: made extras\n";
+      (*FIXME: if List.length extras > 0 then Printf.printf "mkpage: made extras\n";*)
       getobjnum (), page, extras
 
 (* Build a list of objnum, pdfobject pairs from the ptree. The pages in the
@@ -1045,40 +1045,58 @@ let change_resources pdf prefix resources =
 let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
+    (*Printf.printf "In fix_stream\n";*)
     match i with Pdf.Indirect i ->
       if not (Hashtbl.mem fixed_streams i) then
         (* FIXME: Must fallback to old system if a single content stream
         cannot be lexed in isolation (pre-ISO PDFs) *)
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
           let operators' = map (prefix_operator pdf prefix) operators in
-            Pdf.addobj_given_num pdf (i, Pdfops.stream_of_ops operators');
-            Printf.printf "Content Done stream %i\n" i;
+            (* Can't overwrite with addobj_given_num since in middle of an
+            iterator *)
+            begin match Pdf.lookup_obj pdf i with
+              Pdf.Stream ({contents = (dict, stream)} as s) ->
+                begin match Pdfops.stream_of_ops operators' with
+                  Pdf.Stream {contents = ncontents} -> s := ncontents
+                | _ -> failwith "add_prefix: bad stream"
+                end
+            | _ -> failwith "add_prefix: bad stream 2"
+            end;
+            (*Printf.printf "Content Done stream %i\n" i;*)
             Hashtbl.add fixed_streams i ()
-      else
-        Printf.printf "Avoided re-doing content stream %i\n" i
     | _ -> failwith "add_prefix: not indirect"
   in
-  Pdf.objiter
-    (fun n obj ->
+  Pdf.objselfmap
+    (fun obj ->
        match obj with
          Pdf.Dictionary dict as d ->
            begin match Pdf.lookup_direct pdf "/Type" d with
              Some (Pdf.Name ("/Page" | "/Pages")) ->
+               (*Printf.printf "found a page object to do\n";*)
                let resources =
                  begin match Pdf.lookup_direct pdf "/Resources" obj with
-                   Some resources -> change_resources pdf prefix resources
-                 | _ -> (); Pdf.Dictionary [] (* FIXME: No need to add empty resources? *)
+                   Some resources -> Some (change_resources pdf prefix resources)
+                 | _ -> (); None
                  end
                in
-                 begin match Pdf.lookup_direct pdf "/Contents" obj with
-                   Some (Pdf.Indirect i) -> fix_stream resources (Pdf.Indirect i)
-                 | Some (Pdf.Array a) -> List.iter (fix_stream resources) a
+                 begin match lookup "/Contents" dict with
+                   Some (Pdf.Indirect i) ->
+                     fix_stream
+                       (if resources = None then Pdf.Dictionary [] else unopt resources)
+                       (Pdf.Indirect i)
+                 | Some (Pdf.Array a) ->
+                     List.iter
+                       (fix_stream
+                         (if resources = None then Pdf.Dictionary [] else unopt resources))
+                       a
                  | _ -> ()
                  end;
-                 Pdf.addobj_given_num pdf (n, Pdf.add_dict_entry resources "/Resources" d)
-           | _ -> ()
+                 begin match resources with
+                   Some resources -> Pdf.add_dict_entry d "/Resources" resources
+                 | None -> d
+                 end
+           | _ -> obj
            end
-       | _ -> ()
-    )
+       | _ -> obj)
     pdf
 
