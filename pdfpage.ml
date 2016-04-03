@@ -121,8 +121,15 @@ let rec find_pages pages pdf resources mediabox rotate =
         begin match pages with
           Pdf.Dictionary d ->
             begin match lookup "/Contents" d with
-              Some (Pdf.Indirect i) -> Some (Pdf.Array [Pdf.Indirect i])
-            | _ -> Pdf.lookup_direct pdf "/Contents" pages
+              Some (Pdf.Indirect i) ->
+                (* A single content stream, or indirect to array *)
+                begin match Pdf.lookup_obj pdf i with
+                | Pdf.Array a -> Some (Pdf.Array a)
+                | _ -> Some (Pdf.Array [Pdf.Indirect i])
+                end
+            | _ ->
+                (* An array of indirects. Just return it *)
+                Pdf.lookup_direct pdf "/Contents" pages
             end
         | _ -> assert false
         end
@@ -146,12 +153,13 @@ let rec find_pages pages pdf resources mediabox rotate =
                   (function x ->
                      match Pdf.direct pdf x with
                      | Pdf.Stream _ -> x
-                     | _ -> raise (Pdf.PDFError "Bad /Contents"))
+                     | x ->
+                         raise (Pdf.PDFError ("Bad /Contents 1")))
                   cs;
             | Some pdfobject ->
                 begin match Pdf.direct pdf pdfobject with
                 | Pdf.Stream _ -> [pdfobject]
-                | _ -> raise (Pdf.PDFError "Bad /Contents")
+                | _ -> raise (Pdf.PDFError "Bad /Contents 2")
                 end);
           mediabox =
             (match mediabox with
