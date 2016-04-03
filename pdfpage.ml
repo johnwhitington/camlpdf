@@ -419,7 +419,7 @@ let mkpage getobjnum parent page =
             (map
               (function
                  | Pdf.Indirect i -> Pdf.Indirect i, None
-                 | c -> (*FIXME Printf.printf "X";*) let i = getobjnum () in Pdf.Indirect i, Some (i, c))
+                 | c -> let i = getobjnum () in Pdf.Indirect i, Some (i, c))
               cs)
         in
           [("/Contents", Pdf.Array indirects)], losenones objects 
@@ -438,7 +438,6 @@ let mkpage getobjnum parent page =
       @ 
         content)
     in
-      (*FIXME: if List.length extras > 0 then Printf.printf "mkpage: made extras\n";*)
       getobjnum (), page, extras
 
 (* Build a list of objnum, pdfobject pairs from the ptree. The pages in the
@@ -1041,19 +1040,21 @@ let change_resources pdf prefix resources =
 (* For each object in the PDF with /Type /Page or /Type /Pages:
   a) Add the prefix to any name in /Resources
   b) Add the prefix to any name used in any content streams, keeping track of
-  the streams we have processed to preserve sharing *)
+  the streams we have processed to preserve sharing
+  
+FIXME: If a non-ISO PDF with content streams which don't end on lexical boundaries
+is provided, the parse will fail, and this function will raise an exception.
+
+The long-term solution to this is to explode the PDF with an
+-unshare-content-streams option, and then fix squeeze to re-share subcontent
+streams *)
 let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
-    (*Printf.printf "In fix_stream\n";*)
     match i with Pdf.Indirect i ->
       if not (Hashtbl.mem fixed_streams i) then
-        (* FIXME: Must fallback to old system if a single content stream
-        cannot be lexed in isolation (pre-ISO PDFs) *)
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
           let operators' = map (prefix_operator pdf prefix) operators in
-            (* Can't overwrite with addobj_given_num since in middle of an
-            iterator *)
             begin match Pdf.lookup_obj pdf i with
               Pdf.Stream ({contents = (dict, stream)} as s) ->
                 begin match Pdfops.stream_of_ops operators' with
@@ -1062,7 +1063,6 @@ let add_prefix pdf prefix =
                 end
             | _ -> failwith "add_prefix: bad stream 2"
             end;
-            (*Printf.printf "Content Done stream %i\n" i;*)
             Hashtbl.add fixed_streams i ()
     | _ -> failwith "add_prefix: not indirect"
   in
@@ -1072,7 +1072,6 @@ let add_prefix pdf prefix =
          Pdf.Dictionary dict as d ->
            begin match Pdf.lookup_direct pdf "/Type" d with
              Some (Pdf.Name ("/Page" | "/Pages")) ->
-               (*Printf.printf "found a page object to do\n";*)
                let resources =
                  begin match Pdf.lookup_direct pdf "/Resources" obj with
                    Some resources -> Some (change_resources pdf prefix resources)
