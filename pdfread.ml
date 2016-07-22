@@ -1172,14 +1172,20 @@ let read_xref_stream i =
           | _ -> raise err
         in let xrefs = ref [] in
           begin try
+            if !read_debug then
+              Printf.printf "About to start read_xref_stream\n%!";
             while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
+
           with
-            _ -> ()
+            _ ->
+              if !read_debug then
+                Printf.printf "End of read_xref_stream\n%!";
+              ()
           end;
           xrefs := rev !xrefs;
           if !read_debug then
             Printf.eprintf
-              "****** read %i raw Xref stream entries\n" (length !xrefs);
+              "****** read %i raw Xref stream entries\n%!" (length !xrefs);
           let starts_and_lens =
             match Pdf.lookup_direct (Pdf.empty ()) "/Index" stream with
             | Some (Pdf.Array elts) ->
@@ -1207,6 +1213,9 @@ let read_xref_stream i =
                   [0, size]
           in
             let xrefs' = ref [] in
+          if !read_debug then
+            Printf.eprintf
+              "****** Begin iteration: %i\n%!" (length starts_and_lens);
             iter
               (fun (start, len) ->
                 let these_xrefs =
@@ -1219,7 +1228,8 @@ let read_xref_stream i =
                   xrefs := drop !xrefs len;
                   let objnumber = ref start in
                     iter
-                      (function
+                      (fun x ->
+                       match x with
                        | Valid (offset, gen) ->
                            xrefs' =| (!objnumber, XRefPlain (offset, gen));
                            incr objnumber
@@ -1231,7 +1241,7 @@ let read_xref_stream i =
                 starts_and_lens;
               i.seek_in original_pos;
               if !read_debug then
-                Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n"
+                Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n%!"
                 (length !xrefs');
               rev !xrefs', xrefstream_objectnumber
 

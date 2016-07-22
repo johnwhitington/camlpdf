@@ -592,7 +592,7 @@ let add_root pageroot extras pdf =
 
 Other objects (e.g destinations in the document outline) may point to the
 individual page objects, so we must renumber these. We can only do this if the
-number of pages are the same. We do this [if replace_numbers is true]. *)
+number of pages are the same. We do this [if change_references is true]. *)
 let change_pages change_references basepdf pages' =
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
