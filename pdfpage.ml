@@ -615,7 +615,12 @@ let change_pages change_references basepdf pages' =
         in
           let pdf = add_root pagetree_num existing_root_entries pdf in
             let new_page_numbers = Pdf.page_reference_numbers pdf in
-              (* TODO: Relax this distinction *)
+              (* TODO: Relax this distinction. But how? Must make an assumption
+               * about how they are lined up. What would a more general
+               * change_pages look like? *)
+              if change_references && length old_page_numbers <> length
+              new_page_numbers then
+                Printf.eprintf "change_pages: relax restriction\n";
               if change_references && length old_page_numbers = length new_page_numbers
                 then
                   let changes = combine old_page_numbers new_page_numbers in
