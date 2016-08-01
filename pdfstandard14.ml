@@ -2,10 +2,11 @@
 open Pdfutil
 
 let read_afm afm =
-  let headers, ws, ks = Pdfafm.read (Pdfio.input_of_string afm) in
+  let headers, ws, ks, ws' = Pdfafm.read (Pdfio.input_of_string afm) in
     hashtable_of_dictionary headers,
     hashtable_of_dictionary ws,
-    hashtable_of_dictionary (map (fun (c, c', k) -> (c, c'), k) ks)
+    hashtable_of_dictionary (map (fun (c, c', k) -> (c, c'), k) ks),
+    hashtable_of_dictionary ws'
 
 (* Main functions *)
 let tables =
@@ -58,7 +59,7 @@ let rec width dokern widths kerns = function
 
 (* The main function. Give a font and the text string. *)
 let textwidth dokern f s =
-  let _, widths, kerns = lookup_failnull f tables () in
+  let _, widths, kerns, _ = lookup_failnull f tables () in
     width dokern widths kerns (map int_of_char (explode s))
 
 (* Return the AFM table data itself *)
@@ -91,4 +92,3 @@ let flags_of_standard_font = function
   | Pdftext.CourierOblique
   | Pdftext.CourierBoldOblique -> 33
   | _ -> 32
-

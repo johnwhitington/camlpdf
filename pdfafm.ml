@@ -77,7 +77,10 @@ let get_tables lines =
              let p = lookup_charnum charmetrics_hash n
              and p' = lookup_charnum charmetrics_hash n' in
              if p > -1 && p' > -1 then Some (p, p', kern) else None)
-          kerns
+          kerns,
+        option_map
+        (fun (name, (_, w)) -> Some (name, w))
+          charmetrics
 
 let read i =
   try
@@ -85,4 +88,3 @@ let read i =
       get_tables lines
   with
     e -> failwith (Printexc.to_string e)
-
