@@ -6,3 +6,4 @@ raise [Failure]. *)
 val read :
   Pdfio.input ->
   (string * string) list * (int * int) list * (int * int * int) list
+  * (string * int) list (* charname -> width *)
