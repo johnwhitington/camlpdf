@@ -1091,7 +1091,7 @@ let read_xref_line_stream i w1 w2 w3 =
       let f1 = read_field w1 in
         let f2 = read_field w2 in
           let f3 = read_field w3 in
-            if !read_debug then Printf.eprintf "%i %i %i\n" f1 f2 f3;
+            (*if !read_debug then Printf.eprintf "%i %i %i\n" f1 f2 f3;*)
             match f1 with
             | 0 -> StreamFree (f2, f3)
             | 1 -> Valid (f2, f3)
@@ -1521,7 +1521,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                    let themap =
                      let t = Hashtbl.create 200 in
                        let groups =
-                         let sf = fun (_, s, _) (_, s', _) -> compare s s' in
+                         let sf = fun (_, s, _) (_, s', _) -> compare_i s s' in
                            collate sf (sort sf streamones)
                        in
                          iter
@@ -1603,14 +1603,14 @@ let read_pdf ?revision user_pw owner_pw opt i =
             iter (Pdf.removeobj pdf) !postdeletes;
             (* Add stream_object_ids *)
             pdf.Pdf.objects.Pdf.object_stream_ids <- object_stream_ids;
-            if !read_debug then
+            (*if !read_debug then
               begin
                 Printf.eprintf "Object stream IDs:\n";
                 Hashtbl.iter
                   (fun o s ->
                      Printf.eprintf "Object %i was in stream %i\n" o s)
                   object_stream_ids
-              end;
+              end;*)
             if !read_debug then
               begin
                 Printf.eprintf "Done.\n";

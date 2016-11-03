@@ -618,9 +618,10 @@ let change_pages change_references basepdf pages' =
               (* TODO: Relax this distinction. But how? Must make an assumption
                * about how they are lined up. What would a more general
                * change_pages look like? *)
-              if change_references && length old_page_numbers <> length
+              (*if change_references && length old_page_numbers <> length
               new_page_numbers then
-                Printf.eprintf "change_pages: relax restriction\n";
+                Printf.eprintf "change_pages: relax restriction\n";*)
+              (* Happens with lots of things -- see a full cpdf test *)
               if change_references && length old_page_numbers = length new_page_numbers
                 then
                   let changes = combine old_page_numbers new_page_numbers in

@@ -227,18 +227,11 @@ let input_of_stream ?(source = "bytes") s =
   let offset = ref 0 in
     let ssize = bytes_size !(s.data) in
       let input_int () =
-        if s.pos > ssize - 1
-          then
-            begin
-              s.pos <- s.pos + 1;
-              no_more
-            end
-          else
-            begin
-              let r = bget_unsafe !(s.data) s.pos in
-                s.pos <- s.pos + 1;
-                r
-            end
+        let r =
+          if s.pos > ssize - 1 then no_more else bget_unsafe !(s.data) s.pos
+        in
+          s.pos <- s.pos + 1;
+          r
       in
         {pos_in =
            (fun () -> s.pos - !offset);
