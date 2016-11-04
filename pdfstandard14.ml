@@ -1,6 +1,9 @@
 (* The 14 Standard PDF Fonts (Widths and Kerns). *)
 open Pdfutil
 
+(* FIXME: We need to reintroduce kerning, and test in the prescense of different
+ * encodings for textwidth here *)
+
 let read_afm afm =
   let headers, ws, ks, ws' = Pdfafm.read (Pdfio.input_of_string afm) in
     hashtable_of_dictionary headers,
@@ -25,7 +28,8 @@ let tables =
    Pdftext.Symbol, memoize (fun () -> read_afm Pdfafmdata.symbol_afm);
    Pdftext.ZapfDingbats, memoize (fun () -> read_afm Pdfafmdata.zapf_dingbats_afm)]
 
-(* The height of a capital H divided by 2. Allows the text to be placed vertically aligned with its middle rather than baseline *)
+(* The height of a capital H divided by 2. Allows the text to be placed
+vertically aligned with its middle rather than baseline *)
 let baseline_adjustment = function
   | Pdftext.TimesRoman -> 662 / 2
   | Pdftext.TimesBold -> 676 / 2
@@ -46,21 +50,29 @@ let baseline_adjustment = function
 let find_kern kerns key =
   match tryfind kerns key with Some x -> x | None -> 0
 
-let find_width widths h =
-  match tryfind widths h with Some x -> x | None -> 0
+(* Take character code --> character name --> width *)
+let find_width charname_to_width encoding h =
+   let charname =
+     match tryfind (Pdftext.table_of_encoding encoding) h with
+       Some x -> x
+     | None -> "/space" (* Really, a failure *)
+   in
+     match tryfind charname_to_width (implode (List.tl (explode charname))) with
+       Some x -> x
+     | None -> 0 (* Really, a failure *)
 
-let rec width dokern widths kerns = function
+let rec width dokern charname_to_width encoding kerns = function
   | [] -> 0
-  | [h] -> find_width widths h
+  | [h] -> find_width charname_to_width encoding h
   | h::h'::t ->
-      find_width widths h +
+      find_width charname_to_width encoding h +
       (if dokern then find_kern kerns (h, h') else 0) +
-      width dokern widths kerns (h'::t)
+      width dokern charname_to_width encoding kerns (h'::t)
 
 (* The main function. Give a font and the text string. *)
-let textwidth dokern f s =
-  let _, widths, kerns, _ = lookup_failnull f tables () in
-    width dokern widths kerns (map int_of_char (explode s))
+let textwidth dokern encoding f s =
+  let _, _, kerns, charname_to_width = lookup_failnull f tables () in
+    width dokern charname_to_width encoding kerns (map int_of_char (explode s))
 
 (* Return the AFM table data itself *)
 let afm_data f =
