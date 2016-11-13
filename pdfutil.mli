@@ -38,6 +38,8 @@ val string_of_char : char -> string
 in [s], returning a new string. *)
 val string_replace_all : string -> string -> string -> string
 
+val string_replace_all_lazy : string -> (unit -> string) -> string -> string
+
 (** {2 Lists} *)
 
 val hd : ('a list -> 'a)
