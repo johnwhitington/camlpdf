@@ -867,7 +867,13 @@ let parse_finish ?(failure_is_ok = false) q =
      Lexeme LexObj; Lexeme LexEndObj] ->
       o, Pdf.Null
   | l ->
-      raise (Pdf.PDFError "Could not extract object")
+      (*Printf.printf "list length %i\n" (length l);
+        List.iter
+          (function
+              Parsed p -> Printf.printf "%s\n" (Pdfwrite.string_of_pdf p)
+            | Lexeme l -> Printf.printf "%s\n" (string_of_lexeme l))
+          l;*)
+        raise (Pdf.PDFError "Could not extract object")
 
 (* Parse some lexemes *)
 let parse ?(failure_is_ok = false) lexemes =
@@ -875,7 +881,9 @@ let parse ?(failure_is_ok = false) lexemes =
     parse_finish
       ~failure_is_ok:failure_is_ok (parse_to_tree [] (parse_R lexemes))
   with
-    Pdf.PDFError _ -> (max_int, Pdf.Null)
+    (* 14th November 2016: fixed this up to re-raise. Check *)
+    Pdf.PDFError _ as e ->
+      if failure_is_ok then (max_int, Pdf.Null) else raise e
 
 (* Given an object stream pdfobject and a list of object indexes to extract,
  return an [(int * Pdf.objectdata) list] representing those object number,
