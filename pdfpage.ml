@@ -777,9 +777,10 @@ let rec fixup_duplicate_pages pdf =
 
 let pdf_of_pages ?(retain_numbering = false) basepdf range =
   let page_labels =
-    if retain_numbering
-      then Pdfpagelabels.merge_pagelabels [basepdf] [range]
-      else []
+    if List.length (Pdfpagelabels.read basepdf) = 0 then [] else
+      if retain_numbering
+        then Pdfpagelabels.merge_pagelabels [basepdf] [range]
+        else []
   and marks =
     let refnums = Pdf.page_reference_numbers basepdf in
       option_map
