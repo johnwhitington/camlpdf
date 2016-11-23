@@ -114,9 +114,11 @@ let debug_pagelabels ls =
 let debug_collection_of_pagelabels =
   iter (fun ls -> debug_pagelabels ls; flprint "\n")
 
-(* Merging /Dests (Named destinations). Since the new /Dests must be an indirect
-reference, we add the new object to the pdf, returning the new pdf and the
-reference. *)
+(* Merging /Dests (Named destinations) in the catalog (PDF v1.1 style, rather
+ * than in the PDF 1.3 style in the name tree). Since the new /Dests must be an
+ * indirect reference, we add the new object to the pdf, returning the new pdf
+ * and the reference.
+FIXME: merging a v1.1 file with a v1.2 file will result in both sets of dests, confusing the reader...*)
 let new_dests pdf pdfs =
   let dests =
     option_map
@@ -127,10 +129,11 @@ let new_dests pdf pdfs =
           | _ -> None)
       pdfs
   in
-    let new_dests =
-      Pdf.Dictionary (flatten dests)
-    in
-      Pdf.addobj pdf new_dests
+    if dests = [] then None else
+      let new_dests =
+        Pdf.Dictionary (flatten dests)
+      in
+        Some (Pdf.addobj pdf new_dests)
 
 (* Names distinguish PDFs which are actually the same. So we only use the first
 of each group of same ones. Then renumber them. and return. *)
@@ -256,9 +259,14 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
         let dests = new_dests pdf pdfs in
           let namedict = merge_namedicts pdf pdfs in
             let extra_catalog_entries =
-              add "/Dests" (Pdf.Indirect dests)
+              let with_names =
                 (add  "/Names" (Pdf.Indirect namedict)
                   (catalog_items_from_original_documents pdfs))
+              in
+                match dests with
+                  None -> with_names
+                | Some dests ->
+                    add "/Dests" (Pdf.Indirect dests) with_names
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
