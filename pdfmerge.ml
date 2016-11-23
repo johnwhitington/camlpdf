@@ -220,47 +220,23 @@ let merge_namedicts pdf pdfs =
             (* Return the new pdf, and the new dictionary. *)
             Pdf.addobj pdf newdict
 
-(* Things which we don't yet properly merge, are just copied across from the
-first document, if they're there. *)
-let copied_from_first_document pdf =
-  let names =
-    ["/Threads";
-     "/AcroForm";
-     "/AA";
-     "/URI";
-     "/StructTreeRoot";
-     "/SpiderInfo";
-     "/OCProperties"]
-  in let catalog = Pdf.catalog_of_pdf pdf in
-    option_map
-      (function name ->
-        match Pdf.lookup_direct pdf name catalog with
-        | None -> None
-        | Some x -> Some (name, x))
-      names
+(* Merge catalog items from the PDFs, taking an abitrary instance of any one we
+ * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
+ * /Outlines, will be overwritten, so we don't worry about them here. *)
+let catalog_items_from_original_documents pdfs =
+  let catalog_entries =
+    flatten
+      (map
+        (fun pdf ->
+           match Pdf.catalog_of_pdf pdf with
+             Pdf.Dictionary es -> es
+           | _ -> failwith "catalog_items_from_original_documents")
+        pdfs)
+  in
+    fold_left (fun d (k, v) -> add k v d) [] catalog_entries
 
-(*let report_pdf_size num pdf =
-  (*Pdf.remove_unreferenced pdf;*)
-  (*Pdfwrite.pdf_to_file pdf (Printf.sprintf "temp%i.pdf" num);
-  let fh = open_in_bin (Printf.sprintf "temp%i.pdf" num) in*)
-    Printf.printf "%i objects in PDF %i \n" (Pdf.objcard pdf) num(*;
-    Printf.printf "Size %i bytes for PDF %i\n" (in_channel_length fh) num;
-    flush stdout;
-    close_in fh*)*)
-
-let merge_pdfs retain_numbering do_remove_duplicate_fonts (names : string list) pdfs ranges =
-  (*Printf.printf "merge_pdfs: retain_numbering = %b, do_remove_duplicate_fonts = %b \n %i names, %i pdfs, %i ranges\n"
-  retain_numbering do_remove_duplicate_fonts (length names) (length pdfs) (length ranges);
-  flprint "names:\n";
-  iter (Printf.printf "%s\n") names;
-  (*flprint "ranges:\n";
-  iter (Printf.printf "%s\n") (map string_of_range ranges);*)
-  flprint "ONE";*)
+let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
-    (* DEBUG: write out each pdf *)
-    (*let name = ref 0 in
-    List.iter (fun pdf -> report_pdf_size !name pdf; name := !name + 1) pdfs;*)
-    (* END-OF-DEBUG *)
     let minor' = fold_left max 0 (map (fun p -> p.Pdf.minor) pdfs) in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
@@ -269,50 +245,40 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts (names : string list) 
             iter (fun n -> pages =| select n pagelist) range;
             rev !pages
         in
-          let pages = flatten (map2 select_pages ranges pagelists) in
-            iter (Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v)))) pdfs;
-            (* Make the hints for preserving... *)
-            (*Printf.printf "after content added to new pdf\n";
-            report_pdf_size 3 pdf;*)
-            let pdf, pagetree_num = Pdfpage.add_pagetree pages pdf in
-               (*Printf.printf "After Pdfpage.add_pagetree\n";
-               report_pdf_size 4 pdf;*)
-              let page_labels =
-                if retain_numbering
-                 then Pdfpagelabels.merge_pagelabels pdfs ranges
-                 else []
-              in
-                let dests = new_dests pdf pdfs in
-                  let namedict = merge_namedicts pdf pdfs in
-                    let extra_catalog_entries =
-                      [("/Dests", Pdf.Indirect dests);
-                       ("/Names", Pdf.Indirect namedict)]
-                      @ copied_from_first_document (hd pdfs)
-                    in
-               let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
-                      (*Printf.printf "after Pdfpage.add_root\n";
-                      report_pdf_size 5 pdf;*)
-                      (* To sort out annotations etc. *)
-                      let old_page_numbers =
-                        let select_page_numbers range pageobjnums =
-                          let pages = ref [] in
-                            iter (fun n -> pages =| select n pageobjnums) range;
-                            rev !pages
-                        in
-                          flatten (map2 select_page_numbers ranges (map Pdf.page_reference_numbers pdfs))
-                      in let new_page_numbers =
-                        Pdf.page_reference_numbers pdf
-                      in
-                        let changes = combine old_page_numbers new_page_numbers in
-                          Pdf.objselfmap
-                          (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
-                          pdf;
-                        let pdf = {pdf with Pdf.major = 1; Pdf.minor = minor'} in
-                          let pdf = merge_bookmarks changes pdfs ranges pdf in
-                            Pdfpagelabels.write pdf page_labels;
-                            if do_remove_duplicate_fonts then
-                              remove_duplicate_fonts pdf;
-                            (*Printf.printf "Final PDF out of merge_pdfs\n";
-                            report_pdf_size 6 pdf;*)
-                            pdf
+  let pages = flatten (map2 select_pages ranges pagelists) in
+    iter (Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v)))) pdfs;
+    let pdf, pagetree_num = Pdfpage.add_pagetree pages pdf in
+      let page_labels =
+        if retain_numbering
+         then Pdfpagelabels.merge_pagelabels pdfs ranges
+         else []
+      in
+        let dests = new_dests pdf pdfs in
+          let namedict = merge_namedicts pdf pdfs in
+            let extra_catalog_entries =
+              add "/Dests" (Pdf.Indirect dests)
+                (add  "/Names" (Pdf.Indirect namedict)
+                  (catalog_items_from_original_documents pdfs))
+            in
+   let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
+      (* To sort out annotations etc. *)
+      let old_page_numbers =
+        let select_page_numbers range pageobjnums =
+          let pages = ref [] in
+            iter (fun n -> pages =| select n pageobjnums) range;
+            rev !pages
+        in
+          flatten (map2 select_page_numbers ranges (map Pdf.page_reference_numbers pdfs))
+      in let new_page_numbers =
+        Pdf.page_reference_numbers pdf
+      in
+        let changes = combine old_page_numbers new_page_numbers in
+          Pdf.objselfmap
+          (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
+          pdf;
+   let pdf = {pdf with Pdf.major = 1; Pdf.minor = minor'} in
+     let pdf = merge_bookmarks changes pdfs ranges pdf in
+       Pdfpagelabels.write pdf page_labels;
+       if do_remove_duplicate_fonts then remove_duplicate_fonts pdf;
+       pdf
 
