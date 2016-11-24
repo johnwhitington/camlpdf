@@ -593,7 +593,7 @@ let add_root pageroot extras pdf =
 Other objects (e.g destinations in the document outline) may point to the
 individual page objects, so we must renumber these. We can only do this if the
 number of pages are the same. We do this [if change_references is true]. *)
-let change_pages change_references basepdf pages' =
+let change_pages ?(is_combine_pages=false) change_references basepdf pages' =
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
     let old_page_numbers = Pdf.page_reference_numbers basepdf in
@@ -621,10 +621,26 @@ let change_pages change_references basepdf pages' =
               (*if change_references && length old_page_numbers <> length
               new_page_numbers then
                 Printf.eprintf "change_pages: relax restriction\n";*)
-              (* Happens with lots of things -- see a full cpdf test *)
+              (* Happens with lots of things -- see a full cpdf test -- not just combine_pages. *)
               if change_references && length old_page_numbers = length new_page_numbers
                 then
                   let changes = combine old_page_numbers new_page_numbers in
+                    Pdf.objselfmap
+                      (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
+                      pdf;
+                    pdf
+                else
+              if change_references && is_combine_pages && length old_page_numbers / 2 = length new_page_numbers
+                then
+                  let changes =
+                    let len = length new_page_numbers in
+                      List.mapi
+                        (fun i o ->
+                            if i < len
+                              then (o, List.nth new_page_numbers i)
+                              else (o, List.nth new_page_numbers (i / 2)))
+                        old_page_numbers
+                  in
                     Pdf.objselfmap
                       (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
                       pdf;
