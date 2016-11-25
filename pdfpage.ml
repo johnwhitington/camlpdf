@@ -592,8 +592,12 @@ let add_root pageroot extras pdf =
 
 Other objects (e.g destinations in the document outline) may point to the
 individual page objects, so we must renumber these. We can only do this if the
-number of pages are the same. We do this [if change_references is true]. *)
-let change_pages ?(is_combine_pages=false) change_references basepdf pages' =
+number of pages are the same. We do this [if change_references is true]. If the
+new and old page lists are of differenct lengths, change_references must be
+false, or you must supply the changes (expressed as (from, to) 1-based serial
+number pairs) *)
+let change_pages ?changes change_references basepdf pages' =
+  Printf.printf "change_pages\n";
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
     let old_page_numbers = Pdf.page_reference_numbers basepdf in
@@ -615,21 +619,32 @@ let change_pages ?(is_combine_pages=false) change_references basepdf pages' =
         in
           let pdf = add_root pagetree_num existing_root_entries pdf in
             let new_page_numbers = Pdf.page_reference_numbers pdf in
-              (* TODO: Relax this distinction. But how? Must make an assumption
-               * about how they are lined up. What would a more general
-               * change_pages look like? *)
-              if not is_combine_pages && change_references && length old_page_numbers <> length new_page_numbers then
-                Printf.eprintf "change_pages: relax restriction\n";
-              (* Happens with lots of things -- see a full cpdf test -- not just combine_pages. *)
-              if change_references && length old_page_numbers = length new_page_numbers
-                then
-                  let changes = combine old_page_numbers new_page_numbers in
-                    Pdf.objselfmap
-                      (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
-                      pdf;
-                    pdf
-                else
-              if change_references && is_combine_pages && length old_page_numbers / 2 = length new_page_numbers
+              if not change_references then pdf else
+                let changes =
+                   match changes with
+                     None ->
+                       if length old_page_numbers = length new_page_numbers then
+                         combine old_page_numbers new_page_numbers
+                       else
+                         begin
+                           Printf.printf "change_pages: No change supplied, and lengths differ\n";
+                           []
+                         end
+                   | Some cs ->
+                       (* Turn the 1-based serial numbers into page reference numbers *)
+                       try
+                         List.map
+                           (fun (x, y) ->
+                            List.nth old_page_numbers (x - 1), List.nth new_page_numbers (y - 1))
+                         cs
+                       with
+                         _ -> raise (Pdf.PDFError "change_pages: bad serial number")
+                in
+                  Pdf.objselfmap
+                    (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
+                    pdf;
+                  pdf
+              (*if change_references && is_combine_pages && length old_page_numbers / 2 = length new_page_numbers
                 then
                   let changes =
                     let len = length new_page_numbers in
@@ -645,7 +660,7 @@ let change_pages ?(is_combine_pages=false) change_references basepdf pages' =
                       pdf;
                     pdf
                 else
-                  pdf
+                  pdf*)
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks

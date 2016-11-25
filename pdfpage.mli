@@ -65,7 +65,7 @@ and the number of pages in the old and new documents are equal, references to
 the old pages from outside the page tree (for instance in destinations or
 bookmarks) are renumbered. This ensures bookmarks are preserved correctly.
 [is_combine_pages] is a special undocumented mode, false by default *)
-val change_pages :  ?is_combine_pages:bool -> bool -> Pdf.t -> t list -> Pdf.t
+val change_pages : ?changes:((int * int) list) -> bool -> Pdf.t -> t list -> Pdf.t
 
 (** Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
