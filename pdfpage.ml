@@ -597,7 +597,6 @@ new and old page lists are of differenct lengths, change_references must be
 false, or you must supply the changes (expressed as (from, to) 1-based serial
 number pairs) *)
 let change_pages ?changes change_references basepdf pages' =
-  Printf.printf "change_pages\n";
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
     let old_page_numbers = Pdf.page_reference_numbers basepdf in
@@ -644,23 +643,6 @@ let change_pages ?changes change_references basepdf pages' =
                     (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
                     pdf;
                   pdf
-              (*if change_references && is_combine_pages && length old_page_numbers / 2 = length new_page_numbers
-                then
-                  let changes =
-                    let len = length new_page_numbers in
-                      List.mapi
-                        (fun i o ->
-                            if i < len
-                              then (o, List.nth new_page_numbers i)
-                              else (o, List.nth new_page_numbers (i / 2)))
-                        old_page_numbers
-                  in
-                    Pdf.objselfmap
-                      (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
-                      pdf;
-                    pdf
-                else
-                  pdf*)
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
