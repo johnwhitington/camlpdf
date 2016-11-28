@@ -9,13 +9,36 @@ let is_delimiter = function
   | _ -> false
 
 (* Streams of binary data, byte-addressable, can either be in memory (Got) or
-still in an input channel (ToGet). Soon the ToGet type will be extended to allow
-preprocessing for lazy decryption. *)
-type toget = input * int * int
+still in an input channel (ToGet). It may have been decrypted or encrypted, but
+the actual calculations deferred: this is indicated by the crypt record
+element. *)
+type encryption = 
+  | ARC4 of int * int
+  | AESV2
+  | AESV3 of bool (* true = iso, false = old algorithm *)
 
-let toget i p l = (i, p, l)
+type saved_encryption =
+  {from_get_encryption_values :
+     encryption * string * string * int32 * string *
+     string option * string option;
+   encrypt_metadata : bool;
+   perms : string}
 
-let length_of_toget (_, _, l) = l
+type toget_crypt =
+  | NoChange
+  | ToDecrypt of saved_encryption
+  | ToEncrypt of saved_encryption
+
+type toget =
+  {input : input;
+   position : int;
+   length : int;
+   crypt : toget_crypt}
+
+let toget input position length =
+  {input; position; length; crypt = NoChange}
+
+let length_of_toget t = t.length
 
 type stream =
   | Got of bytes
@@ -96,17 +119,6 @@ type pdfobjects =
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t}
 
-type encryption = 
-  | ARC4 of int * int
-  | AESV2
-  | AESV3 of bool (* true = iso, false = old algorithm *)
-
-type saved_encryption =
-  {from_get_encryption_values :
-     encryption * string * string * int32 * string *
-     string option * string option;
-   encrypt_metadata : bool;
-   perms : string}
 
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
@@ -153,11 +165,22 @@ let is_not_whitespace = function
   | '\000' | '\009' | '\010' | '\012' | ' ' | '\013' -> false
   | _ -> true
 
+let process_deferred_cryption toget_crypt data =
+  match toget_crypt with
+    NoChange -> data
+  | ToDecrypt saved -> data
+  | ToEncrypt saved -> data
+
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function
-  | Stream ({contents = (d, ToGet (i, o, l))} as stream) ->
+  | Stream ({contents = (d, ToGet {input = i; position = o; length = l; crypt})} as stream) ->
       if l = 0 then stream := (d, Got (mkbytes 0)) else
-        begin try stream := (d, Got (Pdfio.bytes_of_input i o l)) with
+        begin try
+          let data =
+            process_deferred_cryption crypt (Pdfio.bytes_of_input i o l)
+          in 
+            stream := (d, Got data)
+        with
           e ->
             raise
               (PDFError

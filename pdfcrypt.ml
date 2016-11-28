@@ -116,6 +116,8 @@ flprint "END_AUTHENTICATE_USER\n";*)
             (Pdfcryptprimitives.crypt key (bytes_of_int_array paddings))
 
 (* Decrypt a PDF file, given the user password. *)
+
+(* For debug. Filled in by Pdfwrite *)
 let string_of_pdf : (Pdf.pdfobject -> string) ref = ref (function _ -> "")
 
 let rec decrypt

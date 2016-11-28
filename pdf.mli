@@ -6,10 +6,6 @@
 [Pdfio.input]. *)
 type toget
 
-val toget : Pdfio.input -> int -> int -> toget
-
-val length_of_toget : toget -> int
-
 type stream =
   | Got of Pdfio.bytes
   | ToGet of toget
@@ -211,7 +207,9 @@ val remove_unreferenced : t -> unit
 
 (* Which of these need to be exposed? *)
 
-
+(* This is only for the use of Pdfread for when the /Length is incorrect. *)
+val length_of_toget : toget -> int
+val toget : Pdfio.input -> int -> int -> toget
 
 val changes : t -> (int, int) Hashtbl.t
 

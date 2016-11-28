@@ -199,7 +199,7 @@ let string_of_pdf s =
     s;
   Buffer.contents b
 
-(* Inter-module recursion. *)
+(* Inter-module recursion, for debug *)
 let _ = Pdfcrypt.string_of_pdf := string_of_pdf
 let _ = Pdfcodec.string_of_pdf := string_of_pdf
 
