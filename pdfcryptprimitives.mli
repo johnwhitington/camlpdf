@@ -1,5 +1,10 @@
 (** Generic encryption primitives for ARC4, AES and the SHA family of digests *)
 
+type encryption = 
+  | ARC4 of int * int
+  | AESV2
+  | AESV3 of bool (* true = iso, false = old algorithm *)
+
 (** ARC4 encryption (40 bit and 128 bit) given a key and some data *)
 val crypt : int array -> Pdfio.bytes -> Pdfio.bytes
 
@@ -30,4 +35,12 @@ val sha384 : Pdfio.input -> string
 
 (** SHA512 digest *)
 val sha512 : Pdfio.input -> string
+
+val find_hash : encryption -> int32 -> int32 -> int array -> int -> int array
+
+val decrypt_stream_data :
+  encryption ->
+  bool ->
+  string option ->
+  int -> int -> int array -> int -> int -> Pdfio.bytes -> Pdfio.bytes
 

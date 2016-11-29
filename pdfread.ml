@@ -1807,9 +1807,9 @@ let what_encryption pdf =
   if Pdfcrypt.is_encrypted pdf then
     let crypt, _, _, _, _, _, _ = Pdfcrypt.get_encryption_values pdf in
       match crypt with
-      | Pdf.ARC4 (40, _) -> Some (Pdfwrite.PDF40bit)
-      | Pdf.ARC4 (128, _) -> Some (Pdfwrite.PDF128bit)
-      | Pdf.AESV2 | Pdf.AESV3 _ ->
+      | Pdfcryptprimitives.ARC4 (40, _) -> Some (Pdfwrite.PDF40bit)
+      | Pdfcryptprimitives.ARC4 (128, _) -> Some (Pdfwrite.PDF128bit)
+      | Pdfcryptprimitives.AESV2 | Pdfcryptprimitives.AESV3 _ ->
           let metadata =
             match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
             | Some encrypt_dict ->
@@ -1822,9 +1822,9 @@ let what_encryption pdf =
             | _ -> assert false
           in
             begin match crypt with
-            | Pdf.AESV2 -> Some (Pdfwrite.AES128bit metadata)
-            | Pdf.AESV3 false -> Some (Pdfwrite.AES256bit metadata)
-            | Pdf.AESV3 true -> Some (Pdfwrite.AES256bitISO metadata)
+            | Pdfcryptprimitives.AESV2 -> Some (Pdfwrite.AES128bit metadata)
+            | Pdfcryptprimitives.AESV3 false -> Some (Pdfwrite.AES256bit metadata)
+            | Pdfcryptprimitives.AESV3 true -> Some (Pdfwrite.AES256bitISO metadata)
             | _ -> assert false
             end
       | _ -> None

@@ -12,22 +12,26 @@ let is_delimiter = function
 still in an input channel (ToGet). It may have been decrypted or encrypted, but
 the actual calculations deferred: this is indicated by the crypt record
 element. *)
-type encryption = 
-  | ARC4 of int * int
-  | AESV2
-  | AESV3 of bool (* true = iso, false = old algorithm *)
 
 type saved_encryption =
   {from_get_encryption_values :
-     encryption * string * string * int32 * string *
+     Pdfcryptprimitives.encryption * string * string * int32 * string *
      string option * string option;
    encrypt_metadata : bool;
    perms : string}
 
+type deferred_encryption =
+  {crypt_type : Pdfcryptprimitives.encryption;
+   file_encryption_key : string option;
+   obj : int;
+   gen : int;
+   key : int array;
+   keylength : int;
+   r : int}
+
 type toget_crypt =
   | NoChange
-  | ToDecrypt of saved_encryption
-  | ToEncrypt of saved_encryption
+  | ToDecrypt of deferred_encryption
 
 type toget =
   {input : input;
@@ -168,8 +172,17 @@ let is_not_whitespace = function
 let process_deferred_cryption toget_crypt data =
   match toget_crypt with
     NoChange -> data
-  | ToDecrypt saved -> data
-  | ToEncrypt saved -> data
+  | ToDecrypt saved ->
+      Pdfcryptprimitives.decrypt_stream_data
+        saved.crypt_type
+        false
+        saved.file_encryption_key
+        saved.obj
+        saved.gen
+        saved.key
+        saved.keylength
+        saved.r
+        data
 
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function

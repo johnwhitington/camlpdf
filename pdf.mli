@@ -64,17 +64,20 @@ type pdfobjects =
    mutable object_stream_ids : (int, int) Hashtbl.t}
 
 (** {2 The PDF document} *)
-
-type encryption = 
-  | ARC4 of int * int
-  | AESV2
-  | AESV3 of bool (* true = iso, false = old algorithm *)
-
 type saved_encryption =
   {from_get_encryption_values :
-     encryption * string * string * int32 * string * string option * string option;
+     Pdfcryptprimitives.encryption * string * string * int32 * string * string option * string option;
    encrypt_metadata : bool;
    perms : string}
+
+type deferred_encryption =
+  {crypt_type : Pdfcryptprimitives.encryption;
+   file_encryption_key : string option;
+   obj : int;
+   gen : int;
+   key : int array;
+   keylength : int;
+   r : int}
 
 (** A Pdf document. Major and minor version numbers, object number of root, the
 objects objects and the trailer dictionary as a [Dictionary] [pdfobject]. *)
@@ -254,4 +257,5 @@ val nametree_lookup : t -> pdfobject -> pdfobject -> pdfobject option
 val contents_of_nametree : t -> pdfobject -> (pdfobject * pdfobject) list
 
 val deep_copy : t -> t
+
 

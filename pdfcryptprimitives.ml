@@ -2,6 +2,11 @@
 open Pdfutil
 open Pdfio
 
+type encryption = 
+  | ARC4 of int * int
+  | AESV2
+  | AESV3 of bool (* true = iso, false = old algorithm *)
+
 external aes_cook_encrypt_key : string -> string = "caml_aes_cook_encrypt_key"
 
 external aes_cook_decrypt_key : string -> string = "caml_aes_cook_decrypt_key"
@@ -252,4 +257,50 @@ let sha384 i =
 
 let sha512 i =
   sha_512 (string_of_input i)
+
+(* Given an object number, generation number, input key and key length in bits,
+apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
+by the encryption function. *)
+let find_hash crypt_type obj gen key keylength =
+  let from_obj =
+    [| i32toi (land32 obj 0x000000ffl);
+       i32toi (lsr32 (land32 obj 0x0000ff00l) 8);
+       i32toi (lsr32 (land32 obj 0x00ff0000l) 16) |]
+  in let from_gen =
+    [| i32toi (land32 gen 0x000000ffl);
+       i32toi (lsr32 (land32 gen 0x0000ff00l) 8) |]
+  in let extra =
+    if crypt_type = AESV2 then [| 0x73; 0x41; 0x6C; 0x54 |] else [| |]
+  in
+    let digest_input = string_of_int_arrays [key; from_obj; from_gen; extra] in
+      int_array_of_string
+        (String.sub (Digest.string digest_input) 0 (min 16 (keylength / 8 + 5)))
+
+let decrypt_stream_data crypt_type encrypt file_encryption_key obj gen key keylength r data =
+  let f =
+    (if crypt_type = AESV2 then
+       (if encrypt
+          then aes_encrypt_data 4
+          else aes_decrypt_data 4)
+     else if
+       (match crypt_type with AESV3 _ -> true | _ -> false)
+     then
+       (if encrypt
+          then aes_encrypt_data 8
+          else aes_decrypt_data 8)
+     else
+       crypt)
+  in
+    if r = 5 || r = 6 then
+      let key =
+        match file_encryption_key with
+          Some k -> k
+        | None -> failwith "decrypt: no key C"
+      in
+        f (int_array_of_string key) data
+    else
+      let hash =
+        find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
+      in
+        f hash data
 

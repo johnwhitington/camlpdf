@@ -59,7 +59,7 @@ val decrypt_single_stream :
   string option -> string option -> Pdf.t -> int -> int -> Pdf.pdfobject -> Pdf.pdfobject
 
 (* Don't call on an unencrypted PDF *)
-val get_encryption_values : Pdf.t -> Pdf.encryption * string * string * int32 * string * string option * string option
+val get_encryption_values : Pdf.t -> Pdfcryptprimitives.encryption * string * string * int32 * string * string option * string option
 
 val banlist_of_p : int32 -> permission list
 
