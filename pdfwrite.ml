@@ -594,7 +594,11 @@ let pdf_to_output
       Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
     then
       (reinstate_object_streams
-        compress_objstm (match encrypt with Some _ -> true | _ -> false) pdf, true)
+        compress_objstm
+        (match encrypt with Some _ -> true | _ ->
+          match recrypt with Some _ -> true | _ -> false)
+        pdf,
+        true)
     else
       ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
   in
