@@ -199,7 +199,7 @@ let getstream = function
               (PDFError
                 ("Pdf.getstream: can't read stream" ^ Printexc.to_string e))
         end
-  | Stream _ -> ()
+  | Stream {contents = (_, Got _)} -> ()
   | _ -> raise (PDFError "Pdf.getstream: not a stream")
 
 let recurse_array (f : pdfobject -> pdfobject) elts =
