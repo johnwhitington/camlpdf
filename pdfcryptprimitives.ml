@@ -158,11 +158,11 @@ let aes_decrypt_data ?(remove_padding = true) nk key data =
             let i = String.make 16 ' '
             and o = String.make 16 ' ' in
               for x = 0 to 15 do
-                i.[x] <- char_of_int (bget data (x + !pos))
+                i.[x] <- char_of_int (bget_unsafe data (x + !pos))
               done;
               aes_decrypt key i 0 o 0;
               for x = 0 to 15 do
-                bset output (x + !pos - 16) (int_of_char o.[x])
+                bset_unsafe output (x + !pos - 16) (int_of_char o.[x])
               done;
               for x = 0 to 15 do
                 bset_unsafe
@@ -187,11 +187,11 @@ let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
             let i = String.make 16 ' '
             and o = String.make 16 ' ' in
               for x = 0 to 15 do i.[x] <-
-                char_of_int (bget data (x + !pos))
+                char_of_int (bget_unsafe data (x + !pos))
               done;
               aes_decrypt key i 0 o 0;
               for x = 0 to 15 do
-                bset output (x + !pos) (int_of_char o.[x])
+                bset_unsafe output (x + !pos) (int_of_char o.[x])
               done;
               pos += 16
           done;

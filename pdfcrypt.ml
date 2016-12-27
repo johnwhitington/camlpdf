@@ -176,9 +176,9 @@ and decrypt_stream
   crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
   file_encryption_key stream
 =
-  Pdf.getstream stream;
+  (*Pdf.getstream stream;*)
   begin match stream with
-  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, Pdf.Got data)} ->
+  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, data)} ->
       if
         begin let identity_crypt_filter_present =
           match Pdf.lookup_direct pdf "/Filter" d with
@@ -209,8 +209,19 @@ and decrypt_stream
         stream
       else
         let data' =
-          Pdfcryptprimitives.decrypt_stream_data
-            crypt_type encrypt file_encryption_key obj gen key keylength r data
+          let crypt =
+            Pdf.ToDecrypt
+              {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
+          in
+            match data with
+              Pdf.Got data ->
+                Printf.printf "G";
+                Pdf.ToGet
+                  (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data))
+            | Pdf.ToGet toget ->
+                Printf.printf "T";
+                Pdf.ToGet
+                  (Pdf.toget ~crypt (Pdf.input_of_toget toget) (Pdf.position_of_toget toget) (Pdf.length_of_toget toget))
         in
         let dict' =
           Pdf.recurse_dict
@@ -218,14 +229,7 @@ and decrypt_stream
              obj gen key keylength r file_encryption_key)
             dict
         in
-          let dict'' =
-            if bytes_size data <> bytes_size data' then
-              Pdf.replace_dict_entry
-                dict' "/Length" (Pdf.Integer (bytes_size data'))
-            else
-              dict'
-          in
-            Pdf.Stream {contents = (dict'', Pdf.Got data')}
+          Pdf.Stream {contents = (dict', data')}
   | _ -> assert false
   end
 

@@ -202,6 +202,7 @@ let string_of_pdf s =
 (* Inter-module recursion, for debug *)
 let _ = Pdfcrypt.string_of_pdf := string_of_pdf
 let _ = Pdfcodec.string_of_pdf := string_of_pdf
+let _ = Pdf.string_of_pdf := string_of_pdf
 
 let debug_whole_pdf pdf =
   Printf.printf "trailerdict = %s\n" (string_of_pdf pdf.Pdf.trailerdict);

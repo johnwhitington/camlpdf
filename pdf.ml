@@ -3,6 +3,7 @@ and defines various simple operations on it. *)
 open Pdfutil
 open Pdfio
 
+
 (* Predicate on characters delimiting entities. *)
 let is_delimiter = function
   | '(' | ')' | '<' | '>' | '[' | ']' | '{' | '}' | '%' | '/' -> true
@@ -39,10 +40,12 @@ type toget =
    length : int;
    crypt : toget_crypt}
 
-let toget input position length =
-  {input; position; length; crypt = NoChange}
+let toget ?(crypt = NoChange) input position length =
+  {input; position; length; crypt}
 
 let length_of_toget t = t.length
+let position_of_toget t = t.position
+let input_of_toget t = t.input
 
 type stream =
   | Got of bytes
@@ -68,6 +71,9 @@ type pdfobject =
   | Dictionary of (string * pdfobject) list
   | Stream of (pdfobject * stream) ref
   | Indirect of int
+
+(* For debug. Filled in by Pdfwrite *)
+let string_of_pdf : (pdfobject -> string) ref = ref (function _ -> "") 
 
 (* An object is either lexed, or needs to be lexed from a position in the
 input.
@@ -173,6 +179,7 @@ let process_deferred_cryption toget_crypt data =
   match toget_crypt with
     NoChange -> data
   | ToDecrypt saved ->
+      Printf.printf "F";
       Pdfcryptprimitives.decrypt_stream_data
         saved.crypt_type
         false
@@ -184,6 +191,42 @@ let process_deferred_cryption toget_crypt data =
         saved.r
         data
 
+let remove_string_compare (k' : string) l =
+  let rec remove_inner r (k' : string) = function
+    | [] -> r
+    | (k, _)::t when k = k' -> List.rev_append r t
+    | h::t -> remove_inner (h::r) k' t
+  in
+    remove_inner [] k' l
+
+(* Remove a dictionary entry. Also works for streams. *)
+let rec remove_dict_entry dict key =
+  match dict with
+  | Dictionary d -> Dictionary (remove_string_compare key d)
+  | Stream ({contents = (dict', stream)} as s) ->
+      s := (remove_dict_entry dict' key, stream);
+      Stream s
+  | _ -> raise (PDFError "remove_dict_entry: not a dictionary")
+
+(* Replace dict entry, raising Not_found if it's not there. Also works
+for streams. *)
+let rec replace_dict_entry dict key value =
+  match dict with
+  | Dictionary d -> Dictionary (replace key value d)
+  | Stream ({contents = (dict', stream)} as s) ->
+      s := (replace_dict_entry dict' key value, stream);
+      Stream s
+  | _ -> raise (PDFError "replace_dict_entry: not a dictionary.")
+
+(* Add a dict entry, replacing if there. Also works for streams. *)
+let rec add_dict_entry dict key value =
+  match dict with
+  | Dictionary d -> Dictionary (add key value d)
+  | Stream ({contents = (dict', stream)} as s) ->
+      s := (add_dict_entry dict' key value, stream);
+      Stream s
+  | _ -> raise (PDFError "add_dict_entry: not a dictionary.")
+
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function
   | Stream ({contents = (d, ToGet {input = i; position = o; length = l; crypt})} as stream) ->
@@ -191,8 +234,14 @@ let getstream = function
         begin try
           let data =
             process_deferred_cryption crypt (Pdfio.bytes_of_input i o l)
-          in 
-            stream := (d, Got data)
+          in
+            (* Correct the length *)
+            let d' =
+              match d with
+                Dictionary _ -> replace_dict_entry d "/Length" (Integer (bytes_size data))
+              | _ -> d (* May be null in Pdfwrite.WStream *)
+            in
+              stream := (d', Got data)
         with
           e ->
             raise
@@ -762,41 +811,6 @@ let objects_referenced no_follow_entries no_follow_contains pdf pdfobject =
       no_follow_entries no_follow_contains pdf set 0 (Parsed pdfobject);
     refset_elts !set
 
-let remove_string_compare (k' : string) l =
-  let rec remove_inner r (k' : string) = function
-    | [] -> r
-    | (k, _)::t when k = k' -> List.rev_append r t
-    | h::t -> remove_inner (h::r) k' t
-  in
-    remove_inner [] k' l
-
-(* Remove a dictionary entry. Also works for streams. *)
-let rec remove_dict_entry dict key =
-  match dict with
-  | Dictionary d -> Dictionary (remove_string_compare key d)
-  | Stream ({contents = (dict', stream)} as s) ->
-      s := (remove_dict_entry dict' key, stream);
-      Stream s
-  | _ -> raise (PDFError "remove_dict_entry: not a dictionary")
-
-(* Replace dict entry, raising Not_found if it's not there. Also works
-for streams. *)
-let rec replace_dict_entry dict key value =
-  match dict with
-  | Dictionary d -> Dictionary (replace key value d)
-  | Stream ({contents = (dict', stream)} as s) ->
-      s := (replace_dict_entry dict' key value, stream);
-      Stream s
-  | _ -> raise (PDFError "replace_dict_entry: not a dictionary.")
-
-(* Add a dict entry, replacing if there. Also works for streams. *)
-let rec add_dict_entry dict key value =
-  match dict with
-  | Dictionary d -> Dictionary (add key value d)
-  | Stream ({contents = (dict', stream)} as s) ->
-      s := (add_dict_entry dict' key value, stream);
-      Stream s
-  | _ -> raise (PDFError "add_dict_entry: not a dictionary.")
 
 (* Find the contents of a stream as a bytes. *)
 let bigarray_of_stream s =
@@ -947,4 +961,5 @@ let deep_copy from =
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption}
+
 

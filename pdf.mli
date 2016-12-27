@@ -211,8 +211,14 @@ val remove_unreferenced : t -> unit
 (* Which of these need to be exposed? *)
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
+type toget_crypt =
+  | NoChange
+  | ToDecrypt of deferred_encryption
+
 val length_of_toget : toget -> int
-val toget : Pdfio.input -> int -> int -> toget
+val input_of_toget : toget -> Pdfio.input
+val position_of_toget : toget -> int
+val toget : ?crypt:toget_crypt -> Pdfio.input -> int -> int -> toget
 
 val changes : t -> (int, int) Hashtbl.t
 
@@ -258,4 +264,5 @@ val contents_of_nametree : t -> pdfobject -> (pdfobject * pdfobject) list
 
 val deep_copy : t -> t
 
+val string_of_pdf : (pdfobject -> string) ref
 
