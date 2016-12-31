@@ -176,7 +176,88 @@ and decrypt_stream
   crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
   file_encryption_key stream
 =
-  (*Pdf.getstream stream;*)
+  Pdf.getstream stream;
+  begin match stream with
+  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, Pdf.Got data)} ->
+      if
+        begin let identity_crypt_filter_present =
+          match Pdf.lookup_direct pdf "/Filter" d with
+          | Some (Pdf.Name "/Crypt")
+          | Some (Pdf.Array (Pdf.Name "/Crypt"::_)) ->
+              begin match Pdf.lookup_direct pdf "/DecodeParms" d with
+              | Some (Pdf.Dictionary decodeparmsdict)
+              | Some (Pdf.Array (Pdf.Dictionary decodeparmsdict::_)) ->
+                  begin match
+                    Pdf.lookup_direct
+                      pdf "/Name" (Pdf.Dictionary decodeparmsdict)
+                  with
+                  | Some (Pdf.Name "/Identity") | None -> true
+                  | _ -> false
+                  end
+              | _ -> true
+              end
+          | _ -> false
+        in
+          (no_encrypt_metadata &&
+             (match
+                Pdf.lookup_direct pdf "/Type" d with
+                  Some (Pdf.Name "/Metadata") -> true
+                | _ -> false))
+          || identity_crypt_filter_present
+        end
+      then
+        stream
+      else
+        let data' =
+          let f =
+            (if crypt_type = Pdfcryptprimitives.AESV2 then
+               (if encrypt
+                  then Pdfcryptprimitives.aes_encrypt_data 4
+                  else Pdfcryptprimitives.aes_decrypt_data 4)
+             else if
+               (match crypt_type with Pdfcryptprimitives.AESV3 _ -> true | _ -> false)
+             then
+               (if encrypt
+                  then Pdfcryptprimitives.aes_encrypt_data 8
+                  else Pdfcryptprimitives.aes_decrypt_data 8)
+             else
+               Pdfcryptprimitives.crypt)
+          in
+            if r = 5 || r = 6 then
+              let key =
+                match file_encryption_key with
+                  Some k -> k
+                | None -> raise (Pdf.PDFError "decrypt: no key C")
+              in
+                f (int_array_of_string key) data
+            else
+              let hash =
+                Pdfcryptprimitives.find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
+              in
+                f hash data
+        in let dict' =
+          Pdf.recurse_dict
+            (decrypt crypt_type pdf no_encrypt_metadata encrypt
+             obj gen key keylength r file_encryption_key)
+            dict
+        in
+          let dict'' =
+            if bytes_size data <> bytes_size data' then
+              Pdf.replace_dict_entry
+                dict' "/Length" (Pdf.Integer (bytes_size data'))
+            else
+              dict'
+          in
+            Pdf.Stream {contents = (dict'', Pdf.Got data')}
+  | _ -> assert false
+  end
+
+
+(*and decrypt_stream
+  crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
+  file_encryption_key stream
+=
+  if encrypt then Pdf.getstream stream;
   begin match stream with
   | Pdf.Stream {contents = (Pdf.Dictionary dict as d, data)} ->
       if
@@ -209,19 +290,49 @@ and decrypt_stream
         stream
       else
         let data' =
-          let crypt =
-            Pdf.ToDecrypt
-              {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
-          in
-            match data with
-              Pdf.Got data ->
-                Printf.printf "G";
-                Pdf.ToGet
-                  (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data))
-            | Pdf.ToGet toget ->
-                Printf.printf "T";
-                Pdf.ToGet
-                  (Pdf.toget ~crypt (Pdf.input_of_toget toget) (Pdf.position_of_toget toget) (Pdf.length_of_toget toget))
+          if encrypt then
+            begin
+              match data with
+                Pdf.ToGet _ -> failwith "getstream produced toGet"
+              | Pdf.Got data ->
+                  (* Encrypt the actual data *)
+                  let f =
+                    (if crypt_type = Pdfcryptprimitives.AESV2 then Pdfcryptprimitives.aes_encrypt_data 4
+                     else if
+                       (match crypt_type with Pdfcryptprimitives.AESV3 _ -> true | _ -> false)
+                     then
+                       Pdfcryptprimitives.aes_encrypt_data 8
+                     else
+                       Pdfcryptprimitives.crypt)
+                  in
+                    if r = 5 || r = 6 then
+                      let key =
+                        match file_encryption_key with
+                          Some k -> k
+                        | None -> raise (Pdf.PDFError "decrypt: no key C")
+                      in
+                        Pdf.Got (f (int_array_of_string key) data)
+                    else
+                      let hash =
+                        Pdfcryptprimitives.find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
+                      in
+                        Pdf.Got (f hash data)
+            end
+          else
+            (* Merely promise to decrypt the data later *)
+            let crypt =
+              Pdf.ToDecrypt
+                {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
+            in
+              match data with
+                Pdf.Got data ->
+                  Printf.printf "G";
+                  Pdf.ToGet
+                    (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data))
+              | Pdf.ToGet toget ->
+                  Printf.printf "T";
+                  Pdf.ToGet
+                    (Pdf.toget ~crypt (Pdf.input_of_toget toget) (Pdf.position_of_toget toget) (Pdf.length_of_toget toget))
         in
         let dict' =
           Pdf.recurse_dict
@@ -231,7 +342,7 @@ and decrypt_stream
         in
           Pdf.Stream {contents = (dict', data')}
   | _ -> assert false
-  end
+  end*)
 
 let process_cryption
   no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p id keylength

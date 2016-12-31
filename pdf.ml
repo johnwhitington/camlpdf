@@ -251,6 +251,7 @@ let getstream = function
   | Stream {contents = (_, Got _)} -> ()
   | _ -> raise (PDFError "Pdf.getstream: not a stream")
 
+
 let recurse_array (f : pdfobject -> pdfobject) elts =
   Array (map f elts)
 

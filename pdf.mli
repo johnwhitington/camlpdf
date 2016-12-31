@@ -207,8 +207,7 @@ val remove_unreferenced : t -> unit
 
 (**/**)
 
-
-(* Which of these need to be exposed? *)
+(* FIXME: Which of these need to be exposed? *)
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
 type toget_crypt =
