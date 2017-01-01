@@ -172,56 +172,86 @@ let rec decrypt
       end
   | x -> x
 
+and is_identity no_encrypt_metadata pdf d =
+  let identity_crypt_filter_present =
+    match Pdf.lookup_direct pdf "/Filter" d with
+    | Some (Pdf.Name "/Crypt")
+    | Some (Pdf.Array (Pdf.Name "/Crypt"::_)) ->
+        begin match Pdf.lookup_direct pdf "/DecodeParms" d with
+        | Some (Pdf.Dictionary decodeparmsdict)
+        | Some (Pdf.Array (Pdf.Dictionary decodeparmsdict::_)) ->
+            begin match
+              Pdf.lookup_direct
+                pdf "/Name" (Pdf.Dictionary decodeparmsdict)
+            with
+            | Some (Pdf.Name "/Identity") | None -> true
+            | _ -> false
+            end
+        | _ -> true
+        end
+    | _ -> false
+  in
+    (no_encrypt_metadata &&
+       (match
+          Pdf.lookup_direct pdf "/Type" d with
+            Some (Pdf.Name "/Metadata") -> true
+          | _ -> false))
+    || identity_crypt_filter_present
+
 and decrypt_stream
   crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
   file_encryption_key stream
 =
-  Pdf.getstream stream;
   begin match stream with
-  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, Pdf.Got data)} ->
-      if
-        begin let identity_crypt_filter_present =
-          match Pdf.lookup_direct pdf "/Filter" d with
-          | Some (Pdf.Name "/Crypt")
-          | Some (Pdf.Array (Pdf.Name "/Crypt"::_)) ->
-              begin match Pdf.lookup_direct pdf "/DecodeParms" d with
-              | Some (Pdf.Dictionary decodeparmsdict)
-              | Some (Pdf.Array (Pdf.Dictionary decodeparmsdict::_)) ->
-                  begin match
-                    Pdf.lookup_direct
-                      pdf "/Name" (Pdf.Dictionary decodeparmsdict)
-                  with
-                  | Some (Pdf.Name "/Identity") | None -> true
-                  | _ -> false
-                  end
-              | _ -> true
-              end
-          | _ -> false
-        in
-          (no_encrypt_metadata &&
-             (match
-                Pdf.lookup_direct pdf "/Type" d with
-                  Some (Pdf.Name "/Metadata") -> true
-                | _ -> false))
-          || identity_crypt_filter_present
-        end
-      then
-        stream
-      else
+  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, data)} ->
+      if is_identity no_encrypt_metadata pdf d then stream else
         let data' =
-          let f =
-            (if crypt_type = Pdfcryptprimitives.AESV2 then
-               (if encrypt
-                  then Pdfcryptprimitives.aes_encrypt_data 4
-                  else Pdfcryptprimitives.aes_decrypt_data 4)
-             else if
-               (match crypt_type with Pdfcryptprimitives.AESV3 _ -> true | _ -> false)
-             then
-               (if encrypt
-                  then Pdfcryptprimitives.aes_encrypt_data 8
-                  else Pdfcryptprimitives.aes_decrypt_data 8)
-             else
-               Pdfcryptprimitives.crypt)
+          let rec f key data =
+            let crypt = Pdf.ToDecrypt {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r} in
+            match data with
+              Pdf.Got data ->
+                Printf.printf "decrypt_stream: Got, encrypt = %b\n" encrypt;
+                (if crypt_type = Pdfcryptprimitives.AESV2 then
+                   (if encrypt
+                      then
+                        Pdf.Got (Pdfcryptprimitives.aes_encrypt_data 4 key data)
+                      else
+                        Pdf.ToGet
+                          (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data)))
+                 else if
+                   (match crypt_type with Pdfcryptprimitives.AESV3 _ -> true | _ -> false)
+                 then
+                   (if encrypt
+                      then
+                        Pdf.Got (Pdfcryptprimitives.aes_encrypt_data 8 key data)
+                      else
+                        Pdf.ToGet
+                          (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data)))
+                 else
+                   if encrypt then
+                     Pdf.Got (Pdfcryptprimitives.crypt key data)
+                   else
+                     Pdf.ToGet
+                       (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data)))
+            | Pdf.ToGet toget ->
+                Printf.printf "decrypt_stream: ToGet, encrypt = %b\n" encrypt;
+                if encrypt then 
+                  (* If encrypting, call getstream, then go again *)
+                  begin
+                    Pdf.getstream stream;
+                    match stream with
+                      Pdf.Stream {contents = (_, data)} -> f key data
+                    | _ -> assert false
+                  end
+                else
+                  (* Otherwise, do the deferred decryption magic *)
+                  let crypt =
+                    Pdf.ToDecrypt
+                      {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
+                  in
+                    Pdf.ToGet
+                      (Pdf.toget ~crypt
+                        (Pdf.input_of_toget toget) (Pdf.position_of_toget toget) (Pdf.length_of_toget toget))
           in
             if r = 5 || r = 6 then
               let key =
@@ -242,107 +272,14 @@ and decrypt_stream
             dict
         in
           let dict'' =
-            if bytes_size data <> bytes_size data' then
+            match data' with Pdf.Got data' ->
               Pdf.replace_dict_entry
                 dict' "/Length" (Pdf.Integer (bytes_size data'))
-            else
-              dict'
+            | _ -> dict'
           in
-            Pdf.Stream {contents = (dict'', Pdf.Got data')}
+            Pdf.Stream {contents = (dict'', data')}
   | _ -> assert false
   end
-
-
-(*and decrypt_stream
-  crypt_type pdf no_encrypt_metadata encrypt obj gen key keylength r
-  file_encryption_key stream
-=
-  if encrypt then Pdf.getstream stream;
-  begin match stream with
-  | Pdf.Stream {contents = (Pdf.Dictionary dict as d, data)} ->
-      if
-        begin let identity_crypt_filter_present =
-          match Pdf.lookup_direct pdf "/Filter" d with
-          | Some (Pdf.Name "/Crypt")
-          | Some (Pdf.Array (Pdf.Name "/Crypt"::_)) ->
-              begin match Pdf.lookup_direct pdf "/DecodeParms" d with
-              | Some (Pdf.Dictionary decodeparmsdict)
-              | Some (Pdf.Array (Pdf.Dictionary decodeparmsdict::_)) ->
-                  begin match
-                    Pdf.lookup_direct
-                      pdf "/Name" (Pdf.Dictionary decodeparmsdict)
-                  with
-                  | Some (Pdf.Name "/Identity") | None -> true
-                  | _ -> false
-                  end
-              | _ -> true
-              end
-          | _ -> false
-        in
-          (no_encrypt_metadata &&
-             (match
-                Pdf.lookup_direct pdf "/Type" d with
-                  Some (Pdf.Name "/Metadata") -> true
-                | _ -> false))
-          || identity_crypt_filter_present
-        end
-      then
-        stream
-      else
-        let data' =
-          if encrypt then
-            begin
-              match data with
-                Pdf.ToGet _ -> failwith "getstream produced toGet"
-              | Pdf.Got data ->
-                  (* Encrypt the actual data *)
-                  let f =
-                    (if crypt_type = Pdfcryptprimitives.AESV2 then Pdfcryptprimitives.aes_encrypt_data 4
-                     else if
-                       (match crypt_type with Pdfcryptprimitives.AESV3 _ -> true | _ -> false)
-                     then
-                       Pdfcryptprimitives.aes_encrypt_data 8
-                     else
-                       Pdfcryptprimitives.crypt)
-                  in
-                    if r = 5 || r = 6 then
-                      let key =
-                        match file_encryption_key with
-                          Some k -> k
-                        | None -> raise (Pdf.PDFError "decrypt: no key C")
-                      in
-                        Pdf.Got (f (int_array_of_string key) data)
-                    else
-                      let hash =
-                        Pdfcryptprimitives.find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
-                      in
-                        Pdf.Got (f hash data)
-            end
-          else
-            (* Merely promise to decrypt the data later *)
-            let crypt =
-              Pdf.ToDecrypt
-                {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
-            in
-              match data with
-                Pdf.Got data ->
-                  Printf.printf "G";
-                  Pdf.ToGet
-                    (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data))
-              | Pdf.ToGet toget ->
-                  Printf.printf "T";
-                  Pdf.ToGet
-                    (Pdf.toget ~crypt (Pdf.input_of_toget toget) (Pdf.position_of_toget toget) (Pdf.length_of_toget toget))
-        in
-        let dict' =
-          Pdf.recurse_dict
-            (decrypt crypt_type pdf no_encrypt_metadata encrypt
-             obj gen key keylength r file_encryption_key)
-            dict
-        in
-          Pdf.Stream {contents = (dict', data')}
-  | _ -> assert false
-  end*)
 
 let process_cryption
   no_encrypt_metadata encrypt pdf crypt_type user_pw r u o p id keylength
@@ -924,7 +861,7 @@ let encrypt_pdf_40bit_inner owner user p user_pw id pdf =
        "/U", Pdf.String user;
        "/P", Pdf.Integer (i32toi p)]
   in
-    match process_cryption false false pdf (Pdfcryptprimitives.ARC4 (40, 2)) user_pw 2 user owner p id 40 None with
+    match process_cryption false true pdf (Pdfcryptprimitives.ARC4 (40, 2)) user_pw 2 user owner p id 40 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
@@ -951,7 +888,7 @@ let encrypt_pdf_128bit_inner owner user p user_pw id pdf =
        "/Length", Pdf.Integer 128;
        "/P", Pdf.Integer (i32toi p)]
   in
-    match process_cryption false false pdf (Pdfcryptprimitives.ARC4 (128, 3)) user_pw 3 user owner p id 128 None with
+    match process_cryption false true pdf (Pdfcryptprimitives.ARC4 (128, 3)) user_pw 3 user owner p id 128 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
@@ -979,7 +916,7 @@ let encrypt_pdf_128bit_inner_r4 owner user p user_pw id pdf encrypt_metadata =
        "/StrF", Pdf.Name "/StdCF";
        "/StmF", Pdf.Name "/StdCF"]
   in
-    match process_cryption (not encrypt_metadata) false pdf (Pdfcryptprimitives.ARC4 (128, 4)) user_pw 4 user owner p id 128 None with
+    match process_cryption (not encrypt_metadata) true pdf (Pdfcryptprimitives.ARC4 (128, 4)) user_pw 4 user owner p id 128 None with
     | Some pdf ->
         {pdf with
           Pdf.trailerdict =
