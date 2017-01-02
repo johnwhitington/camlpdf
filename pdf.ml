@@ -30,6 +30,21 @@ type deferred_encryption =
    keylength : int;
    r : int}
 
+let print_deferred_encryption e =
+  begin match e.crypt_type with
+  | Pdfcryptprimitives.ARC4 (a, b) -> Printf.printf "crypt_type = ARC4 (%i, %i)\n" a b
+  | Pdfcryptprimitives.AESV2 -> Printf.printf "crypt_type = AESV2\n"
+  | Pdfcryptprimitives.AESV3 x -> Printf.printf "crypt_type = AESV3 %b\n" x
+  end;
+  begin match e.file_encryption_key with
+  | None -> Printf.printf "file_encryption_key: None\n"
+  | Some _ -> Printf.printf "file_encryption_key: Some\n"
+  end;
+  Printf.printf "key = %s\n" (Pdfio.string_of_int_array e.key);
+  Printf.printf "obj = %i, gen = %i\n" e.obj e.gen;
+  Printf.printf "keylength = %i\n" e.keylength;
+  Printf.printf "r = %i\n" e.r
+
 type toget_crypt =
   | NoChange
   | ToDecrypt of deferred_encryption
@@ -179,7 +194,8 @@ let process_deferred_cryption toget_crypt data =
   match toget_crypt with
     NoChange -> data
   | ToDecrypt saved ->
-      Printf.printf "F";
+      Printf.printf "Forcing...\n";
+      print_deferred_encryption saved;
       Pdfcryptprimitives.decrypt_stream_data
         saved.crypt_type
         false

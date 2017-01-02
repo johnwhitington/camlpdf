@@ -206,8 +206,8 @@ and decrypt_stream
   | Pdf.Stream {contents = (Pdf.Dictionary dict as d, data)} ->
       if is_identity no_encrypt_metadata pdf d then stream else
         let data' =
-          let rec f key data =
-            let crypt = Pdf.ToDecrypt {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r} in
+          let rec f unhashed_key key data =
+            let crypt = Pdf.ToDecrypt {Pdf.crypt_type; file_encryption_key; obj; gen; key = unhashed_key; keylength; r} in
             match data with
               Pdf.Got data ->
                 Printf.printf "decrypt_stream: Got, encrypt = %b\n" encrypt;
@@ -240,7 +240,7 @@ and decrypt_stream
                   begin
                     Pdf.getstream stream;
                     match stream with
-                      Pdf.Stream {contents = (_, data)} -> f key data
+                      Pdf.Stream {contents = (_, data)} -> f unhashed_key key data
                     | _ -> assert false
                   end
                 else
@@ -259,12 +259,12 @@ and decrypt_stream
                   Some k -> k
                 | None -> raise (Pdf.PDFError "decrypt: no key C")
               in
-                f (int_array_of_string key) data
+                f (int_array_of_string key) (int_array_of_string key) data
             else
               let hash =
                 Pdfcryptprimitives.find_hash crypt_type (i32ofi obj) (i32ofi gen) key keylength
               in
-                f hash data
+                f key hash data
         in let dict' =
           Pdf.recurse_dict
             (decrypt crypt_type pdf no_encrypt_metadata encrypt
