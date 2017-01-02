@@ -194,8 +194,8 @@ let process_deferred_cryption toget_crypt data =
   match toget_crypt with
     NoChange -> data
   | ToDecrypt saved ->
-      Printf.printf "Forcing...\n";
-      print_deferred_encryption saved;
+      (*Printf.printf "Forcing...\n";
+      print_deferred_encryption saved;*)
       Pdfcryptprimitives.decrypt_stream_data
         saved.crypt_type
         false

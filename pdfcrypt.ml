@@ -210,7 +210,7 @@ and decrypt_stream
             let crypt = Pdf.ToDecrypt {Pdf.crypt_type; file_encryption_key; obj; gen; key = unhashed_key; keylength; r} in
             match data with
               Pdf.Got data ->
-                Printf.printf "decrypt_stream: Got, encrypt = %b\n" encrypt;
+                (*Printf.printf "decrypt_stream: Got, encrypt = %b\n" encrypt;*)
                 (if crypt_type = Pdfcryptprimitives.AESV2 then
                    (if encrypt
                       then
@@ -234,7 +234,7 @@ and decrypt_stream
                      Pdf.ToGet
                        (Pdf.toget ~crypt (Pdfio.input_of_bytes data) 0 (bytes_size data)))
             | Pdf.ToGet toget ->
-                Printf.printf "decrypt_stream: ToGet, encrypt = %b\n" encrypt;
+                (*Printf.printf "decrypt_stream: ToGet, encrypt = %b\n" encrypt;*)
                 if encrypt then 
                   (* If encrypting, call getstream, then go again *)
                   begin

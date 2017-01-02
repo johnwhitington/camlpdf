@@ -48,8 +48,6 @@ let prga s pi pj =
   s.((s.(!pi) + s.(!pj)) mod 256)
 
 let crypt key data =
-  Printf.printf "Crypt with data of length %i\n" (bytes_size data);
-  Printf.printf "Key = %s\n" (string_of_int_array key);
   let s, pi, pj, out =
     Array.make 256 0, ref 0, ref 0, mkbytes (bytes_size data)
   in
@@ -279,7 +277,6 @@ let find_hash crypt_type obj gen key keylength =
         (String.sub (Digest.string digest_input) 0 (min 16 (keylength / 8 + 5)))
 
 let decrypt_stream_data crypt_type encrypt file_encryption_key obj gen key keylength r data =
-  Printf.printf "decrypt_stream_data\n";
   let f =
     (if crypt_type = AESV2 then
        (if encrypt
