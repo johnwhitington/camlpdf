@@ -833,9 +833,7 @@ let rec parse_to_tree (sofar : partial_parse_element list) = function
 let parse_finish ?(failure_is_ok = false) q =
   match q with
   | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _);
-    Lexeme LexObj; Parsed obj; Lexeme LexEndObj]
-  | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _);
-    Lexeme LexObj; Parsed obj] ->
+    Lexeme LexObj; Parsed obj; Lexeme LexEndObj] ->
       o, obj
   | Parsed (Pdf.Integer o)::
     Parsed (Pdf.Integer _)::
@@ -861,18 +859,21 @@ let parse_finish ?(failure_is_ok = false) q =
                {contents = Pdf.add_dict_entry obj "/Length" (Pdf.Integer l), s})
           else
             (o, Pdf.Stream {contents = obj, s})
+  | Parsed (Pdf.Integer o)::Parsed (Pdf.Integer _)::
+    Lexeme LexObj::Parsed obj::_ ->
+      o, obj
   | [Parsed d] ->
       0, d
   | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _);
      Lexeme LexObj; Lexeme LexEndObj] ->
       o, Pdf.Null
   | l ->
-      (*Printf.printf "list length %i\n" (length l);
+      Printf.eprintf "list length %i\n" (length l);
         List.iter
           (function
-              Parsed p -> Printf.printf "%s\n" (Pdfwrite.string_of_pdf p)
-            | Lexeme l -> Printf.printf "%s\n" (string_of_lexeme l))
-          l;*)
+              Parsed p -> Printf.eprintf "%s\n" (Pdfwrite.string_of_pdf p)
+            | Lexeme l -> Printf.eprintf "%s\n" (string_of_lexeme l))
+          l;
         raise (Pdf.PDFError "Could not extract object")
 
 (* Parse some lexemes *)
