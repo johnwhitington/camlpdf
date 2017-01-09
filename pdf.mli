@@ -2,10 +2,10 @@
 
 (** {2 PDF Objects} *)
 
-(** A stream is either in memory, or at a position and of a length in an
-[Pdfio.input]. *)
 type toget
 
+(** A stream is either in memory, or at a position and of a length in an
+[Pdfio.input]. *)
 type stream =
   | Got of Pdfio.bytes
   | ToGet of toget
@@ -64,6 +64,7 @@ type pdfobjects =
    mutable object_stream_ids : (int, int) Hashtbl.t}
 
 (** {2 The PDF document} *)
+
 type saved_encryption =
   {from_get_encryption_values :
      Pdfcryptprimitives.encryption * string * string * int32 * string * string option * string option;
@@ -139,10 +140,10 @@ val lookup_direct_orelse :
 (** Remove a dictionary entry, if it exists. *)
 val remove_dict_entry : pdfobject -> string -> pdfobject
 
-(** Replace a dictionary entry, raising [Not_found] if it's not there. *)
+(** [replace_dict_entry dict key value] replaces a dictionary entry, raising [Not_found] if it's not there. *)
 val replace_dict_entry : pdfobject -> string -> pdfobject -> pdfobject
 
-(** Add a dictionary entry, replacing if already there. *)
+(** [add_dict_entry dict key value] adds a dictionary entry, replacing if already there. *)
 val add_dict_entry : pdfobject -> string -> pdfobject -> pdfobject
 
 (** Make a PDF object direct -- that is, follow any indirect links. *)

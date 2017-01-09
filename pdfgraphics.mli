@@ -168,6 +168,6 @@ val ops_of_simple_graphic : t -> Pdfops.t list
 (** Pdfdoc.content entry from a simple graphic (i.e no need for resources etc.) *)
 val streams_of_simple_graphic : t -> Pdf.pdfobject list
 
-(** Transform a graphic by a matrixn*)
+(** Transform a graphic by a matrix. *)
 val transform_graphic : Pdftransform.transform_matrix -> t -> t
 
