@@ -56,7 +56,7 @@ type toget =
    crypt : toget_crypt}
 
 let toget ?(crypt = NoChange) input position length =
-  {input; position; length; crypt}
+  {input = input; position = position; length = length; crypt = crypt}
 
 let length_of_toget t = t.length
 let position_of_toget t = t.position
@@ -245,7 +245,7 @@ let rec add_dict_entry dict key value =
 
 (* Get a stream from disk if it hasn't already been got. *)
 let getstream = function
-  | Stream ({contents = (d, ToGet {input = i; position = o; length = l; crypt})} as stream) ->
+  | Stream ({contents = (d, ToGet {input = i; position = o; length = l; crypt = crypt})} as stream) ->
       if l = 0 then stream := (d, Got (mkbytes 0)) else
         begin try
           let data =

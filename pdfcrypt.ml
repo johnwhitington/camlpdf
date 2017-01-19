@@ -207,7 +207,16 @@ and decrypt_stream
       if is_identity no_encrypt_metadata pdf d then stream else
         let data' =
           let rec f unhashed_key key data =
-            let crypt = Pdf.ToDecrypt {Pdf.crypt_type; file_encryption_key; obj; gen; key = unhashed_key; keylength; r} in
+            let crypt =
+              Pdf.ToDecrypt
+                {Pdf.crypt_type = crypt_type;
+                 Pdf.file_encryption_key = file_encryption_key;
+                 Pdf.obj = obj;
+                 Pdf.gen = gen;
+                 Pdf.key = unhashed_key;
+                 Pdf.keylength = keylength;
+                 Pdf.r = r}
+            in
             match data with
               Pdf.Got data ->
                 (*Printf.printf "decrypt_stream: Got, encrypt = %b\n" encrypt;*)
@@ -247,7 +256,13 @@ and decrypt_stream
                   (* Otherwise, do the deferred decryption magic *)
                   let crypt =
                     Pdf.ToDecrypt
-                      {Pdf.crypt_type; file_encryption_key; obj; gen; key; keylength; r}
+                      {Pdf.crypt_type = crypt_type;
+                       Pdf.file_encryption_key = file_encryption_key;
+                       Pdf.obj = obj;
+                       Pdf.gen = gen;
+                       Pdf.key = key;
+                       Pdf.keylength = keylength;
+                       Pdf.r = r}
                   in
                     Pdf.ToGet
                       (Pdf.toget ~crypt
