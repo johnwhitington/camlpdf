@@ -962,7 +962,7 @@ let is_prefix p n =
 let names_used pdf =
   let names = ref [] in
   let unslash x =
-    if x = "" then "" else String.sub x 0 (String.length x - 1)
+    if x = "" then "" else String.sub x 1 (String.length x - 1)
   in
     Pdf.objiter
       (fun n obj ->
