@@ -653,13 +653,13 @@ let write_bitstream_append_aligned a b =
 let debug_next_char i =
   try
     let a = unopt (i.input_char ()) in
-      Printf.printf "%C = %i\n" a (int_of_char a)
+      Printf.eprintf "%C = %i\n" a (int_of_char a)
   with
     _ -> ()
 
 let debug_next_n_chars n i =
   for x = 1 to n do debug_next_char i done;
-  flprint "\n";
+  prerr_string "\n";
   for x = 1 to n do rewind i done
 
 

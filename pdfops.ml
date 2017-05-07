@@ -292,18 +292,6 @@ let lex_name i =
   nudge i;
   Obj (Pdfgenlex.LexName ("/" ^ Pdfread.getuntil_white_or_delimiter_string i))
 
-(* Lex a number *)
-let lex_number i =
-  match Pdfread.lex_number i with
-  | Pdfgenlex.LexReal r -> Obj (Pdfgenlex.LexReal r)
-  | Pdfgenlex.LexInt i -> Obj (Pdfgenlex.LexReal (float_of_int i))
-  | _ -> raise LexingEnd
-
-(* Lex and parse a dictionary to a Pdf.pdfobject. This constitutes a single
-lexeme in terms of this module. *)
-let get_dictionary i =
-  PdfObj (snd (Pdfread.parse (Pdfread.lex_dictionary i)))
-
 (* This is raised when we can't deal with some content. This should only happen
 in the case of a malformed operator stream, not on any legitimate content. *)
 exception Couldn'tHandleContent
@@ -316,6 +304,18 @@ let nocontent i =
       flprint "\n"
     end;
   raise Couldn'tHandleContent
+
+(* Lex a number *)
+let lex_number i =
+  match Pdfread.lex_number i with
+  | Pdfgenlex.LexReal r -> Obj (Pdfgenlex.LexReal r)
+  | Pdfgenlex.LexInt i -> Obj (Pdfgenlex.LexReal (float_of_int i))
+  | _ -> nocontent i
+
+(* Lex and parse a dictionary to a Pdf.pdfobject. This constitutes a single
+lexeme in terms of this module. *)
+let get_dictionary i =
+  PdfObj (snd (Pdfread.parse (Pdfread.lex_dictionary i)))
 
 (* Given a colourspace and the number of bits per component, give the number of
 bytes per pixel in the stored image data. *)
@@ -493,28 +493,29 @@ let lex_keyword pdf resources i =
   | "true" -> Obj (Pdfgenlex.LexBool true)
   | "false" -> Obj (Pdfgenlex.LexBool false)
   | "BI" -> LexInlineImage (lex_inline_image pdf resources i)
-  | "ID" | "EI" -> raise LexingEnd (* lex_inline_image should consume these *)
-  | "" -> raise LexingEnd
+  | "ID" | "EI" -> nocontent i (* lex_inline_image should consume these *)
+  | "" -> nocontent i
   | opstring -> Op opstring
 
 (* Lex a string. *)
 let lex_string i =
   match Pdfread.lex_string i with
   | Pdfgenlex.LexString str -> Obj (Pdfgenlex.LexString str)
-  | _ -> raise LexingEnd
+  | _ -> nocontent i
 
 (* Lex a hexadecimal string. *)
 let lex_hexstring i =
   match Pdfread.lex_hexstring i with
   | Pdfgenlex.LexString str -> Obj (Pdfgenlex.LexString str)
-  | _ -> raise LexingEnd
+  | _ -> nocontent i
 
 (* Lex one token *)
 let lex_next pdf resources i =
   try
     Pdfread.dropwhite i;
     match peek_byte i with
-    | x when x = Pdfio.no_more -> raise LexingEnd
+    | x when x = Pdfio.no_more ->
+        raise LexingEnd
     | chr ->
         match char_of_int chr with
         | '/' -> lex_name i
@@ -533,7 +534,8 @@ let lex_next pdf resources i =
   with
     | Pdf.PDFError r -> 
         raise (Pdf.PDFError ("Pdfpages.lex_next => " ^ r))
-    | Failure _ (*"unopt"*) | End_of_file -> raise LexingEnd 
+    | Failure _ (*"unopt"*) | End_of_file ->
+        raise LexingEnd 
     | Couldn'tHandleContent ->
         raise (Pdf.PDFError "Malformed page content")
 
