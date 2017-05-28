@@ -1,5 +1,8 @@
 (** General Functions. Typically one will [open Pdfutil] and not use [open] elsewhere. *)
 
+val position_1 : 'a -> 'a list -> int option
+val position : 'a -> 'a list -> int option
+
 (** {2 Debug Printing} *)
 
 (** Print a string and flush standard output. *)

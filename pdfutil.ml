@@ -4,6 +4,15 @@ top level, so their names are considered reserved words in other modules.
 
 All functions in this module are tail-recursive, unless otherwise noted. *)
 
+let rec position_gen n e = function
+  [] -> None
+| e'::t when e = e' -> Some n
+| _::t -> position_gen (n + 1) e t
+
+let position e l = position_gen 0 e l
+
+let position_1 e l = position_gen 1 e l
+
 (* Replace all instances of x with x' in s *)
 let string_replace_all x x' s =
   if x = "" then s else

@@ -646,7 +646,10 @@ let change_pages ?changes change_references basepdf pages' =
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
-so only those in the range are kept.  *)
+so only those in the range are kept. *)
+
+(* Make sure to supply refnums to speed it up, if you already have them from a
+ * previous call to Pdf.page_reference_numbers *)
 let pagenumber_of_target ?refnums pdf = function
  | Pdfdest.NullDestination -> 0
  | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
@@ -659,7 +662,7 @@ let pagenumber_of_target ?refnums pdf = function
            | Some nums -> nums
            | None -> Pdf.page_reference_numbers pdf
          in
-           match lookup i (combine pageindirects (indx pageindirects)) with
+           match position_1 i pageindirects with
            | Some n -> n
            | None -> 0
 
