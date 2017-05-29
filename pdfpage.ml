@@ -650,21 +650,25 @@ so only those in the range are kept. *)
 
 (* Make sure to supply refnums to speed it up, if you already have them from a
  * previous call to Pdf.page_reference_numbers *)
-let pagenumber_of_target ?refnums pdf = function
+let pagenumber_of_target ?refnums ?fastrefnums pdf = function
  | Pdfdest.NullDestination -> 0
  | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
  | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
      match t with
      | Pdfdest.OtherDocPageNumber _ -> 0
      | Pdfdest.PageObject i ->
-         let pageindirects =
-           match refnums with
-           | Some nums -> nums
-           | None -> Pdf.page_reference_numbers pdf
-         in
-           match position_1 i pageindirects with
-           | Some n -> n
-           | None -> 0
+         match fastrefnums with
+         | Some table ->
+             begin try Hashtbl.find table i with Not_found -> 0 end 
+         | None ->
+             let pageindirects =
+               match refnums with
+               | Some nums -> nums
+               | None -> Pdf.page_reference_numbers pdf
+             in
+               match position_1 i pageindirects with
+               | Some n -> n
+               | None -> 0
 
 (* Find a page indirect from the page tree of a document, given a page number. *)
 let page_object_number pdf destpage =

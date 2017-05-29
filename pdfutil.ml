@@ -1169,6 +1169,11 @@ let hashtable_of_dictionary pairs =
     iter (fun (k, v) -> Hashtbl.add table k v) pairs;
     table
 
+let hashset_of_list l =
+  let table = Hashtbl.create (length l * 2) in
+    iter (fun k -> Hashtbl.add table k ()) l;
+    table
+
 (* Round a number. *)
 let round x =
   let c = ceil x in let f = floor x in

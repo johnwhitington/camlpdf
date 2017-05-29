@@ -540,6 +540,8 @@ val list_of_hashtbl : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 added from left to right, with no checking for duplicate keys being performed. *)
 val hashtable_of_dictionary : ('a * 'b) list -> ('a, 'b) Hashtbl.t
 
+val hashset_of_list : 'a list -> ('a, unit) Hashtbl.t
+
 (** {2 Trees} *)
 
 (** The type for binary trees. *)
