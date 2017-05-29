@@ -798,8 +798,9 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
   and marks =
     let refnums = Pdf.page_reference_numbers basepdf in
     let fastrefnums = hashtable_of_dictionary (combine refnums (indx refnums)) in
+    let table = hashset_of_list range in
       option_map
-        (function m -> if mem (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) range then Some m else None)
+        (function m -> if Hashtbl.mem table (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) then Some m else None)
         (Pdfmarks.read_bookmarks basepdf)
   in
     let pdf = Pdf.empty () in
