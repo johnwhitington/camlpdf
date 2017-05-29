@@ -650,7 +650,7 @@ so only those in the range are kept. *)
 
 (* Make sure to supply refnums to speed it up, if you already have them from a
  * previous call to Pdf.page_reference_numbers *)
-let pagenumber_of_target ?refnums ?fastrefnums pdf = function
+let pagenumber_of_target ?fastrefnums pdf = function
  | Pdfdest.NullDestination -> 0
  | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
  | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
@@ -661,14 +661,9 @@ let pagenumber_of_target ?refnums ?fastrefnums pdf = function
          | Some table ->
              begin try Hashtbl.find table i with Not_found -> 0 end 
          | None ->
-             let pageindirects =
-               match refnums with
-               | Some nums -> nums
-               | None -> Pdf.page_reference_numbers pdf
-             in
-               match position_1 i pageindirects with
-               | Some n -> n
-               | None -> 0
+             match position_1 i (Pdf.page_reference_numbers pdf) with
+             | Some n -> n
+             | None -> 0
 
 (* Find a page indirect from the page tree of a document, given a page number. *)
 let page_object_number pdf destpage =
@@ -802,8 +797,9 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
         else []
   and marks =
     let refnums = Pdf.page_reference_numbers basepdf in
+    let fastrefnums = hashtable_of_dictionary (combine refnums (indx refnums)) in
       option_map
-        (function m -> if mem (pagenumber_of_target ~refnums basepdf m.Pdfmarks.target) range then Some m else None)
+        (function m -> if mem (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) range then Some m else None)
         (Pdfmarks.read_bookmarks basepdf)
   in
     let pdf = Pdf.empty () in

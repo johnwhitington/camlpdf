@@ -87,7 +87,7 @@ words they are all explicit. This is required before writing a file with
 linearization *)
 (*val pagetree_make_explicit : Pdf.t -> Pdf.t*)
 
-val pagenumber_of_target : ?refnums:int list -> ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest.t -> int
+val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest.t -> int
 
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
