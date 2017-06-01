@@ -54,6 +54,9 @@ val add_root : int -> (string * Pdf.pdfobject) list -> Pdf.t -> Pdf.t
 (** Number of pages in a document, faster than reading the pages and counting. *)
 val endpage : Pdf.t -> int
 
+(** Find a page indirect from the page tree of a document, given a page number. *)
+val page_object_number : Pdf.t -> int -> int option
+
 (** {2 Compound operations} *)
 
 (** Rename the resources within a number of page resource dictionaries and
