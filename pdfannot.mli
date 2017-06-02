@@ -53,5 +53,15 @@ and t =
 val annotations_of_page : Pdf.t -> Pdfpage.t -> t list
 (** Return the annotations on a page in a document. *)
 
-(*i val add_annotation : Pdf.pdfdoc -> Pdfdoc.page -> annotation -> unit i*)
+val add_annotation : Pdf.t -> Pdfpage.t -> t -> Pdfpage.t
+(** Add an annotation to a page in a document. *)
 
+val make_border : ?vradius:float ->
+?hradius:float -> ?style:style -> ?dasharray:int array -> float -> border
+(** Make a border. *)
+
+val make : ?content:string ->
+  ?border:border ->
+  ?rectangle:float * float * float * float ->
+  ?colour:int * int * int -> ?subject:string -> subtype -> t
+(** Make an annotation of a given [subtype]. *)
