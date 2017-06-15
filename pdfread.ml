@@ -677,7 +677,7 @@ let lex_object_at oneonly i opt p lexobj =
          (* If oneonly, then can return if not in an array or dictionary and if
          this lexeme was an atom. *)
          let isatom = function
-           | LexBool _ | LexReal _ | LexString _ | LexName _ -> true
+           | LexBool _ | LexReal _ | LexString _ | LexName _ | LexNull -> true
            | _ -> false
          in
            if oneonly && isatom a && !dictlevel = 0 && !arraylevel = 0
