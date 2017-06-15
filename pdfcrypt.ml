@@ -878,10 +878,11 @@ let encrypt_pdf_40bit_inner owner user p user_pw id pdf =
   in
     match process_cryption false true pdf (Pdfcryptprimitives.ARC4 (40, 2)) user_pw 2 user owner p id 40 None with
     | Some pdf ->
-        {pdf with
-          Pdf.trailerdict =
-            Pdf.add_dict_entry
-              pdf.Pdf.trailerdict "/Encrypt" crypt_dict}
+        let crypt_dict_num = Pdf.addobj pdf crypt_dict in
+          {pdf with
+            Pdf.trailerdict =
+              Pdf.add_dict_entry
+                pdf.Pdf.trailerdict "/Encrypt" (Pdf.Indirect crypt_dict_num)}
     | None -> raise (Pdf.PDFError "Encryption 40 failed")
 
 let encrypt_pdf_40bit user_pw owner_pw banlist pdf =
@@ -905,9 +906,10 @@ let encrypt_pdf_128bit_inner owner user p user_pw id pdf =
   in
     match process_cryption false true pdf (Pdfcryptprimitives.ARC4 (128, 3)) user_pw 3 user owner p id 128 None with
     | Some pdf ->
-        {pdf with
-          Pdf.trailerdict =
-            Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" crypt_dict}
+        let crypt_dict_num = Pdf.addobj pdf crypt_dict in
+          {pdf with
+            Pdf.trailerdict =
+              Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" (Pdf.Indirect crypt_dict_num)}
     | None -> raise (Pdf.PDFError "Encryption 128 failed")
 
 let encrypt_pdf_128bit_inner_r4 owner user p user_pw id pdf encrypt_metadata =
@@ -933,9 +935,10 @@ let encrypt_pdf_128bit_inner_r4 owner user p user_pw id pdf encrypt_metadata =
   in
     match process_cryption (not encrypt_metadata) true pdf (Pdfcryptprimitives.ARC4 (128, 4)) user_pw 4 user owner p id 128 None with
     | Some pdf ->
-        {pdf with
-          Pdf.trailerdict =
-            Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" crypt_dict}
+        let crypt_dict_num = Pdf.addobj pdf crypt_dict in
+          {pdf with
+            Pdf.trailerdict =
+              Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" (Pdf.Indirect crypt_dict_num)}
     | None -> raise (Pdf.PDFError "Encryption 128 r4 failed")
 
 let encrypt_pdf_128bit user_pw owner_pw banlist pdf =
@@ -972,9 +975,10 @@ let encrypt_pdf_AES_inner owner user p user_pw id encrypt_metadata pdf =
         (not encrypt_metadata) true pdf Pdfcryptprimitives.AESV2 user_pw 4 user owner p id 128 None
     with
     | Some pdf ->
-        {pdf with
-          Pdf.trailerdict =
-            Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" crypt_dict}
+        let crypt_dict_num = Pdf.addobj pdf crypt_dict in
+          {pdf with
+            Pdf.trailerdict =
+              Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" (Pdf.Indirect crypt_dict_num)}
     | None -> raise (Pdf.PDFError "Encryption AES failed")
 
 let encrypt_pdf_AES encrypt_metadata user_pw owner_pw banlist pdf =
@@ -1014,9 +1018,10 @@ let encrypt_pdf_AES256_inner iso encrypt_metadata owner user p perms oe ue id ke
         (not encrypt_metadata) true pdf (Pdfcryptprimitives.AESV3 iso) "" (if iso then 6 else 5) user owner p id 256 (Some key)
     with
     | Some pdf ->
-        {pdf with
-          Pdf.trailerdict =
-            Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" crypt_dict}
+        let crypt_dict_num = Pdf.addobj pdf crypt_dict in
+          {pdf with
+            Pdf.trailerdict =
+              Pdf.add_dict_entry pdf.Pdf.trailerdict "/Encrypt" (Pdf.Indirect crypt_dict_num)}
     | None -> raise (Pdf.PDFError "256 bit Encryption AES failed")
 
 (* Algorithm 3.10 *)
