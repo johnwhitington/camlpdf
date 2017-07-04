@@ -343,8 +343,9 @@ let rec components pdf resources t =
       | Some (Pdf.Integer n) -> n
       | _ -> raise (Pdf.PDFError "Bad iccstream")
       end
-  | Pdf.Array (Pdf.Name "/DeviceN"::_::alternate::_) ->
-      components pdf resources (Pdf.direct pdf alternate)
+  | Pdf.Array (Pdf.Name "/DeviceN"::Pdf.Array items::_) ->
+      (* 4th July 2017. Changed from looking at alternate to counting items. *)
+      length items
   | Pdf.Array [Pdf.Name "/Separation"; _; _; _]
   | Pdf.Array (Pdf.Name ("/Indexed" | "/I")::_::_) -> 1
   | Pdf.Array [Pdf.Name "/CalRGB"; _] -> 3

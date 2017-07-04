@@ -1073,8 +1073,10 @@ let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
     match i with Pdf.Indirect i ->
+      (*Printf.eprintf "fixing stream %i\n" i;*)
       if not (Hashtbl.mem fixed_streams i) then
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
+          (*Printf.eprintf "calling prefix_operator on stream %i\n" i;*)
           let operators' = map (prefix_operator pdf prefix) operators in
             begin match Pdf.lookup_obj pdf i with
               Pdf.Stream ({contents = (dict, stream)} as s) ->
@@ -1093,10 +1095,10 @@ let add_prefix pdf prefix =
          Pdf.Dictionary dict as d ->
            begin match Pdf.lookup_direct pdf "/Type" d with
              Some (Pdf.Name ("/Page" | "/Pages")) ->
-               let resources =
+               let resources, resources' =
                  begin match Pdf.lookup_direct pdf "/Resources" obj with
-                   Some resources -> Some (change_resources pdf prefix resources)
-                 | _ -> (); None
+                   Some resources -> Some resources, Some (change_resources pdf prefix resources)
+                 | _ -> None, None
                  end
                in
                  begin match lookup "/Contents" dict with
@@ -1111,12 +1113,13 @@ let add_prefix pdf prefix =
                        a
                  | _ -> ()
                  end;
-                 begin match resources with
-                   Some resources -> Pdf.add_dict_entry d "/Resources" resources
+                 begin match resources' with
+                   Some x -> Pdf.add_dict_entry d "/Resources" x
                  | None -> d
                  end
            | _ -> obj
            end
        | _ -> obj)
-    pdf
+    pdf(*;
+    Printf.eprintf "***add_prefix has concluded\n";*)
 
