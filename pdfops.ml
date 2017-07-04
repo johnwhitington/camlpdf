@@ -1,6 +1,8 @@
 open Pdfutil
 open Pdfio
 
+let debug = ref false
+
 (* Graphics operators. *)
 type t =
   | Op_w of float (* Set line width *)
@@ -356,6 +358,7 @@ let rec components pdf resources t =
 
 (* Lex an inline image. We read the dictionary, and then the stream. *)
 let lex_inline_image pdf resources i =
+  if !debug then Printf.eprintf "lex_inline_image at %i\n" (i.pos_in ());
   try
   let dict =
     let lexemes = Pdfread.lex_dictionary i in
@@ -363,6 +366,7 @@ let lex_inline_image pdf resources i =
         (Pdfread.parse
           ([Pdfgenlex.LexLeftDict] @ lexemes @ [Pdfgenlex.LexRightDict]))
   in
+    if !debug then Printf.eprintf "dict was %s\n" (Pdfwrite.string_of_pdf dict);
     (* Read ID token *)
     Pdfread.dropwhite i;
     let c = char_of_int (i.input_byte ()) in
@@ -380,13 +384,16 @@ let lex_inline_image pdf resources i =
           not (filterspecial filters)
       in
         if toskip then ignore (i.input_byte ());
+        if !debug then Printf.eprintf "**got ID header, skipped possble byte";
         let bytes =
           let bpc =
             match
               Pdf.lookup_direct_orelse pdf "/BPC" "/BitsPerComponent" dict
             with
             | Some (Pdf.Integer bpc) -> bpc
-            | _ -> nocontent i
+            | _ ->
+                Printf.eprintf "no BPC\n";
+                nocontent i
           in
           let cspace =
             match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
@@ -396,13 +403,18 @@ let lex_inline_image pdf resources i =
             | Some (Pdf.Name ("/G" | "/RGB" | "/CMYK") as n) -> n
             | Some ((Pdf.Array _) as n) -> n
             | Some (Pdf.Name cspace) ->
+                if !debug then Printf.eprintf "resources is %s\n" (Pdfwrite.string_of_pdf resources);
                 begin match Pdf.lookup_direct pdf "/ColorSpace" resources with
                 | Some (Pdf.Dictionary _ as d) ->
                     begin match Pdf.lookup_direct pdf cspace d with
                     | Some c -> c
-                    | _ -> nocontent i
+                    | _ ->
+                        Printf.eprintf "no colourspace A\n";
+                        nocontent i
                     end
-                | _ -> nocontent i
+                | _ ->
+                    Printf.eprintf "no colourspace B\n";
+                    nocontent i
                 end
             | None ->
                 (* Could it be an image mask? *)
@@ -410,17 +422,25 @@ let lex_inline_image pdf resources i =
                   Pdf.lookup_direct_orelse pdf "/IM" "/ImageMask" dict
                 with
                 | Some (Pdf.Boolean true) -> Pdf.Name "/DeviceGray"
-                | _ -> nocontent i
+                | _ ->
+                    Printf.eprintf "no colourspace C\n";
+                    nocontent i
                 end
-            | _ -> nocontent i
+            | _ ->
+                Printf.eprintf "no colourspace D\n";
+                nocontent i
           in let width =
             match Pdf.lookup_direct_orelse pdf "/W" "/Width" dict with
             | Some (Pdf.Integer w) -> w
-            | _ -> nocontent i 
+            | _ ->
+                Printf.eprintf "no or malformed /W";
+                nocontent i 
           in let height =
             match Pdf.lookup_direct_orelse pdf "/H" "/Height" dict with
             | Some (Pdf.Integer h) -> h
-            | _ -> nocontent i
+            | _ ->
+                Printf.eprintf "no or malformed /H";
+                nocontent i
           in
             let bitwidth =
               components pdf resources cspace * bpc * width
@@ -445,11 +465,17 @@ let lex_inline_image pdf resources i =
                 | e -> Printf.eprintf "%s" (Printexc.to_string e); raise e
                 end
             | Some (Pdf.Name ("/DCT" | "/DCTDecode")) ->
-                Pdfjpeg.get_jpeg_data i
+                begin try Pdfjpeg.get_jpeg_data i with
+                  e ->
+                    Printf.eprintf "Couldn't read inline image JPEG data %s\n" (Printexc.to_string e);
+                    raise e
+                end
             | Some _ ->
                 try
                   match Pdfcodec.decode_from_input i dict with
-                  | None -> nocontent i
+                  | None ->
+                      Printf.eprintf "decode_from_input failed\n";
+                      nocontent i
                   | Some data -> data 
                 with
                   | Pdfcodec.DecodeNotSupported d ->
@@ -483,9 +509,13 @@ let lex_inline_image pdf resources i =
                    Printf.eprintf "bad end to inline image %C, %C\n" x y;
                    nocontent i
                 end
-    | _ -> nocontent i
+    | _ ->
+        Printf.eprintf "Did not recognise beginning of inline image ID\n";
+        nocontent i
   with
-    _ -> nocontent i
+    e ->
+      Printf.eprintf "inline image reading failed: %s\n" (Printexc.to_string e);
+      nocontent i
 
 (* Lex a keyword. *)
 let lex_keyword pdf resources i =

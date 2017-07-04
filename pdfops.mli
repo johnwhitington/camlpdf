@@ -104,3 +104,6 @@ val string_of_ops : t list -> string
 number of bytes per pixel in the stored image data. *)
 val components : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> int
 
+(**/**)
+val debug : bool ref
+
