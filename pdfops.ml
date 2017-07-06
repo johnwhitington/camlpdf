@@ -465,7 +465,8 @@ let lex_inline_image pdf resources i =
                 with
                 | e -> Printf.eprintf "%s" (Printexc.to_string e); raise e
                 end
-            | Some (Pdf.Name ("/DCT" | "/DCTDecode")) ->
+            | Some (Pdf.Name ("/DCT" | "/DCTDecode") | Pdf.Array [Pdf.Name ("/DCT" | "/DCTDecode")]) ->
+                (* FIXME. The case of DCT combined with another one is possible e.g ["/DCT"; "/A85"]. Need to re-work. But have not seen an example yet. *)
                 begin try Pdfjpeg.get_jpeg_data i with
                   e ->
                     Printf.eprintf "Couldn't read inline image JPEG data %s\n" (Printexc.to_string e);
@@ -498,7 +499,8 @@ let lex_inline_image pdf resources i =
                         Pdf.lookup_direct_orelse
                         (Pdf.empty ()) "/F" "/Filter" dict
                       with
-                      | Some (Pdf.Name ("/DCT" | "/DCTDecode")) -> dict
+                      (* FIXME as above *)
+                      | Some (Pdf.Name ("/DCT" | "/DCTDecode") | Pdf.Array [Pdf.Name ("/DCT" | "/DCTDecode")]) -> dict
                       | _ -> 
                           fold_left
                             Pdf.remove_dict_entry
