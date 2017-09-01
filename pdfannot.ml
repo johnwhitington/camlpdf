@@ -203,9 +203,9 @@ let obj_of_annot t =
   let d = [
     "/Subtype", Pdf.Name (string_of_subtype t.subtype);
     "/Contents", (match t.annot_contents with None -> Pdf.Null | Some s -> Pdf.String s);
-    "/Rect", (let a,b,c,d = t.rectangle in Pdf.(Array [Real a; Real b; Real c; Real d]));
+    "/Rect", (let a,b,c,d = t.rectangle in Pdf.Array [Pdf.Real a; Pdf.Real b; Pdf.Real c; Pdf.Real d]);
     "/Border", match t.border.dasharray with
-    | [||] -> Pdf.(Array [Real t.border.hradius; Real t.border.vradius; Real t.border.width;])
+    | [||] -> Pdf.Array [Pdf.Real t.border.hradius; Pdf.Real t.border.vradius; Pdf.Real t.border.width;]
     | _    -> raise (Pdf.PDFError "non-empty dash array unsupported")
   ] in
   let d = match t.annotrest with
@@ -214,34 +214,34 @@ let obj_of_annot t =
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary") in
   let colorize d = match t.colour with
     | None         -> d
-    | Some (r,g,b) -> (("/C", Pdf.(Array [Integer r; Integer g; Integer b])) :: d)
+    | Some (r,g,b) -> (("/C", Pdf.Array [Pdf.Integer r; Pdf.Integer g; Pdf.Integer b])) :: d
   in
   let subject d = match t.subject with
     | None   -> d
     | Some s -> (("/Subj", Pdf.String s) :: d)
   in
-  Pdf.Dictionary (colorize d |> subject)
+  Pdf.Dictionary (subject (colorize d))
 
 let make_border ?(vradius=0.0) ?(hradius=0.0) ?(style=NoStyle) ?(dasharray = [||]) width =
-  { width; vradius; hradius; style; dasharray;}
+  { width = width; vradius = vradius; hradius = hradius; style = style; dasharray = dasharray;}
 
 let make ?content ?(border=make_border 0.0) ?(rectangle=0.,0.,0.,0.) ?colour ?subject subtype = {
-  subtype;
+  subtype = subtype;
   annot_contents = content;
-  subject;
-  rectangle;
-  border;
-  colour;
+  subject = subject;
+  rectangle = rectangle;
+  border = border;
+  colour = colour;
   annotrest = Pdf.Null;
 }
 
 let add_annotation pdf page anno =
   let obj = obj_of_annot anno in
   match Pdf.lookup_direct pdf "/Annots" page.Pdfpage.rest with
-  | Some (Pdf.Array annotations) -> Pdfpage.{ page with
-                                              rest = Pdf.add_dict_entry page.Pdfpage.rest
-                                                  "/Annots" (Pdf.Array (obj :: annotations)) }
+  | Some (Pdf.Array annotations) -> { page with
+                                        Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest
+                                          "/Annots" (Pdf.Array (obj :: annotations)) }
   | Some _                       -> raise (Pdf.PDFError "Bad annotation dictionary")
-  | None                         -> Pdfpage.{ page with
-                                              rest = Pdf.add_dict_entry page.Pdfpage.rest
+  | None                         -> { page with
+                                        Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest
                                                   "/Annots" (Pdf.Array [obj]) }
