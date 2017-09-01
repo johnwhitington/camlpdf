@@ -1,13 +1,13 @@
-2.2.1 (To come)
+2.2 (patchlevel 1, September 2017)
 
-o Code for adding annotations (by waclena)
+o Code for adding annotations (thanks @waclena)
 o Indirect encryption dictionaries
 o Workaround for Adobe "Error 21" on re-saving encrypted files
+o Fix reading of null objects in streams
 
-2.2
+2.2 (2017)
 
 o Keeps was_linearized flag with every loaded PDF
-o Can count the number of revisions in a PDF, and load a specified revision
 
 2.1 (November 2014)
 
