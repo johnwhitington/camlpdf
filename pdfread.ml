@@ -686,6 +686,7 @@ let lex_object_at oneonly i opt p lexobj =
     in
       lex_object_at i []
 
+
 (* Type of sanitized cross-reference entries. They are either plain offsets, or
 an object stream an index into it. *)
 type xref =
@@ -885,6 +886,15 @@ let parse ?(failure_is_ok = false) lexemes =
     (* 14th November 2016: fixed this up to re-raise. Check *)
     Pdf.PDFError _ as e ->
       if failure_is_ok then (max_int, Pdf.Null) else raise e
+
+let parse_single_object s =
+  snd (parse
+    (lex_object_at
+       true
+       (Pdfio.input_of_string s)
+       true
+       (fun _ -> (0, Pdf.Null))
+       (fun _ -> [])))
 
 (* Given an object stream pdfobject and a list of object indexes to extract,
  return an [(int * Pdf.objectdata) list] representing those object number,

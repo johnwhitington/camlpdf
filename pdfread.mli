@@ -57,6 +57,8 @@ val print_lexeme : Pdfgenlex.t -> unit
 
 val string_of_lexeme : Pdfgenlex.t -> string
 
+val parse_single_object : string -> Pdf.pdfobject
+
 (** Return encryption method in use *)
 val what_encryption : Pdf.t -> Pdfwrite.encryption_method option
 
