@@ -666,6 +666,7 @@ let pagenumber_of_target ?fastrefnums pdf = function
              | None -> 0
 
 (* Find a page indirect from the page tree of a document, given a page number. *)
+(* FIXME speed up by caching *)
 let page_object_number pdf destpage =
   try
     Some (select destpage (Pdf.page_reference_numbers pdf))
