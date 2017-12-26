@@ -51,28 +51,32 @@ let find_kern kerns key =
   match tryfind kerns key with Some x -> x | None -> 0
 
 (* Take character code --> character name --> width *)
-let find_width charname_to_width encoding h =
-   let charname =
-     match tryfind (Pdftext.table_of_encoding encoding) h with
-       Some x -> x
-     | None -> "/space" (* Really, a failure *)
-   in
-     match tryfind charname_to_width (implode (List.tl (explode charname))) with
-       Some x -> x
-     | None -> 0 (* Really, a failure *)
+let find_width widths charname_to_width encoding h =
+  match encoding with
+  | Pdftext.ImplicitInFontFile ->
+      begin match tryfind widths h with Some x -> x | None -> 0 end
+  | encoding ->
+      let charname =
+        match tryfind (Pdftext.table_of_encoding encoding) h with
+          Some x -> x
+        | None -> "/space" (* Really, a failure *)
+      in
+      match tryfind charname_to_width (implode (List.tl (explode charname))) with
+        Some x -> x
+      | None -> 0 (* Really, a failure *)
 
-let rec width dokern charname_to_width encoding kerns = function
+let rec width dokern widths charname_to_width encoding kerns = function
   | [] -> 0
-  | [h] -> find_width charname_to_width encoding h
+  | [h] -> find_width widths charname_to_width encoding h
   | h::h'::t ->
-      find_width charname_to_width encoding h +
+      find_width widths charname_to_width encoding h +
       (if dokern then find_kern kerns (h, h') else 0) +
-      width dokern charname_to_width encoding kerns (h'::t)
+      width dokern widths charname_to_width encoding kerns (h'::t)
 
 (* The main function. Give a font and the text string. *)
 let textwidth dokern encoding f s =
-  let _, _, kerns, charname_to_width = lookup_failnull f tables () in
-    width dokern charname_to_width encoding kerns (map int_of_char (explode s))
+  let _, widths, kerns, charname_to_width = lookup_failnull f tables () in
+  width dokern widths charname_to_width encoding kerns (map int_of_char (explode s))
 
 (* Return the AFM table data itself *)
 let afm_data f =
