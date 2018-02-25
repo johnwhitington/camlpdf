@@ -4,6 +4,10 @@
 output when a PDF is written. On library startup, is [false]. *)
 val write_debug : bool ref
 
+val set_suspect_number : unit -> unit
+
+val get_suspect_number : unit -> bool
+
 (** {2 Encryption methods} *)
 
 (** Encryption methods. The boolean for [AES128bit], [AES256bit] and
