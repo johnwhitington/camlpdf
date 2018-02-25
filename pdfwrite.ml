@@ -3,12 +3,6 @@ open Pdfio
 
 let write_debug = ref false
 
-let suspect_number = ref false
-
-let set_suspect_number () = set suspect_number
-
-let get_suspect_number () = !suspect_number
-
 (* The file header. We include four larger-than-127 bytes as requested by the
 standard to help FTP programs distinguish binary/text transfer modes. *)
 let header pdf =
