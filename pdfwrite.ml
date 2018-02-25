@@ -60,10 +60,26 @@ numbers. Can still get trailing zeroes on small values e.g 0.00001 => 0.000010,
 but no printf way to prevent this).
 
 If we can do it fast enough, what we need to do is print with printf at 5
-decimal places (spec says this is ok) and remove any trailing zeroes. *)
+decimal places (spec says this is ok) and remove any trailing zeroes.
+
+Feb 2018: In addition, on 32 bit systems, we now read in numbers > 2^30 or < -2^30
+as floating point values so that we can preserve them. We should write such
+numbers out as integers too. But int_of_float gives the wrong answer here. So
+we must pre-check and produce an integer instead. *)
+let max_int_float = float_of_int max_int
+
+let min_int_float = float_of_int min_int
+
 let format_real x =
   let fl = floor x in
-    if fl = x then string_of_int (int_of_float fl) else
+    if fl = x then
+     begin 
+      if x > max_int_float || x < min_int_float then
+        implode (all_but_last (explode (string_of_float x)))
+      else
+        string_of_int (int_of_float fl)
+     end
+    else
       if x < 0.0001 && x > -. 0.0001
         then Printf.sprintf "%f" x
         else string_of_float x

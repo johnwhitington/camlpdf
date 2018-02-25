@@ -67,7 +67,10 @@ let lex_item s =
                 | _ -> isint s (pos - 1)
             in
               if isint s (len - 1)
-                then LexInt (int_of_string s)
+                then
+                  begin try LexInt (int_of_string s) with
+                    _ -> LexReal (float_of_string s) (* Integer > 2^30 on 32 bit system, int_of_string would fail. *)
+                  end
                 else LexReal (float_of_string s)
       with
         _ -> LexName (String.copy s)
