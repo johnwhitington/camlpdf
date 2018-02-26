@@ -1,3 +1,7 @@
+2.3 (in development)
+
+o Fix to preserve integers > 2^30 or < -2^30 on 32 bit systems 
+
 2.2 (patchlevel 1, September 2017)
 
 o Code for adding annotations (thanks @waclena)
