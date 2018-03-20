@@ -1,16 +1,17 @@
 open Pdfutil
 open Pdfio
 
+(* If set, extra debug information will be printed to screen *)
 let write_debug = ref false
 
-(* The file header. We include four larger-than-127 bytes as requested by the
-standard to help FTP programs distinguish binary/text transfer modes. *)
+(* The file header. *)
 let header pdf =
   Printf.sprintf
     "%%PDF-%i.%i\n%%\128\129\130\131\n"
     pdf.Pdf.major
     pdf.Pdf.minor
 
+(* Write the cross-reference table to a channel. *)
 let output_string_of_xref i n =
   let s = string_of_int n in
     let l = String.length s in
@@ -18,7 +19,6 @@ let output_string_of_xref i n =
       i.output_string s;
       i.output_string " 00000 n \n" 
 
-(* Write the cross-reference table to a channel. *)
 let write_xrefs xrefs i =
   i.output_string "xref\n";
   i.output_string "0 ";
@@ -27,8 +27,7 @@ let write_xrefs xrefs i =
   i.output_string "0000000000 65535 f \n";
   iter (output_string_of_xref i) xrefs
 
-(* Convert a string to one suitable for output. The function [escape] escapes
-parentheses and backslashes. *)
+(* Convert a string to one suitable for output. *)
 let b = Buffer.create 30
 
 let make_pdf_string s =
@@ -54,13 +53,12 @@ type writeout =
   | WString of string
   | WStream of Pdf.stream
 
-(* We want real numbers with no exponents (format compliance), and no trailing
-zeroes (compactness). (Jan 2012 - have added back in special case for whole
-numbers. Can still get trailing zeroes on small values e.g 0.00001 => 0.000010,
-but no printf way to prevent this).
+(* Format a real number.
 
-If we can do it fast enough, what we need to do is print with printf at 5
-decimal places (spec says this is ok) and remove any trailing zeroes.
+We want real numbers with no exponents (format compliance), and no trailing
+zeroes (compactness). (Jan 2012 - have added special case for whole numbers.
+Can still get trailing zeroes on small values e.g 0.00001 => 0.000010, but no
+printf way to prevent this).
 
 Feb 2018: In addition, on 32 bit systems, we now read in numbers > 2^30 or < -2^30
 as floating point values so that we can preserve them. We should write such
