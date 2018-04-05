@@ -69,6 +69,7 @@ let rec read_header_inner pos i =
                   (Pdf.PDFError (Pdf.input_pdferror i "Malformed PDF header"))
               else
                 begin
+                  if !read_debug then Printf.printf "setting offset to %i\n" pos;
                   i.set_offset pos;
                   int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
@@ -1714,16 +1715,16 @@ let read_malformed_pdf_objects i =
     while i.pos_in () < i.in_channel_length do
       let c = i.pos_in () in
         try
-          (*Printf.printf
-             "read_malformed_pdf_object is reading an object at %i\n" c;*)
+          if !read_debug then Printf.printf
+             "read_malformed_pdf_object is reading an object at %i\n" c;
           let objnum, obj =
             parse
               ~failure_is_ok:true
               (lex_object_at
                 true i true parse (lex_object i (null_hash ()) parse true))
           in
-            (*Printf.printf "Got object %i, which is %s ok\n"
-                objnum (Pdfwrite.string_of_pdf obj);*)
+            if !read_debug then Printf.printf "Got object %i, which is %s ok\n"
+                objnum (Pdfwrite.string_of_pdf obj);
             if objnum > 0 && objnum < max_int then objs := add objnum obj !objs;
             advance_to_integer i; (* find next possible object *)
             if i.pos_in () = c then ignore (input_line i) (* no progress. *)
@@ -1776,6 +1777,7 @@ let read_pdf revision upw opw opt i =
   | BadRevision ->
       raise (Pdf.PDFError "Revision number too low when reading PDF")
   | e ->
+      Printf.eprintf "Because of error %s, will read as malformed.\n" (Printexc.to_string e);
       try read_malformed_pdf upw opw i with e' ->
         raise
           (Pdf.PDFError
