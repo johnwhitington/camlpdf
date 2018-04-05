@@ -4,6 +4,8 @@ open Pdfio
 open Pdfgenlex
 
 let read_debug = ref false
+let error_on_malformed = ref false
+let debug_always_treat_malformed = ref false
 
 (* Predicate on newline characters (carriage return and linefeed). *)
 let is_newline = function
@@ -1766,28 +1768,38 @@ let read_malformed_pdf upw opw i =
            Pdf.trailerdict = Pdf.Dictionary trailerdict;
            Pdf.was_linearized = was_linearized;
            Pdf.saved_encryption = None}
-    
+
+let report_read_error i e e' =
+  raise
+    (Pdf.PDFError
+       (Pdf.input_pdferror
+          i
+          (Printf.sprintf
+             "Failed to read PDF - initial error was\n%s\n\n\
+             final error was \n%s\n\n"
+             (Printexc.to_string e)
+             (Printexc.to_string e'))))
+
 let read_pdf revision upw opw opt i =
-  try read_pdf ?revision upw opw opt i with
-  | Pdf.PDFError s as e
-      when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
-      (* If it failed due to encryption not supported or user password not
-      right, the error should be passed up - it's not a malformed file. *)
-      raise e
-  | BadRevision ->
-      raise (Pdf.PDFError "Revision number too low when reading PDF")
-  | e ->
-      Printf.eprintf "Because of error %s, will read as malformed.\n" (Printexc.to_string e);
-      try read_malformed_pdf upw opw i with e' ->
-        raise
-          (Pdf.PDFError
-             (Pdf.input_pdferror
-                i
-                (Printf.sprintf
-                   "Failed to read PDF - initial error was\n%s\n\n\
-                   final error was \n%s\n\n"
-                   (Printexc.to_string e)
-                   (Printexc.to_string e'))))
+  if !debug_always_treat_malformed then
+    try read_malformed_pdf upw opw i with
+      e -> report_read_error i e e
+  else
+    try read_pdf ?revision upw opw opt i with
+    | Pdf.PDFError s as e
+        when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
+        (* If it failed due to encryption not supported or user password not
+        right, the error should be passed up - it's not a malformed file. *)
+        raise e
+    | BadRevision ->
+        raise (Pdf.PDFError "Revision number too low when reading PDF")
+    | e ->
+        if !error_on_malformed then raise e else
+          begin
+            Printf.eprintf "Because of error %s, will read as malformed.\n" (Printexc.to_string e);
+            try read_malformed_pdf upw opw i with e' ->
+              report_read_error i e e'
+           end
 
 (* Read a PDF into memory, including its streams. *)
 let pdf_of_channel ?revision ?(source = "channel") upw opw ch =
