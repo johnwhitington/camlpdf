@@ -218,7 +218,7 @@ let input_of_channel ?(source = "channel") ch =
      in_channel_length =
        in_channel_length ch;
      set_offset =
-       (fun o -> offset := o);
+       (fun o -> if !offset = 0 then offset := o);
      caml_channel = Some ch;
      source = source}
 
@@ -246,7 +246,7 @@ let input_of_stream ?(source = "bytes") s =
          in_channel_length =
            ssize;
          set_offset =
-           (fun o -> offset := o);
+           (fun o -> if !offset = 0 then offset := o);
          caml_channel = None;
          source = source}
 
