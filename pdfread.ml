@@ -1714,7 +1714,8 @@ let rec advance_to_integer i =
 (* Read the actual objects, in order. *)
 let read_malformed_pdf_objects i =
   let objs = ref [] in
-    while i.pos_in () < i.in_channel_length do
+    (* Can't just test i.pos_in () < i.in_channel_length because of set_offset! *)
+    while let x = i.input_char () in rewind i; x <> None do
       let c = i.pos_in () in
         try
           if !read_debug then Printf.printf
