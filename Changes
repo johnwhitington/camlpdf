@@ -1,6 +1,10 @@
 2.3 (in development)
 
+o Malformed file reading for files with content before the header now works
+o Switches to disable malformed file reading or always read as if malformed
 o Fix to preserve integers > 2^30 or < -2^30 on 32 bit systems 
+o Allow [/DCT] as well as /DCT in inline image filter specifications
+o Improvments to text width calculation (thanks Alain Frisch)
 
 2.2 (patchlevel 1, September 2017)
 
