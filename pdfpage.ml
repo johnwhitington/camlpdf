@@ -790,6 +790,29 @@ let rec fixup_duplicate_pages pdf =
           fixup_duplicate_pages pdf
       | _ -> ()
 
+(* When there are duplicate pages, even once de-duplicated by
+ * fixup_duplicate_pages, we can end up with incorrect /Parent links. This
+ * procedure rewrites them. *)
+let rec fixup_parents_inner pdf parent_objnum objnum =
+  (*Printf.printf "fixup_parents_inner %i %i\n" parent_objnum objnum;*)
+  let obj = Pdf.lookup_obj pdf objnum in
+    begin match Pdf.indirect_number pdf "/Parent" obj with
+      Some _ ->
+        Pdf.addobj_given_num pdf (objnum, (Pdf.add_dict_entry obj "/Parent" (Pdf.Indirect parent_objnum)))
+    | _ -> ()
+    end;
+    begin match Pdf.lookup_direct pdf "/Kids" obj with
+      Some (Pdf.Array kids) ->
+        iter (function Pdf.Indirect x -> fixup_parents_inner pdf objnum x | _ -> ()) kids
+    | _ -> ()
+    end
+
+let fixup_parents pdf =
+  let root = Pdf.lookup_obj pdf pdf.Pdf.root in
+    match Pdf.indirect_number pdf "/Pages" root with
+      Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
+    | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
+
 let pdf_of_pages ?(retain_numbering = false) basepdf range =
   let page_labels =
     if List.length (Pdfpagelabels.read basepdf) = 0 then [] else
@@ -869,19 +892,10 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                      replace_inherit objnum "/Resources")
                 objnumbers;
               let thetree = pagetree_with_objnumbers true old_pagetree_root_num (source pdf.Pdf.objects.Pdf.maxobjnum) objnumbers 0 in
-              let rec findparent objnum = function
-              | OLf (objnumbers, parent, this) -> if mem objnum objnumbers then Some this else None
-              | OBr (objnumbers, left, right, _, this) ->
-                  if mem objnum objnumbers then Some this else
-                    match findparent objnum left with
-                    | Some parent -> Some parent
-                    | None -> findparent objnum right
-              in
               (* 2. Kill the old page tree, excepting pages which will appear in the new
               PDF. It will link, via /Parent entries etc, to the new page tree. To do
               this, we remove all objects with /Type /Page or /Type /Pages. The other
-              places that null can appear, in destinations and so on, are ok, we think.
-              Also, rewrite /Parent entries to point directly to the page root.  *)
+              places that null can appear, in destinations and so on, are ok, we think. *)
               Pdf.objiter
                 (fun i o ->
                   match o with
@@ -889,15 +903,7 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                       begin match lookup "/Type" d with
                       | Some (Pdf.Name ("/Pages")) -> Pdf.removeobj pdf i
                       | Some (Pdf.Name ("/Page")) ->
-                          if mem i objnumbers
-                            then
-                              begin match findparent i thetree with
-                              | Some p ->
-                                  Pdf.addobj_given_num pdf (i, (Pdf.Dictionary (add "/Parent" (Pdf.Indirect p) d)))
-                              | None -> raise (Pdf.PDFError "pdf_of_pages internal inconsistency")
-                              end
-                            else
-                              Pdf.removeobj pdf i
+                          if not (mem i objnumbers) then Pdf.removeobj pdf i
                       | _ -> ()
                       end
                   | _ -> ())
@@ -910,6 +916,7 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
                     Pdfpagelabels.write pdf page_labels;
                     let pdf = Pdfmarks.add_bookmarks marks pdf in
                       fixup_duplicate_pages pdf;
+                      fixup_parents pdf;
                       pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
