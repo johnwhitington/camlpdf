@@ -957,9 +957,12 @@ let postpend_operators pdf ops ?(fast=false) page =
 let next_string s =
   if s = "" then "a" else
     if s.[0] = 'z' then "a" ^ s else
-      let s' = String.copy s in
-         s'.[0] <- char_of_int (int_of_char s'.[0] + 1);
-         s'
+      String.mapi
+        (fun i c ->
+           if i = 0 then char_of_int (int_of_char c + 1)
+           else c
+        )
+        s
 
 (* True if one string [p] is a prefix of another [n] *)
 let is_prefix p n =
@@ -1130,4 +1133,3 @@ let add_prefix pdf prefix =
        | _ -> obj)
     pdf(*;
     Printf.eprintf "***add_prefix has concluded\n";*)
-

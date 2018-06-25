@@ -56,7 +56,7 @@ let lex_item s =
       try
         match String.unsafe_get s 0 with
         | 'a'..'z' | 'A'..'Z' ->
-            LexName (String.copy s)
+            LexName s
         | '\"' when len >= 2 ->
             LexString (String.sub s 1 (len - 2))
         | _ ->
@@ -73,7 +73,7 @@ let lex_item s =
                   end
                 else LexReal (float_of_string s)
       with
-        _ -> LexName (String.copy s)
+        _ -> LexName s
 
 (* Return the string between and including the current position and before the
 next character satisfying a given predicate, leaving the position at the
@@ -91,31 +91,15 @@ let rec lengthuntil i n =
 float_of_string etc. What we actually need is int_of_substring etc, but this
 will require patching OCaml. *)
 let strings =
- [|"";
-   " ";
-   "  ";
-   "   ";
-   "    ";
-   "     ";
-   "      ";
-   "       ";
-   "        ";
-   "         ";
-   "          ";
-   "           ";
-   "            ";
-   "             ";
-   "              ";
-   "               ";
-   "                "|]
+  Array.init 17 (fun i -> Bytes.make i ' ')
 
 let getuntil i =
   let p = i.Pdfio.pos_in () in
     let l = lengthuntil i 0 in
       i.Pdfio.seek_in p;
-      let s = if l <= 16 then Array.unsafe_get strings l else String.create l in
+      let s = if l <= 16 then Array.unsafe_get strings l else Bytes.create l in
         Pdfio.setinit_string i s 0 l;
-        s
+        Bytes.to_string s
 
 (* The same, but don't return anything. *)
 let rec ignoreuntil f i =

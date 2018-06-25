@@ -47,6 +47,9 @@ type output =
 (** A distinguished byte value indicating "no more input" *)
 val no_more : int
 
+(** An alias to OCaml built-in [bytes] type. *)
+type caml_bytes = bytes
+
 (** The type of fast to access but possibly very large arrays of bytes. *)
 type bytes
 
@@ -143,13 +146,16 @@ val bset_unsafe : bytes -> int -> int -> unit
 val setinit : input -> bytes -> int -> int -> unit
 
 (** [setinit_string i s o l] sets s o...o + l - 1 from the input *)
-val setinit_string : input -> string -> int -> int -> unit
+val setinit_string : input -> caml_bytes -> int -> int -> unit
 
 (** [setinit_bytes i o l] gives a [bytes] with s o...o + l - 1 from the input *)
 val bytes_of_input : input -> int -> int -> bytes
 
 (** Make bytes from a string. *)
 val bytes_of_string : string -> bytes
+
+(** Make bytes from ocaml bytes. *)
+val bytes_of_caml_bytes : caml_bytes -> bytes
 
 (** Make bytes from a list of integers, each between 0 and 255. *)
 val bytes_of_list : int list -> bytes
@@ -256,4 +262,3 @@ val bytes_of_write_bitstream : bitstream_write -> bytes
 
 (** Debug the next [n] chars to standard output and then rewind back *)
 val debug_next_n_chars : int -> input -> unit
-
