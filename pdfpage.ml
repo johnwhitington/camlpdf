@@ -959,7 +959,8 @@ let next_string s =
     if s.[0] = 'z' then "a" ^ s else
       String.mapi
         (fun i c ->
-           if i = 0 then char_of_int (int_of_char c + 1) else c)
+           if i = 0 then char_of_int (int_of_char c + 1)
+           else c)
         s
 
 (* True if one string [p] is a prefix of another [n] *)

@@ -12,11 +12,10 @@ bytes written. The optional argument [level] gives the zlib compression level
 zlib header (the default is [true]). *)
 val compress:
   ?level: int -> ?header: bool ->
-  (string -> int) -> (string -> int -> unit) -> unit
+  (bytes -> int) -> (bytes -> int -> unit) -> unit
 
 (** Uncompress data. The input and output functions are as described for
 [compress]. If [header] is [true], a zlib header is expected (the default is
 [true]). *)
 val uncompress:
-  ?header: bool -> (string -> int) -> (string -> int -> unit) -> unit
-
+  ?header: bool -> (bytes -> int) -> (bytes -> int -> unit) -> unit

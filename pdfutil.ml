@@ -254,19 +254,17 @@ let explode s =
 
 (* Make a string from a list of characters, preserving order. *)
 let implode l =
-  let s = String.create (length l) in
+  let s = Bytes.create (length l) in
     let rec list_loop x = function
        [] -> ()
-     | i::t -> String.unsafe_set s x i; list_loop (x + 1) t
+     | i::t -> Bytes.unsafe_set s x i; list_loop (x + 1) t
     in
       list_loop 0 l;
-      s
+      Bytes.to_string s
 
 (* String of character. *)
 let string_of_char c =
-  let s = String.create 1 in
-    String.unsafe_set s 0 c;
-    s
+  String.make 1 c
 
 (* Long-integer function abbreviations *)
 let i32ofi = Int32.of_int

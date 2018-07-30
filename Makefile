@@ -15,8 +15,8 @@ LIBINSTALL_FILES = camlpdf.a camlpdf.cma camlpdf.cmxa libcamlpdf_stubs.a \
 dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
 $(foreach x,$(PDFMODS),$x.cmi) $(foreach x,$(PDFMODS),$x.cmx)
 
-OCAMLNCFLAGS = -g -unsafe-string -annot -w -3
-OCAMLBCFLAGS = -g -unsafe-string -annot -w -3
+OCAMLNCFLAGS = -g -safe-string -annot -w -3
+OCAMLBCFLAGS = -g -safe-string -annot -w -3
 OCAMLLDFLAGS = -g
 
 all : native-code-library byte-code-library htdoc
@@ -27,4 +27,3 @@ clean ::
 install : libinstall
 
 -include OCamlMakefile
-

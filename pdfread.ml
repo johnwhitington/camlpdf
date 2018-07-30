@@ -380,8 +380,7 @@ reaching past the end of a file, in which case an exception is raised. *)
 let read_chunk n i =
   try
     let orig_pos = i.pos_in () in
-      let s = String.create n in
-        for x = 0 to n - 1 do s.[x] <- unopt (i.input_char ()) done;
+      let s = String.init n (fun _ -> unopt (i.input_char ())) in
         i.seek_in orig_pos;
         s
   with

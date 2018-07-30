@@ -242,17 +242,17 @@ let flate_process f data =
   and inlength = bytes_size data in
     let input =
       (fun buf ->
-         let s = String.length buf in
+         let s = Bytes.length buf in
            let towrite = min (inlength - !pos) s in
              for x = 0 to towrite - 1 do
-               String.unsafe_set
+               Bytes.unsafe_set
                  buf x (Char.unsafe_chr (bget_unsafe data !pos));
                  incr pos
              done;
              towrite)
     and output =
       (fun buf length ->
-         if length > 0 then strings =| String.sub buf 0 length)
+         if length > 0 then strings =| Bytes.sub_string buf 0 length)
     in
       f input output;
       bytes_of_strings_rev !strings
@@ -264,17 +264,17 @@ let decode_flate_input i =
   let strings = ref [] in
     let input =
       (fun buf ->
-         let s = String.length buf in
+         let s = Bytes.length buf in
            if s > 0 then
              begin
                match i.input_byte () with
                | x when x = Pdfio.no_more -> raise End_of_file
-               | x -> String.unsafe_set buf 0 (char_of_int x); 1
+               | x -> Bytes.unsafe_set buf 0 (char_of_int x); 1
              end
            else 0)
     and output =
       (fun buf length ->
-         if length > 0 then strings =| String.sub buf 0 length)
+         if length > 0 then strings =| Bytes.sub_string buf 0 length)
     in
       Pdfflate.uncompress input output;
       bytes_of_strings_rev !strings
