@@ -960,8 +960,7 @@ let next_string s =
       String.mapi
         (fun i c ->
            if i = 0 then char_of_int (int_of_char c + 1)
-           else c
-        )
+           else c)
         s
 
 (* True if one string [p] is a prefix of another [n] *)
@@ -1020,11 +1019,17 @@ let addp p n =
   if n = "" then raise (Pdf.PDFError "addp: blank name") else
     "/" ^ p ^ String.sub n 1 (String.length n - 1)
 
+let direct_cs_names =
+  ["/DeviceGray"; "/DeviceRGB"; "/DeviceCMYK"; "/Pattern"]
+
+let direct_cs_names_inline =
+  ["/DeviceGray"; "/DeviceRGB"; "/DeviceCMYK"; "/G"; "/RGB"; "/CMYK"]
+
 let prefix_operator pdf p = function
   | Pdfops.Op_Tf (f, s) -> Pdfops.Op_Tf (addp p f, s)
   | Pdfops.Op_gs n -> Pdfops.Op_gs (addp p n)
-  | Pdfops.Op_CS n -> Pdfops.Op_CS (addp p n)
-  | Pdfops.Op_cs n -> Pdfops.Op_cs (addp p n)
+  | Pdfops.Op_CS n -> Pdfops.Op_CS (if mem n direct_cs_names then n else addp p n)
+  | Pdfops.Op_cs n -> Pdfops.Op_cs (if mem n direct_cs_names then n else addp p n)
   | Pdfops.Op_SCNName (s, ns) -> Pdfops.Op_SCNName (addp p s, ns)
   | Pdfops.Op_scnName (s, ns) -> Pdfops.Op_scnName (addp p s, ns)
   | Pdfops.Op_sh s -> Pdfops.Op_sh (addp p s)
@@ -1035,12 +1040,7 @@ let prefix_operator pdf p = function
       (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
       let dict' =
         match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
-        | Some (Pdf.Name "/DeviceGray")
-        | Some (Pdf.Name "/DeviceRGB")
-        | Some (Pdf.Name "/DeviceCMYK")
-        | Some (Pdf.Name "/G")
-        | Some (Pdf.Name "/RGB")
-        | Some (Pdf.Name "/CMYK") -> dict
+        | Some (Pdf.Name n) when mem n direct_cs_names_inline -> dict
         | Some (Pdf.Name n) ->
             Pdf.add_dict_entry
               (Pdf.remove_dict_entry
@@ -1056,8 +1056,8 @@ let prefix_operator pdf p = function
 let change_resources pdf prefix resources =
   let newdict name =
     match Pdf.lookup_direct pdf name resources with
-    | Some (Pdf.Dictionary fonts) ->
-        Pdf.Dictionary (map (fun (k, v) -> addp prefix k, v) fonts)
+    | Some (Pdf.Dictionary dict) ->
+        Pdf.Dictionary (map (fun (k, v) -> addp prefix k, v) dict)
     | _ -> Pdf.Dictionary []
   in
     let newdicts = map newdict resource_keys in
