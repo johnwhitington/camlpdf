@@ -776,7 +776,7 @@ let parse_operator compatibility = function
               end
           | Op _::_ as l -> Op_Unknown (string_of_lexemes l)
           | l ->
-             Printf.eprintf "Empty or malformed graphics operation.";
+             Printf.eprintf "Empty or malformed graphics operation %s.\n" (string_of_lexemes l);
              Op_Unknown (string_of_lexemes l)
       in
         r, more

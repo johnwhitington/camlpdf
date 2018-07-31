@@ -157,7 +157,11 @@ let rec read_name_tree pdf tree =
     match Pdf.lookup_direct pdf "/Names" tree with
     | Some (Pdf.Array elts) ->
         if odd (length elts)
-          then raise (Pdf.PDFError "Bad /Names")
+          then
+             begin
+               Printf.eprintf "Bad /Names array. Name tree will be read as empty\n";
+               []
+             end
           else pairs_of_list elts
     | _ -> []
   in
