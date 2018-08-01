@@ -56,7 +56,7 @@ let lex_item s =
       try
         match String.unsafe_get s 0 with
         | 'a'..'z' | 'A'..'Z' ->
-            LexName s
+            LexName (String.copy s)
         | '\"' when len >= 2 ->
             LexString (String.sub s 1 (len - 2))
         | _ ->
@@ -73,7 +73,7 @@ let lex_item s =
                   end
                 else LexReal (float_of_string s)
       with
-        _ -> LexName s
+        _ -> LexName (String.copy s)
 
 (* Return the string between and including the current position and before the
 next character satisfying a given predicate, leaving the position at the
@@ -99,7 +99,7 @@ let getuntil i =
       i.Pdfio.seek_in p;
       let s = if l <= 16 then Array.unsafe_get strings l else Bytes.create l in
         Pdfio.setinit_string i s 0 l;
-        Bytes.to_string s
+        Bytes.unsafe_to_string s (* Will never be altered, but copied or discarded by get_string_inner. *)
 
 (* The same, but don't return anything. *)
 let rec ignoreuntil f i =
