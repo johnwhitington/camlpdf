@@ -286,7 +286,7 @@ let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try flate_process Pdfflate.uncompress stream with
       Pdfflate.Error (a, b) ->
-        raise (Couldn'tDecodeStream ("Flate" ^ " " ^ a ^ " " ^ b))
+        raise (Couldn'tDecodeStream ("Flate" ^ " " ^ a ^ " " ^ b ^ " length " ^ string_of_int (bytes_size stream)))
 
 (* LZW *)
 
