@@ -171,6 +171,7 @@ let rec make_outline_ntree source pdf = function
   | [] -> []
   | h::t ->
       let lower, rest = cleavewhile (fun {level = n'} -> n' > h.level) t in
+        (*Printf.printf "make_outline_ntree: %s\n" h.text;*)
         let node = node_of_line pdf h.text h.target in
           Br (fresh source pdf, node, make_outline_ntree source pdf lower, h.isopen)
             ::make_outline_ntree source pdf rest
