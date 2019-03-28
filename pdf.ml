@@ -228,6 +228,7 @@ let rec remove_dict_entry dict key =
 for streams. *)
 let rec replace_dict_entry dict key value =
   match dict with
+  | Null -> Dictionary (replace key value [])
   | Dictionary d -> Dictionary (replace key value d)
   | Stream ({contents = (dict', stream)} as s) ->
       s := (replace_dict_entry dict' key value, stream);
@@ -237,6 +238,7 @@ let rec replace_dict_entry dict key value =
 (* Add a dict entry, replacing if there. Also works for streams. *)
 let rec add_dict_entry dict key value =
   match dict with
+  | Null -> Dictionary (add key value [])
   | Dictionary d -> Dictionary (add key value d)
   | Stream ({contents = (dict', stream)} as s) ->
       s := (add_dict_entry dict' key value, stream);
