@@ -520,7 +520,7 @@ That's all there is to it!
 
 ---
 
-In addition, this program contains the sha2 implemention by Olivier Gay:
+In addition, this program contains the sha2 implementation by Olivier Gay:
 
  * FIPS 180-2 SHA-224/256/384/512 implementation
  * Last update: 02/02/2007

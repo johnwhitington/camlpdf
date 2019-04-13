@@ -15,7 +15,7 @@ To Build
 ---
 
 If downloading from Github, obtain the correct source. This means choosing the tag for a
-particaular version, such as "v2.1.1". The head of the master branch is
+particular version, such as "v2.1.1". The head of the master branch is
 unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
@@ -46,7 +46,7 @@ Acknowledgments
 ---
 
 The file miniz.c is a (very slightly modified) version of the miniz.c zlib
-implementation by Rich Geldreich, avalable here:
+implementation by Rich Geldreich, available here:
 
 [http://code.google.com/p/miniz/](http://code.google.com/p/miniz/)
 
