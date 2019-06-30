@@ -514,7 +514,7 @@ let lex_stream i p previous_lexemes lexobj opt =
                  | Some l -> lex_stream_data i l opt
                with
                  _ ->
-                   (* When reading malfomed files, /Length could be indirect,
+                   (* When reading malformed files, /Length could be indirect,
                    and therefore not available. Treat as if it were available,
                    but incorrect. *)
                    i.seek_in pos;
