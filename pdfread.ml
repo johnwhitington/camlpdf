@@ -1663,7 +1663,7 @@ let read_malformed_trailerdict i =
     while
       let currpos = i.pos_in () in
         try implode (take (explode (input_line i)) 7) <> "trailer" with
-          _ -> not (i.pos_in () >= currpos)
+          _ -> not (i.pos_in () = currpos || i.pos_in () >= i.in_channel_length)
     do () done;
     let lexemes =
       lex_object_at true i true parse (lex_object i (null_hash ()) parse true)
