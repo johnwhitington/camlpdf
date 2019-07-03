@@ -48,6 +48,7 @@ let merge_bookmarks changes pdfs ranges pdf =
     let process_mark oldnums changes mark = 
       let pageobjectnumber_of_target = function
         | Pdfdest.NullDestination -> 0
+        | Pdfdest.NamedDestinationElsewhere _ -> 0
         | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
         | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
             match t with
@@ -65,6 +66,7 @@ let merge_bookmarks changes pdfs ranges pdf =
                 in
                   match target with
                   | Pdfdest.NullDestination -> Pdfdest.NullDestination
+                  | Pdfdest.NamedDestinationElsewhere s -> Pdfdest.NamedDestinationElsewhere s
                   | Pdfdest.XYZ (t, a, b, c) -> Pdfdest.XYZ (change_targetpage t, a, b, c)
                   | Pdfdest.Fit t -> Pdfdest.Fit (change_targetpage t)
                   | Pdfdest.FitH (t, a) -> Pdfdest.FitH (change_targetpage t, a)

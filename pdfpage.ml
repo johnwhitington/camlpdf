@@ -652,6 +652,7 @@ so only those in the range are kept. *)
  * previous call to Pdf.page_reference_numbers *)
 let pagenumber_of_target ?fastrefnums pdf = function
  | Pdfdest.NullDestination -> 0
+ | Pdfdest.NamedDestinationElsewhere _ -> 0
  | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
  | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
      match t with

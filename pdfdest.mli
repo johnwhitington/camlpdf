@@ -9,6 +9,7 @@ type targetpage =
 (** Destinations. See ISO-32000 for details. *)
 type t =
   | NullDestination
+  | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
   | FitH of targetpage * float

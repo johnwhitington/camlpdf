@@ -13,6 +13,7 @@ type targetpage =
 
 type t =
   | NullDestination
+  | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
   | FitH of targetpage * float
@@ -52,6 +53,11 @@ let rec read_destination pdf pdfobject =
          Pdf.Name "/XYZ"; l; t; z] ->
         XYZ
           (read_targetpage p, option_getnum l, option_getnum t, option_getnum z) 
+    | Pdf.Array (* Read common malformed one. *)
+        [(Pdf.Indirect _ | Pdf.Integer _) as p;
+         Pdf.Name "/XYZ"; l; t] ->
+        XYZ
+          (read_targetpage p, option_getnum l, option_getnum t, None) 
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/Fit"] ->
         Fit (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitH"; t] ->
@@ -77,11 +83,11 @@ let rec read_destination pdf pdfobject =
           | Some dests ->
               begin match Pdf.lookup_direct pdf n dests with
               | Some dest' -> read_destination pdf dest'
-              | None -> read_destination_error "A" n
+              | None -> NamedDestinationElsewhere n
               end
-          | None -> read_destination_error "B" n
+          | None -> NamedDestinationElsewhere n
           end
-      | None -> read_destination_error "C" n
+      | None -> raise (Pdf.PDFError "read_destination: no catalog")
       end
     | Pdf.String s ->
       (* PDF 1.2. String object *)
@@ -93,12 +99,12 @@ let rec read_destination pdf pdfobject =
                 begin match
                   Pdf.nametree_lookup pdf (Pdf.String s) destsdict
                 with
-                | None -> read_destination_error "D" s
+                | None -> NamedDestinationElsewhere s
                 | Some dest -> read_destination pdf (Pdf.direct pdf dest)
                 end
-            | _ -> read_destination_error "E" s
+            | _ -> NamedDestinationElsewhere s
             end
-        | _ -> read_destination_error "F" s
+        | _ -> NamedDestinationElsewhere s 
         end
     | p -> read_destination_error "G" (Pdfwrite.string_of_pdf p)
 
@@ -108,6 +114,7 @@ let pdf_of_targetpage = function
 
 let pdfobject_of_destination = function
   | NullDestination -> Pdf.Null
+  | NamedDestinationElsewhere s -> Pdf.String s
   | XYZ (p, left, top, zoom) ->
       let f = function None -> Pdf.Null | Some n -> Pdf.Real n in
         Pdf.Array [pdf_of_targetpage p; Pdf.Name "/XYZ"; f left; f top; f zoom]
