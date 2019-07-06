@@ -232,7 +232,7 @@ and do_until_no_next_lb indent_lb pdf outline output =
         | _ -> false
       in
         output {level = !indent_lb; text = s; target = page; isopen = opn}
-    | _ -> ()
+    | _ -> raise (Pdf.PDFError "/Title not a string or not present in document outline entry")
     end;
     incr indent_lb;
     traverse_outlines_lb indent_lb pdf outline output;
