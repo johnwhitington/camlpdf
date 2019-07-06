@@ -656,7 +656,7 @@ let pagenumber_of_target ?fastrefnums pdf = function
  | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
  | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
      match t with
-     | Pdfdest.OtherDocPageNumber _ -> 0
+     | Pdfdest.OtherDocPageNumber i -> i + 1 (* If it's really a Pdfdest.OtherDocPageNumber, you must process this yourself before. *)
      | Pdfdest.PageObject i ->
          match fastrefnums with
          | Some table ->
