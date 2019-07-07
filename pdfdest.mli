@@ -6,8 +6,9 @@ type targetpage =
   | PageObject of int
   | OtherDocPageNumber of int
 
-(** Destinations. See ISO-32000 for details. *)
+(** Destinations (and actions) *)
 type t =
+  | Action of Pdf.pdfobject
   | NullDestination
   | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option

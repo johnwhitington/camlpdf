@@ -224,7 +224,7 @@ and do_until_no_next_lb indent_lb pdf outline output =
             | None -> Pdfdest.NullDestination
             | Some action ->
                 match Pdf.lookup_direct pdf "/D" action with
-                | None -> Pdfdest.NullDestination
+                | None -> Pdfdest.Action (Pdf.direct pdf action)
                 | Some dest -> Pdfdest.read_destination pdf dest
       in let opn =
         match Pdf.lookup_direct pdf "/Count" outline with

@@ -1,10 +1,4 @@
 (* Read and Write Destinations *)
-
-(*TODO: Be able to read all destinations from the document (well, all from the
-name tree or /Dests in catalog). To be able to write a name tree or dests
-similarly. *)
-
-(* TODO: Destinations which are actions -- keep the /Rect etc. *)
 open Pdfutil
 
 type targetpage =
@@ -12,6 +6,7 @@ type targetpage =
   | OtherDocPageNumber of int
 
 type t =
+  | Action of Pdf.pdfobject
   | NullDestination
   | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option
@@ -113,6 +108,7 @@ let pdf_of_targetpage = function
   | OtherDocPageNumber i -> Pdf.Integer i
 
 let pdfobject_of_destination = function
+  | Action a -> a
   | NullDestination -> Pdf.Null
   | NamedDestinationElsewhere s -> Pdf.String s
   | XYZ (p, left, top, zoom) ->
