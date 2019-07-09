@@ -932,6 +932,15 @@ let prepend_operators pdf ops ?(fast=false) page =
       {page with content =
         [Pdfops.stream_of_ops (ops @ old_ops)]}
 
+let prepend_operators_lowlevel pdf ops ?(fast=false) resources content =
+  if fast then
+    Pdfops.stream_of_ops ops :: content
+  else
+    let old_ops =
+      Pdfops.parse_operators pdf resources content
+    in
+      [Pdfops.stream_of_ops (ops @ old_ops)]
+
 (* Add stack operators to a content stream to ensure it is composeable. *)
 let protect pdf resources content =
   let ops = Pdfops.parse_operators pdf resources content in
@@ -954,6 +963,17 @@ let postpend_operators pdf ops ?(fast=false) page =
     in
       {page with content =
          [Pdfops.stream_of_ops (beforeops @ Pdfops.parse_operators pdf page.resources page.content @ afterops)]}
+
+let postpend_operators_lowlevel pdf ops ?(fast=false) resources content =
+  if fast then
+    [Pdfops.stream_of_ops ([Pdfops.Op_q] @ ops @ [Pdfops.Op_Q])] @ content
+  else
+    let beforeops =
+      [Pdfops.Op_q]
+    and afterops =
+      protect pdf resources content @ [Pdfops.Op_Q] @ ops
+    in
+      [Pdfops.stream_of_ops (beforeops @ Pdfops.parse_operators pdf resources content @ afterops)]
 
 (* Source of possible prefix strings. String is always copied. *)
 let next_string s =

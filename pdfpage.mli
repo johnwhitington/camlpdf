@@ -83,7 +83,11 @@ val add_prefix : Pdf.t -> string -> unit
 
 val prepend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
 
+val prepend_operators_lowlevel : Pdf.t -> Pdfops.t list -> ?fast:bool -> Pdf.pdfobject -> Pdf.pdfobject list -> Pdf.pdfobject list
+
 val postpend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
+
+val postpend_operators_lowlevel : Pdf.t -> Pdfops.t list -> ?fast:bool -> Pdf.pdfobject -> Pdf.pdfobject list -> Pdf.pdfobject list
 
 (** Ensure that there are no inherited attributes in the page tree --- in other
 words they are all explicit. This is required before writing a file with
