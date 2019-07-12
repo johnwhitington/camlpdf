@@ -174,13 +174,44 @@ let rec read_name_tree pdf tree =
         names @ flatten (map (read_name_tree pdf) kids)
     | _ -> names
 
-(* Build a name tree from a flattened list, FIXME: Inefficient: we should build
-a proper tree. *)
-let build_name_tree _ ls =
-  let ls = sort (fun (k, _) (k', _) -> compare k k') ls in
-    let list_of_pair (k, v) = [k; v] in
-      let arr = flatten (map list_of_pair ls) in
-        Pdf.Dictionary ["/Names", Pdf.Array arr]
+let read_name_tree pdf tree =
+  let r = read_name_tree pdf tree in
+    List.map (function (Pdf.String s, x) -> (s, x) | _ -> raise (Pdf.PDFError "malformed name tree")) r
+
+let maxsize = 10 (* Must be at least two *)
+
+type ('k, 'v) nt =
+  Br of 'k * ('k, 'v) nt list * 'k
+| Lf of 'k * ('k * 'v) list * 'k
+
+let left l = fst (hd l)
+let right l = fst (last l)
+
+let rec build_nt_tree l =
+  if List.length l = 0 then assert false;
+  if List.length l <= maxsize
+    then Lf (left l, l, right l)
+    else Br (left l, List.map build_nt_tree (splitinto (List.length l / maxsize) l), right l)
+
+let rec name_tree_of_nt isroot pdf = function
+  Lf (llimit, items, rlimit) ->
+    Pdf.Dictionary
+      ([("/Names", Pdf.Array (List.flatten (List.map (fun (k, v) -> [Pdf.Name k; v]) items)))] @
+       if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
+| Br (llimit, nts, rlimit) ->
+    let indirects =
+      let kids = List.map (name_tree_of_nt false pdf) nts in
+        List.map (Pdf.addobj pdf) kids
+    in
+      Pdf.Dictionary
+       [("/Kids", Pdf.Array (List.map (fun x -> Pdf.Indirect x) indirects));
+        ("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])]
+
+let build_name_tree pdf = function
+  | [] -> Pdf.Dictionary [("/Names", Pdf.Array [])]
+  | ls ->
+      let nt = build_nt_tree (sort compare ls) in
+        Pdf.Dictionary [("/Names", name_tree_of_nt true pdf nt)]
 
 (* Merge name trees *)
 let merge_name_trees pdf trees =
