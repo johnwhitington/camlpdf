@@ -196,7 +196,7 @@ let rec build_nt_tree l =
 let rec name_tree_of_nt isroot pdf = function
   Lf (llimit, items, rlimit) ->
     Pdf.Dictionary
-      ([("/Names", Pdf.Array (List.flatten (List.map (fun (k, v) -> [Pdf.Name k; v]) items)))] @
+      ([("/Names", Pdf.Array (List.flatten (List.map (fun (k, v) -> [Pdf.String k; v]) items)))] @
        if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
 | Br (llimit, nts, rlimit) ->
     let indirects =
