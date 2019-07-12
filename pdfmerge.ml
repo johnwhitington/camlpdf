@@ -211,7 +211,7 @@ let build_name_tree pdf = function
   | [] -> Pdf.Dictionary [("/Names", Pdf.Array [])]
   | ls ->
       let nt = build_nt_tree (sort compare ls) in
-        Pdf.Dictionary [("/Names", name_tree_of_nt true pdf nt)]
+        name_tree_of_nt true pdf nt
 
 (* Merge name trees *)
 let merge_name_trees pdf trees =
