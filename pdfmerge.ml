@@ -213,11 +213,35 @@ let build_name_tree pdf = function
       let nt = build_nt_tree (sort compare ls) in
         name_tree_of_nt true pdf nt
 
-(* Merge name trees *)
+(* Merge name trees This needs to return some changes to be made to Annots when
+ * names in the trees might clash. e.g if the name /A appears in two trrees, we
+ * might return (6, "/A", "/A-6") to indicate all uses of "/A" in PDF number 6
+ * must be rewritten to "/A-6" *)
 let merge_name_trees pdf trees =
-  build_name_tree pdf (flatten (map (read_name_tree pdf) trees))
+  let changes = ref [] in
+  let name_tree_entries = map (read_name_tree pdf) trees in
+  let final_name_tree_entries = Hashtbl.create 512 in
+  let rec unique_name n t =
+    if Hashtbl.mem t n then unique_name (n ^ "-0") t else n
+  in
+    List.iter2
+      (fun pdfnum entries ->
+         (* Stick each entry into final_name_tree_entries, changing name if req'd. Record change *)
+         List.iter
+           (fun (k, v) ->
+             if Hashtbl.mem final_name_tree_entries k
+               then
+                 let k' = unique_name k final_name_tree_entries in
+                   Hashtbl.add final_name_tree_entries k v;
+                   Printf.printf "Making change (%i, %s, %s)\n" pdfnum k k';
+                   changes := (pdfnum, k, k')::!changes
+               else Hashtbl.add final_name_tree_entries k v)
+           entries)
+      (indx name_tree_entries)
+      name_tree_entries;
+  (build_name_tree pdf (list_of_hashtbl final_name_tree_entries), !changes)
 
-(* Merging entries in the Name Dictionary *)
+(* Merging entries in the Name Dictionary. [pdf] here is the new merged pdf, [pdfs] the original ones. *)
 let merge_namedicts pdf pdfs =
   let names =
     ["/Dests"; "/AP"; "/JavaScript"; "/Pages"; "/Templates"; "/IDS";
@@ -247,7 +271,7 @@ let merge_namedicts pdf pdfs =
           (* Add all the trees as indirect references to the pdf *)
           let nums = ref [] in
             iter
-              (function (_, obj) ->
+              (function (_, (obj, _)) ->
                 let num = Pdf.addobj pdf obj in
                   nums =| num)
               new_trees;
