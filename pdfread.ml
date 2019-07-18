@@ -989,10 +989,11 @@ let lex_stream_object
                 (Pdf.PDFError
                   (Pdf.input_pdferror i "couldn't decode objstream"))
           end
-    | _ ->
+    | stmobj ->
         raise
           (Pdf.PDFError
-            (Pdf.input_pdferror i "lex_stream_object: not a stream"))
+            (Pdf.input_pdferror i (Printf.sprintf "lex_stream_object: not a stream, but %s"
+                                   (Pdfwrite.string_of_pdf stmobj))))
 
 (* Advance to the first thing after the current pointer which is not a comment.
 *)
@@ -1662,7 +1663,16 @@ let read_malformed_trailerdict i =
     file position ends up at the end of the file. *)
     while
       let currpos = i.pos_in () in
-        try implode (take (explode (input_line i)) 7) <> "trailer" with
+        try
+          let l = input_line i in
+            let r = 
+              implode (take (explode l) 7) <> "trailer"
+            in
+              (* In case of "trailer<<..." i.e a missing newline, we backtrack until
+               * just after the trailer keyword itself *)
+              i.seek_in (currpos + 7);
+              r
+        with
           _ -> not (i.pos_in () = currpos || i.pos_in () >= i.in_channel_length)
     do () done;
     let lexemes =
@@ -1732,7 +1742,7 @@ let read_malformed_pdf_objects i =
             if i.pos_in () = c then ignore (input_line i) (* no progress. *)
         with
           e ->
-            (*Printf.printf "Couldn't get object, moving on\n";*)
+            if !read_debug then Printf.printf "Couldn't get object, moving on\n";
             ignore (input_line i) (* Move on *)
     done;
     !objs
@@ -1750,11 +1760,14 @@ let read_malformed_pdf upw opw i =
     in
       Printf.eprintf "Read %i objects\n" (length objects);
       let root =
+        if !read_debug then Printf.printf "trailerdict is %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict));
         match lookup "/Root" trailerdict with
         | Some (Pdf.Indirect i) -> i
         | None ->
+            if !read_debug then Printf.printf "No /Root entry in malformed file read\n";
             raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
         | _ ->
+            if !read_debug then Printf.printf "Malformed /Root entry in malformed file read\n";
             raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
         i.Pdfio.seek_in 0;

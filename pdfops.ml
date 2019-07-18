@@ -764,11 +764,13 @@ let parse_operator compatibility = function
               begin match rev r with
               | Obj Pdfgenlex.LexLeftSquare::t ->
                   let elements =
-                    map
+                    option_map
                       (function
-                       | (Obj (Pdfgenlex.LexReal i)) -> Pdf.Real i
-                       | (Obj (Pdfgenlex.LexString s)) -> Pdf.String s
-                       | _ -> raise (Pdf.PDFError "malformed TJ elt"))
+                       | (Obj (Pdfgenlex.LexReal i)) -> Some (Pdf.Real i)
+                       | (Obj (Pdfgenlex.LexString s)) -> Some (Pdf.String s)
+                       | e ->
+                           Printf.eprintf "Warning: malformed TJ element; skipping\n";
+                           None)
                       t
                   in
                     Op_TJ (Pdf.Array elements)

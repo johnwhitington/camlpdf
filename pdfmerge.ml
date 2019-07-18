@@ -217,7 +217,12 @@ let build_name_tree pdf = function
  * names in the trees might clash. e.g if the name /A appears in two trrees, we
  * might return (6, "/A", "/A-6") to indicate all uses of "/A" in PDF number 6
  * must be rewritten to "/A-6" *)
-let merge_name_trees pdf trees =
+(* For now, only operates on /Dests, because for now we only know how to find all
+ * the uses of these dest names. To merge any of the others properly, we need
+ * to find out how to find every instance of their use in the file. We can't
+ * just assume any string object is a name tree key *)
+let merge_name_trees name pdf trees =
+  Printf.printf "Merging name trees for %s\n" name;
   let changes = ref [] in
   let name_tree_entries = map (read_name_tree pdf) trees in
   let final_name_tree_entries = Hashtbl.create 512 in
@@ -265,7 +270,7 @@ let merge_namedicts pdf pdfs =
       in
         let new_trees =
           map
-            (fun (name, trees) -> name, merge_name_trees pdf trees)
+            (fun (name, trees) -> name, merge_name_trees name pdf trees)
             with_names
         in
           (* Add all the trees as indirect references to the pdf *)
