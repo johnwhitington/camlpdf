@@ -1288,6 +1288,16 @@ exception Revisions of int
 
 exception BadRevision
 
+let sanitize_trailerdict l trailerdict =
+  add "/Size" (Pdf.Integer l)
+    (remove "/W"
+      (remove "/Type"
+        (remove "/Index"
+          (remove "/Prev"
+            (remove "/XRefStm"
+              (remove "/Filter"
+                (remove "/DecodeParms" trailerdict)))))))
+
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
@@ -1579,24 +1589,14 @@ let read_pdf ?revision user_pw owner_pw opt i =
       let objects = objects_stream @ objects_nonstream in
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
-        let trailerdict' =
-          Pdf.Dictionary
-            (add "/Size" (Pdf.Integer (length objects))
-              (remove "/W"
-                (remove "/Type"
-                  (remove "/Index"
-                    (remove "/Prev"
-                      (remove "/XRefStm"
-                        (remove "/Filter"
-                          (remove "/DecodeParms" !trailerdict))))))))
-        in
+        let trailerdict' = sanitize_trailerdict (length objects) !trailerdict in
           let pdf = 
             {Pdf.major = major;
              Pdf.minor = minor;
              Pdf.objects =
                Pdf.objects_of_list (Some (get_object i xrefs)) objects;
              Pdf.root = root;
-             Pdf.trailerdict = trailerdict';
+             Pdf.trailerdict = Pdf.Dictionary trailerdict';
              Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None}
           in
@@ -1774,17 +1774,7 @@ let read_malformed_pdf upw opw i =
         i.Pdfio.seek_in 0;
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
-        let trailerdict' =
-          Pdf.Dictionary
-            (add "/Size" (Pdf.Integer (length objects))
-              (remove "/W"
-                (remove "/Type"
-                  (remove "/Index"
-                    (remove "/Prev"
-                      (remove "/XRefStm"
-                        (remove "/Filter"
-                          (remove "/DecodeParms" trailerdict))))))))
-        in
+        let trailerdict' = sanitize_trailerdict (length objects) trailerdict in
         let was_linearized = is_linearized i in
           Printf.eprintf "Malformed PDF reconstruction succeeded!\n";
           flush stderr;
@@ -1792,7 +1782,7 @@ let read_malformed_pdf upw opw i =
            Pdf.minor = minor;
            Pdf.root = root;
            Pdf.objects = Pdf.objects_of_list None objects;
-           Pdf.trailerdict = trailerdict';
+           Pdf.trailerdict = Pdf.Dictionary trailerdict';
            Pdf.was_linearized = was_linearized;
            Pdf.saved_encryption = None}
 
