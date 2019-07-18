@@ -1750,6 +1750,7 @@ let read_malformed_pdf_objects i =
 let read_malformed_pdf upw opw i =
   Printf.eprintf
     "Attempting to reconstruct the malformed pdf %s...\n" i.Pdfio.source;
+  flush stderr;
   let trailerdict = read_malformed_trailerdicts i
   and major, minor = read_header i in
     i.Pdfio.seek_in 0;

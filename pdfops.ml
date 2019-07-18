@@ -491,27 +491,23 @@ let lex_inline_image pdf resources i =
             Pdfread.dropwhite i;
             let c = char_of_int (i.input_byte ()) in
               let c' = char_of_int (i.input_byte ()) in
-                begin match c, c' with
-                | 'E', 'I' ->
-                    (* Remove filter, predictor, if it wasn't JPEG. *)
-                    let dict' =
-                      match
-                        Pdf.lookup_direct_orelse
-                        (Pdf.empty ()) "/F" "/Filter" dict
-                      with
-                      (* FIXME as above *)
-                      | Some (Pdf.Name ("/DCT" | "/DCTDecode") | Pdf.Array [Pdf.Name ("/DCT" | "/DCTDecode")]) -> dict
-                      | _ -> 
-                          fold_left
-                            Pdf.remove_dict_entry
-                            dict
-                            ["/Filter"; "/F"; "/DecodeParms"; "/DP"] 
-                    in
-                      dict', data
-                | x, y ->
-                   Printf.eprintf "bad end to inline image %C, %C\n" x y;
-                   nocontent i
-                end
+                if c <> 'E' || c' <> 'I' then
+                   Printf.eprintf "warning: bad end to inline image %C, %C\n" c c';
+                (* Remove filter, predictor, if it wasn't JPEG. *)
+                let dict' =
+                  match
+                    Pdf.lookup_direct_orelse
+                    (Pdf.empty ()) "/F" "/Filter" dict
+                  with
+                  (* FIXME as above *)
+                  | Some (Pdf.Name ("/DCT" | "/DCTDecode") | Pdf.Array [Pdf.Name ("/DCT" | "/DCTDecode")]) -> dict
+                  | _ -> 
+                      fold_left
+                        Pdf.remove_dict_entry
+                        dict
+                        ["/Filter"; "/F"; "/DecodeParms"; "/DP"] 
+                in
+                  dict', data
     | _ ->
         Printf.eprintf "Did not recognise beginning of inline image ID\n";
         nocontent i
