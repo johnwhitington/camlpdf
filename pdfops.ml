@@ -492,7 +492,12 @@ let lex_inline_image pdf resources i =
             let c = char_of_int (i.input_byte ()) in
               let c' = char_of_int (i.input_byte ()) in
                 if c <> 'E' || c' <> 'I' then
-                   Printf.eprintf "warning: bad end to inline image %C, %C\n" c c';
+                  begin
+                    Printf.eprintf "warning: bad end to inline image %C, %C\n" c c';
+                    (* We try to find "EI" anyway, in case there is just some junk.
+                     * To do this, we drop any whitespace and any E or I character. *)
+                    Pdfread.ignoreuntil true (fun x -> Pdf.is_not_whitespace x && x <> 'E' && x <> 'I') i;
+                  end;
                 (* Remove filter, predictor, if it wasn't JPEG. *)
                 let dict' =
                   match

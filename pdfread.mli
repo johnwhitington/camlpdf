@@ -55,6 +55,8 @@ val parse : ?failure_is_ok:bool -> Pdfgenlex.t list -> int * Pdf.pdfobject
 
 val dropwhite : Pdfio.input -> unit
 
+val ignoreuntil : bool -> (char -> bool) -> Pdfio.input -> unit
+
 val print_lexeme : Pdfgenlex.t -> unit
 
 val string_of_lexeme : Pdfgenlex.t -> string
