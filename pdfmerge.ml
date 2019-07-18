@@ -213,38 +213,11 @@ let build_name_tree pdf = function
       let nt = build_nt_tree (sort compare ls) in
         name_tree_of_nt true pdf nt
 
-(* Merge name trees This needs to return some changes to be made to Annots when
- * names in the trees might clash. e.g if the name /A appears in two trrees, we
- * might return (6, "/A", "/A-6") to indicate all uses of "/A" in PDF number 6
- * must be rewritten to "/A-6" *)
-(* For now, only operates on /Dests, because for now we only know how to find all
- * the uses of these dest names. To merge any of the others properly, we need
- * to find out how to find every instance of their use in the file. We can't
- * just assume any string object is a name tree key *)
-let merge_name_trees name pdf trees =
-  Printf.printf "Merging name trees for %s\n" name;
-  let changes = ref [] in
-  let name_tree_entries = map (read_name_tree pdf) trees in
-  let final_name_tree_entries = Hashtbl.create 512 in
-  let rec unique_name n t =
-    if Hashtbl.mem t n then unique_name (n ^ "-0") t else n
-  in
-    List.iter2
-      (fun pdfnum entries ->
-         (* Stick each entry into final_name_tree_entries, changing name if req'd. Record change *)
-         List.iter
-           (fun (k, v) ->
-             if Hashtbl.mem final_name_tree_entries k
-               then
-                 let k' = unique_name k final_name_tree_entries in
-                   Hashtbl.add final_name_tree_entries k v;
-                   Printf.printf "Making change (%i, %s, %s)\n" pdfnum k k';
-                   changes := (pdfnum, k, k')::!changes
-               else Hashtbl.add final_name_tree_entries k v)
-           entries)
-      (indx name_tree_entries)
-      name_tree_entries;
-  (build_name_tree pdf (list_of_hashtbl final_name_tree_entries), !changes)
+
+
+(* Once we know there are no clashes *)
+let merge_name_trees_no_clash pdf trees =
+  build_name_tree pdf (flatten (map (read_name_tree pdf) trees))
 
 (* Merging entries in the Name Dictionary. [pdf] here is the new merged pdf, [pdfs] the original ones. *)
 let merge_namedicts pdf pdfs =
@@ -258,7 +231,7 @@ let merge_namedicts pdf pdfs =
         | Some d -> Pdf.lookup_direct pdf name d
         | None -> None
     in
-    (* Build a list of the lists of number trees for each name *)
+    (* Build a list of the lists of trees for each name *)
     let trees_in_each =
       map (fun name -> option_map (gettree name) pdfs) names
     in
@@ -270,13 +243,13 @@ let merge_namedicts pdf pdfs =
       in
         let new_trees =
           map
-            (fun (name, trees) -> name, merge_name_trees name pdf trees)
+            (fun (name, trees) -> name, merge_name_trees_no_clash pdf trees)
             with_names
         in
           (* Add all the trees as indirect references to the pdf *)
           let nums = ref [] in
             iter
-              (function (_, (obj, _)) ->
+              (function (_, obj) ->
                 let num = Pdf.addobj pdf obj in
                   nums =| num)
               new_trees;
@@ -290,6 +263,30 @@ let merge_namedicts pdf pdfs =
           in
             (* Return the new pdf, and the new dictionary. *)
             Pdf.addobj pdf newdict
+
+(* Merge name trees This needs to return some changes to be made to Annots when
+ * names in the trees might clash. e.g if the name /A appears in two trrees, we
+ * might return (6, "/A", "/A-6") to indicate all uses of "/A" in PDF number 6
+ * must be rewritten to "/A-6" *)
+(* For now, only operates on /Dests, because for now we only know how to find all
+ * the uses of these dest names. To merge any of the others properly, we need
+ * to find out how to find every instance of their use in the file. We can't
+ * just assume any string object is a name tree key *)
+(* This runs after merge_pdfs_renumber, so there can be no clashing of values.
+ * We can return the OCaml name tree structure safe in the knowledge that it
+ * can be written to the eventual merged PDF and the object numbers will be
+ * correct. *)
+let merge_pdfs_rename_name_trees names pdfs = pdfs
+  (* Find the /Dests nametree in each file *)
+  (* Calculate the changes *)
+  (* Apply the changes to the name tree *)
+  (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used. *)
+  (* Build our name tree OCaml structure for the merged tree and return. *)
+
+(* FIXME: The problem here is that we may need to break the non-copy of a file
+ * multiply included in a merge, since we need to alter its destination
+ * objects. It's hard to see a way around this without removing that
+ * functionality. See comments in cpdf-source github issue 79. *)
 
 (* Merge catalog items from the PDFs, taking an abitrary instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
@@ -308,6 +305,7 @@ let catalog_items_from_original_documents pdfs =
 
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
+  let pdfs = merge_pdfs_rename_name_trees names pdfs in
     let minor' = fold_left max 0 (map (fun p -> p.Pdf.minor) pdfs) in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
