@@ -1772,6 +1772,19 @@ let read_malformed_pdf upw opw i =
             raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
         i.Pdfio.seek_in 0;
+        (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
+        and DecodeParms *)
+        let trailerdict' =
+          Pdf.Dictionary
+            (add "/Size" (Pdf.Integer (length objects))
+              (remove "/W"
+                (remove "/Type"
+                  (remove "/Index"
+                    (remove "/Prev"
+                      (remove "/XRefStm"
+                        (remove "/Filter"
+                          (remove "/DecodeParms" trailerdict))))))))
+        in
         let was_linearized = is_linearized i in
           Printf.eprintf "Malformed PDF reconstruction succeeded!\n";
           flush stderr;
@@ -1779,7 +1792,7 @@ let read_malformed_pdf upw opw i =
            Pdf.minor = minor;
            Pdf.root = root;
            Pdf.objects = Pdf.objects_of_list None objects;
-           Pdf.trailerdict = Pdf.Dictionary trailerdict;
+           Pdf.trailerdict = trailerdict';
            Pdf.was_linearized = was_linearized;
            Pdf.saved_encryption = None}
 
