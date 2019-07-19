@@ -165,7 +165,7 @@ let node_of_line pdf title target =
     (("/Title", Pdf.String title)::
      let dest = Pdfdest.pdfobject_of_destination target in
        if dest = Pdf.Null then [] else
-         (match target with Action a -> [("/A", a)] | _ -> [("/Dest", dest)]))
+         (match target with Pdfdest.Action a -> [("/A", a)] | _ -> [("/Dest", dest)]))
 
 (* Make an ntree list from a list of parsed bookmark lines. *)
 let rec make_outline_ntree source pdf = function
