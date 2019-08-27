@@ -1,4 +1,4 @@
-2.3 (in development)
+2.3 (October 2019)
 
 o Malformed file reading for files with content before the header now works
 o Switches to disable malformed file reading or always read as if malformed

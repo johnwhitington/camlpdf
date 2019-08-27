@@ -71,7 +71,7 @@ let rec read_header_inner pos i =
                   (Pdf.PDFError (Pdf.input_pdferror i "Malformed PDF header"))
               else
                 begin
-                  if !read_debug then Printf.printf "setting offset to %i\n" pos;
+                  if !read_debug then Printf.eprintf "setting offset to %i\n" pos;
                   i.set_offset pos;
                   int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
@@ -1195,13 +1195,13 @@ let read_xref_stream i =
         in let xrefs = ref [] in
           begin try
             if !read_debug then
-              Printf.printf "About to start read_xref_stream\n%!";
+              Printf.eprintf "About to start read_xref_stream\n%!";
             while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
 
           with
             _ ->
               if !read_debug then
-                Printf.printf "End of read_xref_stream\n%!";
+                Printf.eprintf "End of read_xref_stream\n%!";
               ()
           end;
           xrefs := rev !xrefs;
