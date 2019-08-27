@@ -9,7 +9,7 @@ License
 ---
 
 Copyright Coherent Graphics Ltd 2007 - 2013. Released under the LGPL with
-special linking exception. See "LICENCE" for details.
+special linking exception. See "LICENSE" for details.
 
 To Build
 ---
