@@ -1,7 +1,5 @@
 (** General Functions. Typically one will [open Pdfutil] and not use [open] elsewhere. *)
 
-val position_1 : 'a -> 'a list -> int option
-val position : 'a -> 'a list -> int option
 
 (** {2 Debug Printing} *)
 
@@ -41,6 +39,7 @@ val string_of_char : char -> string
 in [s], returning a new string. *)
 val string_replace_all : string -> string -> string -> string
 
+(** The same, but provide a function for the replacement string *)
 val string_replace_all_lazy : string -> (unit -> string) -> string -> string
 
 (** {2 Lists} *)
@@ -93,6 +92,12 @@ val option_map2 : ('a -> 'b -> 'c option) -> 'a list -> 'b list -> 'c list
 
 (** Synonym for [List.mem]. *)
 val mem : ('a -> 'a list -> bool)
+
+(** Position of an element in a list, or [None] if not found *)
+val position : 'a -> 'a list -> int option
+
+(** Position (1-based) in a list, or [None] if not found *)
+val position_1 : 'a -> 'a list -> int option
 
 (** Similar to [rev_map], but 3 arguments. *)
 val rev_map3 :
@@ -540,6 +545,7 @@ val list_of_hashtbl : ('a, 'b) Hashtbl.t -> ('a * 'b) list
 added from left to right, with no checking for duplicate keys being performed. *)
 val hashtable_of_dictionary : ('a * 'b) list -> ('a, 'b) Hashtbl.t
 
+(* Build a hashtable from a list of keys. *)
 val hashset_of_list : 'a list -> ('a, unit) Hashtbl.t
 
 (** {2 Trees} *)

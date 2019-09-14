@@ -154,7 +154,9 @@ this encoding. This is only really suitable for simple stuff like standard 14
 fonts, or editing text in existing fonts. *)
 val charcode_extractor_of_encoding : encoding -> (int -> int option)
 
+(** Table of all the entries in an encoding. *)
 val table_of_encoding : encoding -> (int, string) Hashtbl.t
 
+(** Reverse table of all the entries in an encoding. *)
 val reverse_table_of_encoding : encoding -> (string, int) Hashtbl.t
 
