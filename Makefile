@@ -12,17 +12,18 @@ PACKS = bigarray
 RESULT = camlpdf
 
 LIBINSTALL_FILES = camlpdf.a camlpdf.cma camlpdf.cmxa libcamlpdf_stubs.a \
-dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli)  $(foreach x,$(PDFMODS),$x.cmt) \
+dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli)  $(foreach x,$(PDFMODS),$x.cmti) \
 $(foreach x,$(PDFMODS),$x.cmi) $(foreach x,$(PDFMODS),$x.cmx)
 
-OCAMLNCFLAGS = -g -safe-string -bin-annot -w -3
-OCAMLBCFLAGS = -g -safe-string -bin-annot -w -3
+OCAMLFLAGS = -bin-annot
+OCAMLNCFLAGS = -g -safe-string -w -3
+OCAMLBCFLAGS = -g -safe-string -w -3
 OCAMLLDFLAGS = -g
 
 all : native-code-library byte-code-library htdoc
 
 clean ::
-	rm -rf doc foo foo2 out.pdf out2.pdf *.cmt
+	rm -rf doc foo foo2 out.pdf out2.pdf *.cmt *.cmti
 
 install : libinstall
 
