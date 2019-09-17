@@ -11,12 +11,12 @@ type t =
   | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
-  | FitH of targetpage * float
-  | FitV of targetpage * float
+  | FitH of targetpage * float option
+  | FitV of targetpage * float option
   | FitR of targetpage * float * float * float * float
   | FitB of targetpage
-  | FitBH of targetpage * float
-  | FitBV of targetpage * float
+  | FitBH of targetpage * float option
+  | FitBV of targetpage * float option
 
 (* Read the destination - it's either direct, or in /Dests in the document
 catalog, or in /Dests in the document name tree. *)
@@ -32,7 +32,7 @@ let read_destination_error n s =
 
 let rec read_destination pdf pdfobject =
   let option_getnum = function
-  | Pdf.Real 0. | Pdf.Integer 0 | Pdf.Null -> None
+  | Pdf.Null -> None
   | x -> Some (Pdf.getnum x)
   in
     match Pdf.direct pdf pdfobject with
@@ -56,9 +56,9 @@ let rec read_destination pdf pdfobject =
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/Fit"] ->
         Fit (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitH"; t] ->
-        FitH (read_targetpage p, Pdf.getnum t)
+        FitH (read_targetpage p, option_getnum t)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitV"; l] ->
-        FitV (read_targetpage p, Pdf.getnum l)
+        FitV (read_targetpage p, option_getnum l)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p;
                   Pdf.Name "/FitR"; l; b; r; t] ->
         FitR
@@ -67,9 +67,9 @@ let rec read_destination pdf pdfobject =
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitB"] ->
         FitB (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBH"; t] ->
-        FitBH (read_targetpage p, Pdf.getnum t)
+        FitBH (read_targetpage p, option_getnum t)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBV"; l] ->
-        FitBV (read_targetpage p, Pdf.getnum l)
+        FitBV (read_targetpage p, option_getnum l)
     | Pdf.Name n ->
       (* PDF 1.1. Name object *)
       begin match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
@@ -107,19 +107,22 @@ let pdf_of_targetpage = function
   | PageObject i -> Pdf.Indirect i
   | OtherDocPageNumber i -> Pdf.Integer i
 
+let pos_null = function
+  None -> Pdf.Null
+| Some x -> Pdf.Real x
+
 let pdfobject_of_destination = function
   | Action a -> a
   | NullDestination -> Pdf.Null
   | NamedDestinationElsewhere s -> Pdf.String s
   | XYZ (p, left, top, zoom) ->
-      let f = function None -> Pdf.Null | Some n -> Pdf.Real n in
-        Pdf.Array [pdf_of_targetpage p; Pdf.Name "/XYZ"; f left; f top; f zoom]
+      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/XYZ"; pos_null left; pos_null top; pos_null zoom]
   | Fit p ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/Fit"]
   | FitH (p, top) ->
-      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitH"; Pdf.Real top]
+      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitH"; pos_null top]
   | FitV (p, left) ->
-      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitV"; Pdf.Real left]
+      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitV"; pos_null left]
   | FitR (p, left, bottom, right, top) ->
       Pdf.Array
         [pdf_of_targetpage p; Pdf.Name "/FitR"; Pdf.Real left;
@@ -127,9 +130,9 @@ let pdfobject_of_destination = function
   | FitB p ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitB"]
   | FitBH (p, top) ->
-      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitBH"; Pdf.Real top]
+      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitBH"; pos_null top]
   | FitBV (p, left) ->
-      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitBV"; Pdf.Real left]
+      Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitBV"; pos_null left]
 
 let string_of_destination d =
   Pdfwrite.string_of_pdf (pdfobject_of_destination d)

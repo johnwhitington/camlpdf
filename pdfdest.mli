@@ -13,12 +13,12 @@ type t =
   | NamedDestinationElsewhere of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
-  | FitH of targetpage * float
-  | FitV of targetpage * float
+  | FitH of targetpage * float option
+  | FitV of targetpage * float option
   | FitR of targetpage * float * float * float * float
   | FitB of targetpage
-  | FitBH of targetpage * float
-  | FitBV of targetpage * float
+  | FitBH of targetpage * float option
+  | FitBV of targetpage * float option
 
 (** Read a destination given a PDF and destionation object. *)
 val read_destination : Pdf.t -> Pdf.pdfobject -> t
