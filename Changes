@@ -1,3 +1,8 @@
+2.4 (In development)
+
+o Updated Makefile to build on bytecode-only architectures
+(thanks Ralf Treinen)
+
 2.3 (October 2019)
 
 o Malformed file reading for files with content before the header now works
