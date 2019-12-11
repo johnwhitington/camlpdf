@@ -665,6 +665,7 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
                {Pdf.from_get_encryption_values = (crypt_type, u, o, p, id, ue, oe);
                 Pdf.encrypt_metadata = encrypt_metadata;
                 Pdf.perms = perms};
+           if !crypt_debug then Printf.eprintf "decrypt_pdf: ready to call process_cryption\n";
            (process_cryption
              (not encrypt_metadata) false pdf crypt_type user_pw r u o p id
              keylength file_encryption_key,

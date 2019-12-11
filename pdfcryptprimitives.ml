@@ -119,14 +119,14 @@ let get_padding s =
   let l = bytes_size s in
     assert (l >= 16);
     let potential = bget s (l - 1) in
-      if potential > 0x10 || potential < 0x01 then None else
+      if potential > 0x10 || potential < 0x01 then ((*Printf.eprintf "potential out of range\n";*) None) else
         let rec elts_equal p f t =
           if f = t then p = bget s t else
             p = bget s f && elts_equal p (f + 1) t
         in
           if elts_equal potential (l - potential) (l - 1)
             then Some potential
-            else None
+            else ((*Printf.eprintf "Padding bytes not equal\n";*) None)
 
 let cutshort s =
   if bytes_size s = 0 then mkbytes 0 else

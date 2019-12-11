@@ -1,6 +1,8 @@
 open Pdfutil
 open Pdfio
 
+let debug = ref false
+
 (* Zlib inflate level *)
 let flate_level = ref 6
 
@@ -282,10 +284,17 @@ let decode_flate_input i =
 let encode_flate stream =
   flate_process (Pdfflate.compress ~level:!flate_level) stream
 
+let debug_stream s =
+  Printf.eprintf "First 50 bytes\n";
+  for x = 0 to 50 do
+    Printf.eprintf "%C = %i\n" (char_of_int (bget s x)) (bget s x)
+  done
+
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try flate_process Pdfflate.uncompress stream with
       Pdfflate.Error (a, b) ->
+        if !debug then debug_stream stream;
         raise (Couldn'tDecodeStream ("Flate" ^ " " ^ a ^ " " ^ b ^ " length " ^ string_of_int (bytes_size stream)))
 
 (* LZW *)
