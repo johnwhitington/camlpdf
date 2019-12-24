@@ -463,7 +463,6 @@ let rec read_cid_widths = function
         | Pdf.Real r -> r
         | _ -> raise (Pdf.PDFError "Bad /W array")
       in
-        if c_last = c_first then read_cid_widths more else (* Added 26/01/09 *) 
         if c_last < c_first
           then raise (Pdf.PDFError "Bad /W array")
           else
