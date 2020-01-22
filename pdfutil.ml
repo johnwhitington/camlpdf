@@ -679,7 +679,7 @@ let rec lose_inner prev p = function
 let lose p = lose_inner [] p
 
 (* Make a list of length [n] with each element equal to [x]. *)
-let many x ~n =
+let many x n =
   Array.to_list (Array.make n x)
 
 (* A version where we need to apply unit each time, for instance when producing

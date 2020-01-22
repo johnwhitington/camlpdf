@@ -243,7 +243,7 @@ matching a predicate. *)
 val lose : ('a -> bool) -> ('a list -> 'a list)
 
 (** [many x n] makes a list of length [n] with each element equal to [x]. *)
-val many : 'a -> n:int -> 'a list
+val many : 'a -> int -> 'a list
 
 (** A version where we need to apply unit each time, for instance when producing
 a list of random numbers. Result is ordered. *)
