@@ -1,4 +1,4 @@
-2.4 (In development)
+2.3 (patchlevel 1, December 2019)
 
 o Updated Makefile to build on bytecode-only architectures
 (thanks Ralf Treinen)
