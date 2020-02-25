@@ -303,6 +303,62 @@ let catalog_items_from_original_documents pdfs =
   in
     fold_left (fun d (k, v) -> add k v d) [] catalog_entries
 
+(* Optional Content Groups. We merge the /OCProperties entries like this:
+  * a) append /OCGs entries
+  * b) append /Configs entries, or leave absent if everywhere-absent.
+  * c) combine /D dictionary by appending its subentries:
+    *    1) /ON / /OFF arrays, merge or absent if everywhere-absent
+    *    2) /Order ditto
+    *    3) /RBGroups ditto
+    *    4) Use first or any found /Locked /ListMode /AS /Intent /BaseState /Creator /Name *)
+let merge_entries pdf n maindict =
+  flatten
+    (option_map
+       (fun dict -> match Pdf.lookup_direct pdf n dict with Some (Pdf.Array a) -> Some a | _ -> None)
+       maindict)
+
+let merge_default_dictionaries pdf dics =
+  let merge_empty_is_none n =
+    match option_map (Pdf.lookup_direct pdf n) dics with
+    | [] -> []
+    | l -> [(n, Pdf.Array (flatten (option_map (function Pdf.Array a -> Some a | _ -> None) l)))]
+  in
+    let merged_on = merge_empty_is_none "/ON" in
+    let merged_off = merge_empty_is_none "/OFF" in
+    let merged_order = merge_empty_is_none "/Order" in
+    let merged_rbgroups = merge_empty_is_none "/RBGroups" in
+    let simple_copies =
+      let keys =
+        ["/Locked"; "/ListMode"; "/AS"; "/Intent"; "/BaseState"; "/Creator"; "/Name"]
+      in
+      let find_first_item key =
+        match option_map (Pdf.lookup_direct pdf key) dics with
+        | [] -> []
+        | h::_ -> [(key, h)]
+      in
+        List.flatten (List.map find_first_item keys)
+    in
+      merged_on @ merged_off @ merged_order @ merged_rbgroups @ simple_copies
+
+let merge_optional_content_groups pdf pdfs =
+  let ocp_dicts =
+    option_map
+      (fun pdf -> Pdf.lookup_direct pdf "/OCProperties" (Pdf.catalog_of_pdf pdf))
+      pdfs
+  in
+    if ocp_dicts = [] then None else
+    let merged_ocg_arrays = merge_entries pdf "/OCGs" ocp_dicts in
+    let merged_config_arrays = merge_entries pdf "/Configs" ocp_dicts in
+    let merged_default_dictionary =
+      merge_default_dictionaries pdf (option_map (Pdf.lookup_direct pdf "/D") ocp_dicts)
+    in
+    let new_ocproperties =
+      Pdf.Dictionary
+        ([("/OCGs", Pdf.Array merged_ocg_arrays); ("/D", Pdf.Dictionary merged_default_dictionary)]
+         @ if merged_config_arrays = [] then [] else [("/Configs",  Pdf.Array merged_config_arrays)])
+    in
+      Some (Pdf.addobj pdf new_ocproperties)
+
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
   let pdfs = merge_pdfs_rename_name_trees names pdfs in
@@ -333,6 +389,12 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                   None -> with_names
                 | Some dests ->
                     add "/Dests" (Pdf.Indirect dests) with_names
+            in
+            (* Merge Optional content groups *)
+            let extra_catalog_entries =
+              match merge_optional_content_groups pdf pdfs with
+                None -> extra_catalog_entries
+              | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
