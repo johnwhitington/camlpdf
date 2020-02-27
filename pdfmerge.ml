@@ -338,6 +338,11 @@ let merge_default_dictionaries pdf dics =
       in
         List.flatten (List.map find_first_item keys)
     in
+      (*Printf.printf "merged_on length %i\n" (length merged_on);
+      Printf.printf "merged_off length %i\n" (length merged_off);
+      Printf.printf "merged_order length %i\n" (length merged_order);
+      Printf.printf "merged_rbgroups length %i\n" (length merged_rbgroups);
+      Printf.printf "simple_copies length %i\n" (length simple_copies);*)
       merged_on @ merged_off @ merged_order @ merged_rbgroups @ simple_copies
 
 let merge_optional_content_groups pdf pdfs =
