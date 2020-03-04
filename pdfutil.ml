@@ -140,7 +140,7 @@ let combine a b =
       List.iter2 (fun x y -> pairs := (x, y)::!pairs) a b;
       rev !pairs
     with
-      Invalid_argument _ -> raise (Invalid_argument "Utility.combine")
+      Invalid_argument _ -> raise (Invalid_argument "Pdfutil.combine")
 
 let combine3 a b c =
   let pairs = ref [] in

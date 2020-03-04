@@ -632,7 +632,7 @@ let change_pages ?changes change_references basepdf pages' =
                    | Some cs ->
                        (* Turn the 1-based serial numbers into page reference numbers *)
                        try
-                         List.map
+                         map
                            (fun (x, y) ->
                             List.nth old_page_numbers (x - 1), List.nth new_page_numbers (y - 1))
                          cs
@@ -817,7 +817,7 @@ let fixup_parents pdf =
 
 let pdf_of_pages ?(retain_numbering = false) basepdf range =
   let page_labels =
-    if List.length (Pdfpagelabels.read basepdf) = 0 then [] else
+    if length (Pdfpagelabels.read basepdf) = 0 then [] else
       if retain_numbering
         then Pdfpagelabels.merge_pagelabels [basepdf] [range]
         else []
@@ -988,11 +988,11 @@ let names_used pdf =
               Some (Pdf.Name ("/Page" | "/Pages")) ->
                 begin match Pdf.lookup_direct pdf "/Resources" obj with
                   Some resources ->
-                    List.iter
+                    iter
                       (fun key ->
                          match Pdf.lookup_direct pdf key resources with
                            Some (Pdf.Dictionary d) ->
-                             List.iter
+                             iter
                                (fun (k, _) -> names := unslash k::!names)
                                d
                          | _ -> ())
@@ -1120,7 +1120,7 @@ let add_prefix pdf prefix =
                        (if resources = None then Pdf.Dictionary [] else unopt resources)
                        (Pdf.Indirect i)
                  | Some (Pdf.Array a) ->
-                     List.iter
+                     iter
                        (fix_stream
                          (if resources = None then Pdf.Dictionary [] else unopt resources))
                        a

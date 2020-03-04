@@ -872,7 +872,7 @@ let parse_finish ?(failure_is_ok = false) q =
       o, Pdf.Null
   | l ->
       Printf.eprintf "list length %i\n" (length l);
-        List.iter
+        iter
           (function
               Parsed p -> Printf.eprintf "%s\n" (Pdfwrite.string_of_pdf p)
             | Lexeme l -> Printf.eprintf "%s\n" (string_of_lexeme l))

@@ -176,7 +176,7 @@ let rec read_name_tree pdf tree =
 
 let read_name_tree pdf tree =
   let r = read_name_tree pdf tree in
-    List.map (function (Pdf.String s, x) -> (s, x) | _ -> raise (Pdf.PDFError "malformed name tree")) r
+    map (function (Pdf.String s, x) -> (s, x) | _ -> raise (Pdf.PDFError "malformed name tree")) r
 
 let maxsize = 10 (* Must be at least two *)
 
@@ -188,23 +188,23 @@ let left l = fst (hd l)
 let right l = fst (last l)
 
 let rec build_nt_tree l =
-  if List.length l = 0 then assert false;
-  if List.length l <= maxsize
+  if length l = 0 then assert false;
+  if length l <= maxsize
     then Lf (left l, l, right l)
-    else Br (left l, List.map build_nt_tree (splitinto (List.length l / maxsize) l), right l)
+    else Br (left l, map build_nt_tree (splitinto (length l / maxsize) l), right l)
 
 let rec name_tree_of_nt isroot pdf = function
   Lf (llimit, items, rlimit) ->
     Pdf.Dictionary
-      ([("/Names", Pdf.Array (List.flatten (List.map (fun (k, v) -> [Pdf.String k; v]) items)))] @
+      ([("/Names", Pdf.Array (flatten (map (fun (k, v) -> [Pdf.String k; v]) items)))] @
        if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
 | Br (llimit, nts, rlimit) ->
     let indirects =
-      let kids = List.map (name_tree_of_nt false pdf) nts in
-        List.map (Pdf.addobj pdf) kids
+      let kids = map (name_tree_of_nt false pdf) nts in
+        map (Pdf.addobj pdf) kids
     in
       Pdf.Dictionary
-       [("/Kids", Pdf.Array (List.map (fun x -> Pdf.Indirect x) indirects));
+       [("/Kids", Pdf.Array (map (fun x -> Pdf.Indirect x) indirects));
         ("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])]
 
 let build_name_tree pdf = function
@@ -336,7 +336,7 @@ let merge_default_dictionaries pdf dics =
         | [] -> []
         | h::_ -> [(key, h)]
       in
-        List.flatten (List.map find_first_item keys)
+        flatten (map find_first_item keys)
     in
       (*Printf.printf "merged_on length %i\n" (length merged_on);
       Printf.printf "merged_off length %i\n" (length merged_off);
