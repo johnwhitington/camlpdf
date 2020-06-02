@@ -1,6 +1,10 @@
 (* General Input and Output *)
 open Pdfutil
 
+(* On 64 bit platforms, bigarray isn't used since max_string is big. If
+ * this is set, we use bigarray always, for testing... *)
+let test_bigarray = false
+
 (* We used to have a type called "bytes" before OCaml did.  In order
    not to break client code using e.g. Pdfio.bytes, we keep the name
    but expose an alias caml_bytes for the built-in type. *)
@@ -8,7 +12,7 @@ type caml_bytes = bytes
 
 (* External type for big streams of bytes passed to C*)
 type rawbytes =
-  (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  (int, Barray.int8_unsigned_elt, Barray.c_layout) Barray.Array1.t
 
 (* But for speed, we use strings of length < Sys.max_string_length *)
 type bytes =
@@ -16,15 +20,15 @@ type bytes =
   | Short of caml_bytes
 
 let bigarray_unsafe_get =
-  Bigarray.Array1.unsafe_get
+  Barray.Array1.unsafe_get
 
 let bigarray_unsafe_set =
-  Bigarray.Array1.unsafe_set
+  Barray.Array1.unsafe_set
 
 (* Extract the raw bytes, without necessarily copying *)
 let raw_of_bytes = function
   | Short b ->
-      let l = Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout (Bytes.length b) in
+      let l = Barray.Array1.create Barray.int8_unsigned Barray.c_layout (Bytes.length b) in
         for x = 0 to Bytes.length b - 1 do
           bigarray_unsafe_set l x (int_of_char (Bytes.unsafe_get b x))
         done;
@@ -36,19 +40,19 @@ let bytes_of_raw b = Long b
 
 (* Make a stream of a given size. *)
 let mkbytes l =
-  if l <= Sys.max_string_length
+  if l <= (if test_bigarray then max_int else Sys.max_string_length)
     then Short (Bytes.create l)
-    else Long (Bigarray.Array1.create Bigarray.int8_unsigned Bigarray.c_layout l)
+    else Long (Barray.Array1.create Barray.int8_unsigned Barray.c_layout l)
 
 (* Find the size of a stream. *)
 let bytes_size = function
   | Short s -> Bytes.length s
-  | Long b -> Bigarray.Array1.dim b
+  | Long b -> Barray.Array1.dim b
 
 let bset s n v =
   match s with
   | Short s -> Bytes.set s n (Char.unsafe_chr v)
-  | Long s -> Bigarray.Array1.set s n v
+  | Long s -> Barray.Array1.set s n v
 
 let bset_unsafe s n v =
   match s with
@@ -58,7 +62,7 @@ let bset_unsafe s n v =
 let bget s n =
   match s with
   | Short s -> int_of_char (Bytes.get s n)
-  | Long s -> Bigarray.Array1.get s n
+  | Long s -> Barray.Array1.get s n
 
 let bget_unsafe s n =
   match s with
