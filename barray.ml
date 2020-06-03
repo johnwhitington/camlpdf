@@ -13,6 +13,10 @@
 (*                                                                        *)
 (**************************************************************************)
 
+(** Vendored bigarray *)
+
+(**/**)
+
 (* Module [Bigarray]: large, multi-dimensional, numerical arrays *)
 
 (* These types in must be kept in sync with the tables in
