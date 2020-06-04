@@ -1,7 +1,6 @@
 2.4 (in development)
 
 o Optional content groups merged when merging
-o Bigarray comes in, to allow libcpdf.a / .dll to be standalone
 
 2.3 (patchlevel 1, December 2019)
 
