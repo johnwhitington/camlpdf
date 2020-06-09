@@ -1,80 +1,42 @@
-(* From CamlZip. See LICENSE *)
-exception Error of string * string
+exception Error of string
 
-let _ =
-  Callback.register_exception "Zlib.Error" (Error("",""))
+let blit_from_bytes src src_off dst dst_off len =
+  for i = 0 to len - 1 do
+    Bigarray.Array1.set dst (dst_off + i) (Bytes.get src (src_off + i)) ;
+  done
 
-type stream
+let blit_to_bytes src src_off dst dst_off len =
+  for i = 0 to len - 1 do
+    Bytes.set dst (dst_off + i) (Bigarray.Array1.get src (src_off + i)) ;
+  done
 
-type flush_command =
-    Z_NO_FLUSH
-  | Z_SYNC_FLUSH
-  | Z_FULL_FLUSH
-  | Z_FINISH
+let compress refill flush =
+  let w = De.make_window ~bits:15 in
+  let q = De.Queue.create 0x1000 in
+  let i = De.bigstring_create De.io_buffer_size in
+  let o = De.bigstring_create De.io_buffer_size in
+  let refill i =
+    let tmp = Bytes.create (De.bigstring_length i) in
+    let len = refill tmp in
+    blit_from_bytes tmp 0 i 0 len ; len in
+  let flush o len =
+    let tmp = Bytes.create len in
+    blit_to_bytes o 0 tmp 0 len ;
+    flush tmp len in
+  Zl.Higher.compress ~level:3 ~w ~q ~i ~o ~refill ~flush
 
-external deflate_init: int -> bool -> stream = "camlzip_deflateInit"
-external deflate:
-  stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
-         -> bool * int * int
-  = "camlzip_deflate_bytecode" "camlzip_deflate"
-external deflate_end: stream -> unit = "camlzip_deflateEnd"
-
-external inflate_init: bool -> stream = "camlzip_inflateInit"
-external inflate:
-  stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
-         -> bool * int * int
-  = "camlzip_inflate_bytecode" "camlzip_inflate"
-external inflate_end: stream -> unit = "camlzip_inflateEnd"
-
-let buffer_size = 1024
-
-let compress ?(level = 6) ?(header = true) refill flush =
-  let inbuf = Bytes.create buffer_size
-  and outbuf = Bytes.create buffer_size in
-  let zs = deflate_init level header in
-  let rec compr inpos inavail =
-    if inavail = 0 then begin
-      let incount = refill inbuf in
-      if incount = 0 then compr_finish() else compr 0 incount
-    end else begin
-      let (_, used_in, used_out) =
-        deflate zs inbuf inpos inavail outbuf 0 buffer_size Z_NO_FLUSH in
-      flush outbuf used_out;
-      compr (inpos + used_in) (inavail - used_in)
-    end
-  and compr_finish () =
-    let (finished, _, used_out) =
-       deflate zs inbuf 0 0 outbuf 0 buffer_size Z_FINISH in
-    flush outbuf used_out;
-    if not finished then compr_finish()
-  in
-    compr 0 0;
-    deflate_end zs
-
-
-let uncompress ?(header = true) refill flush =
-  let inbuf = Bytes.create buffer_size
-  and outbuf = Bytes.create buffer_size in
-  let zs = inflate_init header in
-  let rec uncompr inpos inavail =
-    if inavail = 0 then begin
-      let incount = refill inbuf in
-      if incount = 0 then uncompr_finish true else uncompr 0 incount
-    end else begin
-      let (finished, used_in, used_out) =
-        inflate zs inbuf inpos inavail outbuf 0 buffer_size Z_SYNC_FLUSH in
-      flush outbuf used_out;
-      if not finished then uncompr (inpos + used_in) (inavail - used_in)
-    end
-  and uncompr_finish first_finish =
-    (* Gotcha: if there is no header, inflate requires an extra "dummy" byte
-       after the compressed stream in order to complete decompression
-       and return finished = true. *)
-    let dummy_byte = if first_finish && not header then 1 else 0 in
-    let (finished, _, used_out) =
-       inflate zs inbuf 0 dummy_byte outbuf 0 buffer_size Z_SYNC_FLUSH in
-    flush outbuf used_out;
-    if not finished then uncompr_finish false
-  in
-    uncompr 0 0;
-    inflate_end zs
+let uncompress refill flush =
+  let allocate bits = De.make_window ~bits in
+  let i = De.bigstring_create De.io_buffer_size in
+  let o = De.bigstring_create De.io_buffer_size in
+  let refill i =
+    let tmp = Bytes.create (De.bigstring_length i) in
+    let len = refill tmp in
+    blit_from_bytes tmp 0 i 0 len ; len in
+  let flush o len =
+    let tmp = Bytes.create len in
+    blit_to_bytes o 0 tmp 0 len ;
+    flush tmp len in
+  match Zl.Higher.uncompress ~allocate ~i ~o ~refill ~flush with
+  | Ok () -> ()
+  | Error (`Msg err) -> raise (Error err)

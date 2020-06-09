@@ -66,8 +66,6 @@ val decode_from_input : Pdfio.input -> Pdf.pdfobject -> Pdfio.bytes option
 (* Inter-module recursion. *)
 val string_of_pdf : (Pdf.pdfobject -> string) ref
 
-val flate_level : int ref
-
 val encode_flate : Pdfio.bytes -> Pdfio.bytes
 
 val debug : bool ref

@@ -3,9 +3,6 @@ open Pdfio
 
 let debug = ref false
 
-(* Zlib inflate level *)
-let flate_level = ref 6
-
 (* Get the next non-whitespace character in a stream. *)
 let rec get_streamchar skipped s =
   match s.input_byte () with
@@ -282,7 +279,7 @@ let decode_flate_input i =
       bytes_of_strings_rev !strings
 
 let encode_flate stream =
-  flate_process (Pdfflate.compress ~level:!flate_level) stream
+  flate_process Pdfflate.compress stream
 
 let debug_stream s =
   Printf.eprintf "First 50 bytes\n";
@@ -293,9 +290,9 @@ let debug_stream s =
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try flate_process Pdfflate.uncompress stream with
-      Pdfflate.Error (a, b) ->
+      Pdfflate.Error err ->
         if !debug then debug_stream stream;
-        raise (Couldn'tDecodeStream ("Flate" ^ " " ^ a ^ " " ^ b ^ " length " ^ string_of_int (bytes_size stream)))
+        raise (Couldn'tDecodeStream ("Flate" ^ " " ^ err ^ " length " ^ string_of_int (bytes_size stream)))
 
 (* LZW *)
 
