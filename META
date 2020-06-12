@@ -1,6 +1,6 @@
 name="camlpdf"
 description="Read, write and modify PDF files"
 version="1.7.1"
-requires="bigarray decompress"
+requires="bigarray decompress.zl"
 archive(byte)="camlpdf.cma"
 archive(native)="camlpdf.cmxa"
