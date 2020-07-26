@@ -1666,14 +1666,15 @@ let read_malformed_trailerdict i =
         try
           let l = input_line i in
             let r = 
-              implode (take (explode l) 7) <> "trailer"
+              not (l.[0] = 't' && l.[1] = 'r' && l.[2] = 'a' && l.[3] = 'i' && l.[4] = 'l' && l.[5] = 'e' && l.[6] = 'r')
             in
-              (* In case of "trailer<<..." i.e a missing newline, we backtrack until
+              (* In case of "trailer_<<..." i.e a missing newline, we backtrack until
                * just after the trailer keyword itself *)
-              i.seek_in (currpos + 7);
+              if String.length l > 7 && (l.[7] = '<' || l.[7] = ' ') then i.seek_in (currpos + 7);
               r
         with
-          _ -> not (i.pos_in () = currpos || i.pos_in () >= i.in_channel_length)
+          _ -> (* out of bounds from l.[n], End_of_file *) 
+            not (i.pos_in () = currpos || i.pos_in () >= i.in_channel_length)
     do () done;
     let lexemes =
       lex_object_at true i true parse (lex_object i (null_hash ()) parse true)
@@ -1722,27 +1723,29 @@ let rec advance_to_integer i =
 
 (* Read the actual objects, in order. *)
 let read_malformed_pdf_objects i =
+  if !read_debug then flprint "read_debug is true\n";
   let objs = ref [] in
     (* Can't just test i.pos_in () < i.in_channel_length because of set_offset! *)
     while let x = i.input_char () in rewind i; x <> None do
       let c = i.pos_in () in
         try
           if !read_debug then Printf.printf
-             "read_malformed_pdf_object is reading an object at %i\n" c;
+             "read_malformed_pdf_object is reading an object at %i\n%!" c;
           let objnum, obj =
             parse
               ~failure_is_ok:true
               (lex_object_at
                 true i true parse (lex_object i (null_hash ()) parse true))
           in
-            if !read_debug then Printf.printf "Got object %i, which is %s ok\n"
-                objnum (Pdfwrite.string_of_pdf obj);
+            if !read_debug then Printf.printf "Got object %i ok\n%!" objnum;
+            (*if !read_debug then Printf.printf "Got object %i, which is %s ok%!\n"
+                objnum (Pdfwrite.string_of_pdf obj);*)
             if objnum > 0 && objnum < max_int then objs := add objnum obj !objs;
             advance_to_integer i; (* find next possible object *)
             if i.pos_in () = c then ignore (input_line i) (* no progress. *)
         with
           e ->
-            if !read_debug then Printf.printf "Couldn't get object, moving on\n";
+            if !read_debug then Printf.printf "Couldn't get object, moving on\n%!";
             ignore (input_line i) (* Move on *)
     done;
     !objs
@@ -1751,8 +1754,11 @@ let read_malformed_pdf upw opw i =
   Printf.eprintf
     "Attempting to reconstruct the malformed pdf %s...\n" i.Pdfio.source;
   flush stderr;
-  let trailerdict = read_malformed_trailerdicts i
-  and major, minor = read_header i in
+  if !read_debug then flprint "Beginning of malformed PDF reconstruction\n";
+  let trailerdict = read_malformed_trailerdicts i in
+    if !read_debug then flprint "Finished reading malformed trailer dictionaries\n";
+  let major, minor = read_header i in
+    if !read_debug then flprint "Finished reading malformed header\n";
     i.Pdfio.seek_in 0;
     let objects =
       map
