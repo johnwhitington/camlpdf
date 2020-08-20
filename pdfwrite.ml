@@ -83,8 +83,7 @@ let format_real x =
         else string_of_float x
 
 (* Character codes in a name < 33 or > 126 are replaced with hashed combinations
-(e.g #20 for space). If the name contains the null character, an exception is
-raised. *)
+(e.g #20 for space). If the name contains the null character, a warning is printed. *)
 let hexchar = function
   | 0 -> '0' | 1 -> '1' | 2 -> '2' | 3 -> '3' | 4 -> '4' | 5 -> '5' | 6 -> '6'
   | 7 -> '7' | 8 -> '8' | 9 -> '9' | 10 -> 'A' | 11 -> 'B' | 12 -> 'C'
@@ -95,7 +94,8 @@ let make_pdf_name_inner b s =
   for x = 1 to String.length s - 1 do (* skip / *)
     match String.get s x with
     | '\000' ->
-      raise (Pdf.PDFError "Name cannot contain the null character")
+      Printf.eprintf "Warning: name %S contains the null character\n" s;
+      Buffer.add_string b "#00"
     | h when h < '\033' || h > '\126' || Pdf.is_delimiter h || h = '#' ->
       Buffer.add_char b '#';
       Buffer.add_char b (hexchar ((int_of_char h) / 16));
@@ -109,7 +109,6 @@ character, since a '/' is a delimter, and this is fine... *)
 let rec needs_processing_inner s p l =
   (p <= l - 1) &&
     (match String.unsafe_get s p with
-    | '\000' -> raise (Pdf.PDFError "Name cannot contain the null character")
     | x when x < '\033' || x > '\126' || Pdf.is_delimiter x || x = '#' -> true
     | _ -> needs_processing_inner s (p + 1) l)
 
