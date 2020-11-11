@@ -266,3 +266,4 @@ val deep_copy : t -> t
 
 val string_of_pdf : (pdfobject -> string) ref
 
+val change_id : t -> string -> unit

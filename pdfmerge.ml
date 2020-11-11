@@ -421,5 +421,6 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
      let pdf = merge_bookmarks changes pdfs ranges pdf in
        Pdfpagelabels.write pdf page_labels;
        if do_remove_duplicate_fonts then remove_duplicate_fonts pdf;
+       Pdf.change_id pdf "";
        pdf
 

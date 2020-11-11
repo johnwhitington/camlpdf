@@ -726,25 +726,16 @@ let pdf_to_output
                 o.output_string "\n%%EOF\n"
             end
 
-let change_id pdf f =
-  match pdf.Pdf.trailerdict with
-  | Pdf.Dictionary d ->
-      {pdf with
-         Pdf.trailerdict =
-           Pdf.Dictionary
-             (add "/ID" (Pdf.generate_id pdf f (fun () -> Random.float 1.)) d)}
-  | _ -> raise (Pdf.PDFError "Bad trailer dictionary")
-
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
   linearize encrypt mk_id pdf ch
 =
-  let pdf = if mk_id then change_id pdf "" else pdf in
-    pdf_to_output
-      ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-      linearize encrypt pdf (output_of_channel ch)
+  if mk_id then Pdf.change_id pdf "";
+  pdf_to_output
+    ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
+    linearize encrypt pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
 trailer dictionary is updated using the current date and time and the filename.
@@ -757,12 +748,12 @@ let pdf_to_file_options
   ?(compress_objstm = true) ?(recrypt = None)
   linearize encrypt mk_id pdf f
 =
-  let pdf' = if mk_id then change_id pdf f else pdf
-  and ch = open_out_bin f in
+  if mk_id then Pdf.change_id pdf f;
+  let ch = open_out_bin f in
     try
       pdf_to_channel
         ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-        linearize encrypt false pdf' ch;
+        linearize encrypt false pdf ch;
       close_out ch
     with
       e -> close_out ch; raise e

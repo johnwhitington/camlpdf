@@ -981,4 +981,9 @@ let deep_copy from =
    was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption}
 
-
+let change_id pdf f =
+  match pdf.trailerdict with
+  | Dictionary d ->
+      pdf.trailerdict <-
+        Dictionary (add "/ID" (generate_id pdf f (fun () -> Random.float 1.)) d)
+  | _ -> raise (PDFError "Bad trailer dictionary")
