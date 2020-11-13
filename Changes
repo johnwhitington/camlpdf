@@ -2,6 +2,7 @@
 
 o Optional content groups merged when merging
 o Preserves zero bytes in malformed names
+o Merged files get fresh /ID
 
 2.3 (patchlevel 1, December 2019)
 
@@ -59,4 +60,3 @@ o Now under a standard LGPL license
 o Has no dependencies
 o First import into git for use with GitHub for open development
 o Support for ocamlfind
-

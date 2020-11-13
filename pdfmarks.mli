@@ -18,4 +18,3 @@ val remove_bookmarks : Pdf.t -> Pdf.t
 
 (** Add bookmarks to a document, replacing any currently there. *)
 val add_bookmarks : t list -> Pdf.t -> Pdf.t
-

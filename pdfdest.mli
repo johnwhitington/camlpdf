@@ -28,4 +28,3 @@ val pdfobject_of_destination : t -> Pdf.pdfobject
 
 (**/**)
 val string_of_destination : t -> string
-
