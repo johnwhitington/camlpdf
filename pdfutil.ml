@@ -75,7 +75,7 @@ let rec iter3 f a b c =
   | ah::a', bh::b', ch::c' ->
       f ah bh ch;
       iter3 f a' b' c'
-  | _ -> raise (Invalid_argument "iter3")
+  | _ -> raise (Invalid_argument "Pdfutil.iter3")
 
 let append a b =
   List.rev_append (rev a) b
@@ -148,7 +148,7 @@ let combine3 a b c =
       iter3 (fun x y z -> pairs := (x, y, z)::!pairs) a b c;
       rev !pairs
     with
-      Invalid_argument _ -> raise (Invalid_argument "Utility.combine3")
+      Invalid_argument _ -> raise (Invalid_argument "Pdfutil.combine3")
  
 let fold_left f b l = List.fold_left f b l
 
@@ -162,7 +162,7 @@ let rec rev_map3_inner f a b c outputs =
   | [], [], [] -> outputs
   | ha::ta, hb::tb, hc::tc ->
       rev_map3_inner f ta tb tc (f ha hb hc::outputs)
-  | _ -> raise (Invalid_argument "map3")
+  | _ -> raise (Invalid_argument "Pdfutil.map3")
 
 let rev_map3 f a b c =
   rev_map3_inner f a b c []
@@ -175,7 +175,7 @@ let rec rev_map4_inner f a b c d outputs =
   | [], [], [], [] -> outputs
   | ha::ta, hb::tb, hc::tc, hd::td ->
       rev_map4_inner f ta tb tc td (f ha hb hc hd::outputs)
-  | _ -> raise (Invalid_argument "map4")
+  | _ -> raise (Invalid_argument "Pdfutil.map4")
 
 let rev_map4 f a b c d =
   rev_map4_inner f a b c d []
@@ -188,7 +188,7 @@ let rec rev_map5_inner f a b c d e outputs =
   | [], [], [], [], [] -> outputs
   | ha::ta, hb::tb, hc::tc, hd::td, he::te ->
       rev_map5_inner f ta tb tc td te (f ha hb hc hd he::outputs)
-  | _ -> raise (Invalid_argument "map5")
+  | _ -> raise (Invalid_argument "Pdfutil.map5")
 
 let rev_map5 f a b c d e =
   rev_map5_inner f a b c d e []
@@ -354,7 +354,7 @@ let do_return v f =
 
 (* Call [f ()] some number of times. *)
 let rec do_many f = function
-  | n when n < 0 -> raise (Invalid_argument "do_many")
+  | n when n < 0 -> raise (Invalid_argument "Pdfutil.do_many")
   | 0 -> ()
   | n -> f (); do_many f (n - 1) 
 
@@ -375,7 +375,7 @@ let interleave_lists a b =
     match a, b with
     | [], [] -> rev r
     | h::t, h'::t' -> interleave_lists_inner (h'::h::r) t t'
-    | _ -> raise (Invalid_argument "interleave_lists")
+    | _ -> raise (Invalid_argument "Pdfutil.interleave_lists")
   in
     interleave_lists_inner [] a b
 
@@ -480,7 +480,7 @@ let conspairopt ((xo, yo), (xs, ys)) =
 let pairs_of_list l =
   let rec pairs_of_list_inner r = function
     | [] -> rev r
-    | [_] -> raise (Invalid_argument "pairs_of_list")
+    | [_] -> raise (Invalid_argument "Pdfutil.pairs_of_list")
     | h::h'::t -> pairs_of_list_inner ((h, h')::r) t
   in
     pairs_of_list_inner [] l
@@ -636,7 +636,7 @@ let couple_ext f g l =
 (* Apply [couple] repeatedly until only one element remains. Return that
 element. *)
 let rec couple_reduce f = function
-  | [] -> raise (Invalid_argument "Utility.couple_reduce")
+  | [] -> raise (Invalid_argument "Pdfutil.couple_reduce")
   | [a] -> a
   | l -> couple_reduce f (couple f l)
 
@@ -661,7 +661,7 @@ let pair_ext f g l =
 
 (* As [couple_reduce] is to [couple], so this is to [pair]. *)
 let rec pair_reduce f = function
-  | [] -> raise (Invalid_argument "Utility.pair_reduce")
+  | [] -> raise (Invalid_argument "Pdfutil.pair_reduce")
   | [a] -> a
   | l -> pair_reduce f (pair f l)
 
@@ -694,11 +694,11 @@ let manyunique f n =
 
 (* Take [n] elements from the front of a list [l], returning them in order. *)
 let take l n =
-  if n < 0 then raise (Invalid_argument "Utility.take") else
+  if n < 0 then raise (Invalid_argument "Pdfutil.take") else
   let rec take_inner r l n =
     if n = 0 then rev r else
       match l with
-      | [] -> raise (Invalid_argument "Utility.take")
+      | [] -> raise (Invalid_argument "Pdfutil.take")
       | h::t -> take_inner (h::r) t (n - 1)
   in
     take_inner [] l n
@@ -725,11 +725,11 @@ let takewhile p l =
 (* Drop [n] elements from the front of a list, returning the remainder in
 order. *)
 let rec drop_inner n = function
-  | [] -> raise (Invalid_argument "drop")
+  | [] -> raise (Invalid_argument "Pdfutil.drop")
   | _::t -> if n = 1 then t else drop_inner (n - 1) t
 
 let drop l n =
-  if n < 0 then raise (Invalid_argument "drop") else
+  if n < 0 then raise (Invalid_argument "Pdfutil.drop") else
   if n = 0 then l else
     drop_inner n l
 
@@ -744,11 +744,11 @@ let cleave l n =
   let rec cleave_inner l left n =
     if n = 0 then rev left, l else
       match l with
-      | [] -> raise (Invalid_argument "cleave: not enough elements")
+      | [] -> raise (Invalid_argument "Pdfutil.cleave: not enough elements")
       | _  -> cleave_inner (tl l) (hd l::left) (n - 1)
   in
     if n < 0
-      then raise (Invalid_argument "cleave: negative argument")
+      then raise (Invalid_argument "Pdfutil.cleave: negative argument")
       else cleave_inner l [] n
 
 (* Returns elements for which p is true, until one is not, paired with the
@@ -841,7 +841,7 @@ let splitat points l =
 let select n l =
   try hd (drop l (n - 1)) with
     Invalid_argument _ (*"drop"*)
-  | Failure _ (*"hd"*) -> raise (Invalid_argument "select")
+  | Failure _ (*"hd"*) -> raise (Invalid_argument "Pdfutil.select")
 
 (* Replace the nth element of a list (first is element 1) *)
 let rec replace_number_inner prev n e = function
@@ -861,7 +861,7 @@ let notnull = function [] -> false | _ -> true
 
 (* Find the last element of a list. *)
 let rec last = function
-  | [] -> raise (Invalid_argument "Utility.last")
+  | [] -> raise (Invalid_argument "Pdfutil.last")
   | x::[] -> x
   | _::xs -> last xs
 
@@ -873,7 +873,7 @@ let all_but_last = function
 (* Find the first and last element of a list. If the list has one element, that
 is returned twice. *)
 let extremes = function
-  | [] -> raise (Invalid_argument "Utility.extremes")
+  | [] -> raise (Invalid_argument "Pdfutil.extremes")
   | x::[] -> x, x
   | x::xs -> x, last xs
 
@@ -881,7 +881,7 @@ let extremes = function
 least two. *)
 let extremes_and_middle = function
   | [] | [_] ->
-      raise (Invalid_argument "extremes_and_middle")
+      raise (Invalid_argument "Pdfutil.extremes_and_middle")
   | h::t ->
       let m, l = cleave t (length t - 1) in
          h, m, hd l
@@ -1006,7 +1006,7 @@ let rev_compare a b =
  
 (* The integer range between $[s..e]$ inclusive. *)
 let ilist s e =
-  if e < s then raise (Invalid_argument "Utility.ilist") else
+  if e < s then raise (Invalid_argument "Pdfutil.ilist") else
     let nums = ref [] in
       let rec ilist s e =
         if s = e
@@ -1056,13 +1056,13 @@ let array_iter2 f a b =
         f (Array.get a x) (Array.get b x)
       done
   else
-    raise (Invalid_argument "Utility.array_iter2")
+    raise (Invalid_argument "Pdfutil.array_iter2")
    
 let array_map2 f a b =
   if Array.length a = Array.length b then
     Array.init (Array.length a) (function i -> f a.(i) b.(i))
   else
-    raise (Invalid_argument "Utility.array_map2")
+    raise (Invalid_argument "Pdfutil.array_map2")
  
 (* Some simple functions for working with the [option] type. *)
 let some = function None -> false | _ -> true
