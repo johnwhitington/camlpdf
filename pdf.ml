@@ -40,7 +40,9 @@ let print_deferred_encryption e =
   | None -> Printf.printf "file_encryption_key: None\n"
   | Some _ -> Printf.printf "file_encryption_key: Some\n"
   end;
-  Printf.printf "key = %s\n" (Pdfio.string_of_int_array e.key);
+  Printf.printf "key = ";
+  Array.iter (fun x -> Printf.printf "%C" (char_of_int x)) e.key;
+  Printf.printf "\n";
   Printf.printf "obj = %i, gen = %i\n" e.obj e.gen;
   Printf.printf "keylength = %i\n" e.keylength;
   Printf.printf "r = %i\n" e.r
