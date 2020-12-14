@@ -8,8 +8,6 @@ PDFMODS = pdfutil pdfio pdftransform pdfunits pdfpaper pdfcryptprimitives \
 SOURCES = flatestubs.c rijndael-alg-fst.c stubs-aes.c sha2.c stubs-sha2.c \
 	  $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
 
-PACKS = bigarray
-
 RESULT = camlpdf
 
 LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
