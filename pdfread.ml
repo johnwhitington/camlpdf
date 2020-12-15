@@ -1657,7 +1657,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
   else
     let candidate_pdf = read_pdf ?revision user_pw owner_pw opt i in
       if Pdfcrypt.is_encrypted candidate_pdf && !last_read_had_objstms then
-        begin flprint "Throwing away candidate PDF\n"; i.seek_in 0; read_pdf ?revision user_pw owner_pw true i end
+        begin (*flprint "Throwing away candidate PDF\n";*) i.seek_in 0; read_pdf ?revision user_pw owner_pw true i end
       else
         candidate_pdf
 
