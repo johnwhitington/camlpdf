@@ -284,11 +284,22 @@ let decode_flate_input i =
 let encode_flate stream =
   flate_process (Pdfflate.compress ~level:!flate_level) stream
 
+let debug_stream_serial = ref 0
+
 let debug_stream s =
-  Printf.eprintf "First 50 bytes\n";
+  (*Printf.eprintf "First 50 bytes\n";
   for x = 0 to 50 do
     Printf.eprintf "%C = %i\n" (char_of_int (bget s x)) (bget s x)
-  done
+  done*)
+  (* Write stream to current directory as <length>_<serial>.zlib *)
+  let name = string_of_int (bytes_size s) ^ "_" ^ string_of_int !debug_stream_serial ^ ".zlib" in
+  Printf.eprintf "Writing %s\n" name;
+    debug_stream_serial += 1;
+    let fh = open_out_bin name in
+      for x = 0 to bytes_size s - 1 do
+        output_byte fh (bget s x)
+      done;
+      close_out fh
 
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)

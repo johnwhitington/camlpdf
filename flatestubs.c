@@ -121,8 +121,14 @@ value camlzip_deflateEnd(value vzs)
   return Val_unit;
 }
 
+/* CamlZIP now treats Z_BUF_ERROR as non-fatal. However, this can lead to lack
+ * of progress on some malformed streams (at least with miniz.c -- maybe not
+ * zlib. So we have this hack. */
+int buf_error_count;
+
 value camlzip_inflateInit(value expect_header)
 {
+  buf_error_count = 0;
   value vzs = camlzip_new_stream();
   if (inflateInit2(ZStream_val(vzs),
                    Bool_val(expect_header) ? MAX_WBITS : -MAX_WBITS) != Z_OK)
@@ -144,13 +150,16 @@ value camlzip_inflate(value vzs, value srcbuf, value srcpos, value srclen,
   zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
   retcode = inflate(zs, camlzip_flush_table[Int_val(vflush)]);
-  if (retcode < 0 || retcode == Z_NEED_DICT)
+  if (retcode == Z_BUF_ERROR) buf_error_count += 1; else buf_error_count = 0;
+  if (retcode < 0 && retcode != Z_BUF_ERROR ||
+      retcode == Z_BUF_ERROR && buf_error_count > 1 ||
+      retcode == Z_NEED_DICT)
     camlzip_error("Zlib.inflate", vzs);
   used_in = Long_val(srclen) - zs->avail_in;
   used_out = Long_val(dstlen) - zs->avail_out;
   zs->next_in = NULL;           /* not required, but cleaner */
   zs->next_out = NULL;          /* (avoid dangling pointers into Caml heap) */
-  res = alloc_small(3, 0);
+  res = caml_alloc_small(3, 0);
   Field(res, 0) = Val_bool(retcode == Z_STREAM_END);
   Field(res, 1) = Val_int(used_in);
   Field(res, 2) = Val_int(used_out);
@@ -176,4 +185,3 @@ value camlzip_update_crc32(value crc, value buf, value pos, value len)
                           &Byte_u(buf, Long_val(pos)),
                           Long_val(len)));
 }
-
