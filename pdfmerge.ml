@@ -176,7 +176,12 @@ let rec read_name_tree pdf tree =
 
 let read_name_tree pdf tree =
   let r = read_name_tree pdf tree in
-    map (function (Pdf.String s, x) -> (s, x) | _ -> raise (Pdf.PDFError "malformed name tree")) r
+    try
+      map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
+    with
+      Exit ->
+        Printf.eprintf "Pdfmerge.read_names tree: skipping malformed name tree\n";
+        []
 
 let maxsize = 10 (* Must be at least two *)
 
@@ -396,10 +401,10 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                     add "/Dests" (Pdf.Indirect dests) with_names
             in
             (* Merge Optional content groups *)
-            let extra_catalog_entries =
-              match merge_optional_content_groups pdf pdfs with
+            let extra_catalog_entries = extra_catalog_entries
+              (*match merge_optional_content_groups pdf pdfs with
                 None -> extra_catalog_entries
-              | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
+              | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries*)
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)

@@ -880,7 +880,7 @@ let rec nametree_lookup_kids pdf k = function
       | Some result -> Some result
       end
   | Array [] -> None
-  | _ -> raise (PDFError "malformed name tree")
+  | _ -> raise (PDFError "nametree_lookup_kids: malformed name tree")
 
 and array_lookup k = function
   | Array elts ->
