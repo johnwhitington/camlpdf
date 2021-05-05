@@ -401,10 +401,10 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                     add "/Dests" (Pdf.Indirect dests) with_names
             in
             (* Merge Optional content groups *)
-            let extra_catalog_entries = extra_catalog_entries
-              (*match merge_optional_content_groups pdf pdfs with
+            let extra_catalog_entries =
+              match merge_optional_content_groups pdf pdfs with
                 None -> extra_catalog_entries
-              | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries*)
+              | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
