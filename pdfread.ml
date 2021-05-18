@@ -1749,7 +1749,7 @@ let read_malformed_pdf_objects i =
     while let x = i.input_char () in rewind i; x <> None do
       let c = i.pos_in () in
         try
-          if !read_debug then Printf.printf
+          if !read_debug then Printf.eprintf
              "read_malformed_pdf_object is reading an object at %i\n%!" c;
           let objnum, obj =
             parse
@@ -1757,7 +1757,7 @@ let read_malformed_pdf_objects i =
               (lex_object_at
                 true i true parse (lex_object i (null_hash ()) parse true))
           in
-            if !read_debug then Printf.printf "Got object %i ok\n%!" objnum;
+            if !read_debug then Printf.eprintf "Got object %i ok\n%!" objnum;
             (*if !read_debug then Printf.printf "Got object %i, which is %s ok%!\n"
                 objnum (Pdfwrite.string_of_pdf obj);*)
             if objnum > 0 && objnum < max_int then objs := add objnum obj !objs;
@@ -1765,7 +1765,7 @@ let read_malformed_pdf_objects i =
             if i.pos_in () = c then ignore (input_line i) (* no progress. *)
         with
           e ->
-            if !read_debug then Printf.printf "Couldn't get object, moving on\n%!";
+            if !read_debug then Printf.eprintf "Couldn't get object, moving on\n%!";
             ignore (input_line i) (* Move on *)
     done;
     !objs
@@ -1787,14 +1787,14 @@ let read_malformed_pdf upw opw i =
     in
       Printf.eprintf "Read %i objects\n" (length objects);
       let root =
-        if !read_debug then Printf.printf "trailerdict is %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict));
+        if !read_debug then Printf.eprintf "trailerdict is %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict));
         match lookup "/Root" trailerdict with
         | Some (Pdf.Indirect i) -> i
         | None ->
-            if !read_debug then Printf.printf "No /Root entry in malformed file read\n";
+            if !read_debug then Printf.eprintf "No /Root entry in malformed file read\n";
             raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
         | _ ->
-            if !read_debug then Printf.printf "Malformed /Root entry in malformed file read\n";
+            if !read_debug then Printf.eprintf "Malformed /Root entry in malformed file read\n";
             raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
       in
         i.Pdfio.seek_in 0;
@@ -1905,4 +1905,3 @@ let permissions pdf =
       Pdfcrypt.banlist_of_p p
   else
     []
-
