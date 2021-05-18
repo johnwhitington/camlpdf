@@ -338,7 +338,7 @@ let output_of_bytes s =
     let output_int i =
       if s.pos > bytes_size !(s.data) - 1
         then
-          let newstream = mkbytes (s.pos * 2) in
+          let newstream = mkbytes (max 1 (s.pos * 2)) in
             for x = 0 to bytes_size !(s.data) - 1 do
               bset_unsafe newstream x (bget_unsafe !(s.data) x)
             done;
