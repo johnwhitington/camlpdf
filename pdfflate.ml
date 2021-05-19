@@ -2,7 +2,7 @@
 exception Error of string * string
 
 let _ =
-  Callback.register_exception "Zlib.Error" (Error("",""))
+  Callback.register_exception "Pdfflate.Error" (Error("",""))
 
 type stream
 
@@ -12,19 +12,19 @@ type flush_command =
   | Z_FULL_FLUSH
   | Z_FINISH
 
-external deflate_init: int -> bool -> stream = "camlzip_deflateInit"
+external deflate_init: int -> bool -> stream = "camlpdf_camlzip_deflateInit"
 external deflate:
   stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
-  = "camlzip_deflate_bytecode" "camlzip_deflate"
-external deflate_end: stream -> unit = "camlzip_deflateEnd"
+  = "camlpdf_camlzip_deflate_bytecode" "camlpdf_camlzip_deflate"
+external deflate_end: stream -> unit = "camlpdf_camlzip_deflateEnd"
 
-external inflate_init: bool -> stream = "camlzip_inflateInit"
+external inflate_init: bool -> stream = "camlpdf_camlzip_inflateInit"
 external inflate:
   stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
-  = "camlzip_inflate_bytecode" "camlzip_inflate"
-external inflate_end: stream -> unit = "camlzip_inflateEnd"
+  = "camlpdf_camlzip_inflate_bytecode" "camlpdf_camlzip_inflate"
+external inflate_end: stream -> unit = "camlpdf_camlzip_inflateEnd"
 
 let buffer_size = 1024
 
