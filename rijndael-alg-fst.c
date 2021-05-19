@@ -725,7 +725,7 @@ static const u32 rcon[] = {
  *
  * @return	the number of rounds for the given cipher key size.
  */
-int rijndaelKeySetupEnc(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
+int camlpdf_rijndaelKeySetupEnc(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
    	int i = 0;
 	u32 temp;
 
@@ -811,12 +811,12 @@ int rijndaelKeySetupEnc(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBit
  *
  * @return	the number of rounds for the given cipher key size.
  */
-int rijndaelKeySetupDec(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
+int camlpdf_rijndaelKeySetupDec(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBits) {
 	int Nr, i, j;
 	u32 temp;
 
 	/* expand the cipher key: */
-	Nr = rijndaelKeySetupEnc(rk, cipherKey, keyBits);
+	Nr = camlpdf_rijndaelKeySetupEnc(rk, cipherKey, keyBits);
 	/* invert the order of the round keys: */
 	for (i = 0, j = 4*Nr; i < j; i += 4, j -= 4) {
 		temp = rk[i    ]; rk[i    ] = rk[j    ]; rk[j    ] = temp;
@@ -851,7 +851,7 @@ int rijndaelKeySetupDec(u32 rk[/*4*(Nr + 1)*/], const u8 cipherKey[], int keyBit
 	return Nr;
 }
 
-void rijndaelEncrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 pt[16], u8 ct[16]) {
+void camlpdf_rijndaelEncrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 pt[16], u8 ct[16]) {
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 #ifndef FULL_UNROLL
     int r;
@@ -1032,7 +1032,7 @@ void rijndaelEncrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 pt[16], u8 c
 	PUTU32(ct + 12, s3);
 }
 
-void rijndaelDecrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 ct[16], u8 pt[16]) {
+void camlpdf_rijndaelDecrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 ct[16], u8 pt[16]) {
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 #ifndef FULL_UNROLL
     int r;
@@ -1215,7 +1215,7 @@ void rijndaelDecrypt(const u32 rk[/*4*(Nr + 1)*/], int Nr, const u8 ct[16], u8 p
 
 #ifdef INTERMEDIATE_VALUE_KAT
 
-void rijndaelEncryptRound(const u32 rk[/*4*(Nr + 1)*/], int Nr, u8 block[16], int rounds) {
+void camlpdf_rijndaelEncryptRound(const u32 rk[/*4*(Nr + 1)*/], int Nr, u8 block[16], int rounds) {
 	int r;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 
@@ -1308,7 +1308,7 @@ void rijndaelEncryptRound(const u32 rk[/*4*(Nr + 1)*/], int Nr, u8 block[16], in
 	PUTU32(block + 12, s3);
 }
 
-void rijndaelDecryptRound(const u32 rk[/*4*(Nr + 1)*/], int Nr, u8 block[16], int rounds) {
+void camlpdf_rijndaelDecryptRound(const u32 rk[/*4*(Nr + 1)*/], int Nr, u8 block[16], int rounds) {
 	int r;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
 

@@ -1,5 +1,6 @@
 2.4 (June 2021)
 
+o Prefixed all C stubs to avoid clashes
 o Fix for zero-sixed Pdfio.input_outputs
 o Bad interaction between deferred decryption and object streams fixed
 o Optional content groups merged when merging

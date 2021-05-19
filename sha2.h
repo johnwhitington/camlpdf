@@ -72,32 +72,32 @@ typedef struct {
 typedef sha512_ctx sha384_ctx;
 typedef sha256_ctx sha224_ctx;
 
-void sha224_init(sha224_ctx *ctx);
-void sha224_update(sha224_ctx *ctx, const unsigned char *message,
+void camlpdf_sha224_init(sha224_ctx *ctx);
+void camlpdf_sha224_update(sha224_ctx *ctx, const unsigned char *message,
                    unsigned int len);
-void sha224_final(sha224_ctx *ctx, unsigned char *digest);
-void sha224(const unsigned char *message, unsigned int len,
+void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest);
+void camlpdf_sha224(const unsigned char *message, unsigned int len,
             unsigned char *digest);
 
-void sha256_init(sha256_ctx * ctx);
-void sha256_update(sha256_ctx *ctx, const unsigned char *message,
+void camlpdf_sha256_init(sha256_ctx * ctx);
+void camlpdf_sha256_update(sha256_ctx *ctx, const unsigned char *message,
                    unsigned int len);
-void sha256_final(sha256_ctx *ctx, unsigned char *digest);
-void sha256(const unsigned char *message, unsigned int len,
+void camlpdf_sha256_final(sha256_ctx *ctx, unsigned char *digest);
+void camlpdf_sha256(const unsigned char *message, unsigned int len,
             unsigned char *digest);
 
-void sha384_init(sha384_ctx *ctx);
-void sha384_update(sha384_ctx *ctx, const unsigned char *message,
+void camlpdf_sha384_init(sha384_ctx *ctx);
+void camlpdf_sha384_update(sha384_ctx *ctx, const unsigned char *message,
                    unsigned int len);
-void sha384_final(sha384_ctx *ctx, unsigned char *digest);
-void sha384(const unsigned char *message, unsigned int len,
+void camlpdf_sha384_final(sha384_ctx *ctx, unsigned char *digest);
+void camlpdf_sha384(const unsigned char *message, unsigned int len,
             unsigned char *digest);
 
-void sha512_init(sha512_ctx *ctx);
-void sha512_update(sha512_ctx *ctx, const unsigned char *message,
+void camlpdf_sha512_init(sha512_ctx *ctx);
+void camlpdf_sha512_update(sha512_ctx *ctx, const unsigned char *message,
                    unsigned int len);
-void sha512_final(sha512_ctx *ctx, unsigned char *digest);
-void sha512(const unsigned char *message, unsigned int len,
+void camlpdf_sha512_final(sha512_ctx *ctx, unsigned char *digest);
+void camlpdf_sha512(const unsigned char *message, unsigned int len,
             unsigned char *digest);
 
 #ifdef __cplusplus

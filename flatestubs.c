@@ -27,7 +27,7 @@
 #include <caml/fail.h>
 #include <caml/memory.h>
 
-#define ZStream_val(v) ((z_stream *) (v))
+#define ZStream_val(v) ((mz_stream *) (v))
 
 static const value * camlzip_error_exn = NULL;
 
@@ -56,7 +56,7 @@ static void camlzip_error(char * fn, value vzs)
 
 static value camlzip_new_stream(void)
 {
-  value res = alloc((sizeof(z_stream) + sizeof(value) - 1) / sizeof(value),
+  value res = alloc((sizeof(mz_stream) + sizeof(value) - 1) / sizeof(value),
                     Abstract_tag);
   ZStream_val(res)->zalloc = NULL;
   ZStream_val(res)->zfree = NULL;
@@ -69,24 +69,24 @@ static value camlzip_new_stream(void)
 value camlzip_deflateInit(value vlevel, value expect_header)
 {
   value vzs = camlzip_new_stream();
-  if (deflateInit2(ZStream_val(vzs),
+  if (mz_deflateInit2(ZStream_val(vzs),
                    Int_val(vlevel),
-                   Z_DEFLATED,
-                   Bool_val(expect_header) ? MAX_WBITS : -MAX_WBITS,
+                   MZ_DEFLATED,
+                   Bool_val(expect_header) ? 15 : -15,
                    8,
-                   Z_DEFAULT_STRATEGY) != Z_OK)
+                   MZ_DEFAULT_STRATEGY) != MZ_OK)
     camlzip_error("Zlib.deflateInit", vzs);
   return vzs;
 }
 
 static int camlzip_flush_table[] = 
-{ Z_NO_FLUSH, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH };
+{ MZ_NO_FLUSH, MZ_SYNC_FLUSH, MZ_FULL_FLUSH, MZ_FINISH };
 
 value camlzip_deflate(value vzs, value srcbuf, value srcpos, value srclen,
                       value dstbuf, value dstpos, value dstlen,
                       value vflush)
 {
-  z_stream * zs = ZStream_val(vzs);
+  mz_stream * zs = ZStream_val(vzs);
   int retcode;
   long used_in, used_out;
   value res;
@@ -95,14 +95,14 @@ value camlzip_deflate(value vzs, value srcbuf, value srcpos, value srclen,
   zs->avail_in = Long_val(srclen);
   zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
-  retcode = deflate(zs, camlzip_flush_table[Int_val(vflush)]);
+  retcode = mz_deflate(zs, camlzip_flush_table[Int_val(vflush)]);
   if (retcode < 0) camlzip_error("Zlib.deflate", vzs);
   used_in = Long_val(srclen) - zs->avail_in;
   used_out = Long_val(dstlen) - zs->avail_out;
   zs->next_in = NULL;         /* not required, but cleaner */
   zs->next_out = NULL;        /* (avoid dangling pointers into Caml heap) */
   res = alloc_small(3, 0);
-  Field(res, 0) = Val_bool(retcode == Z_STREAM_END);
+  Field(res, 0) = Val_bool(retcode == MZ_STREAM_END);
   Field(res, 1) = Val_int(used_in);
   Field(res, 2) = Val_int(used_out);
   return res;
@@ -116,7 +116,7 @@ value camlzip_deflate_bytecode(value * arg, int nargs)
 
 value camlzip_deflateEnd(value vzs)
 {
-  if (deflateEnd(ZStream_val(vzs)) != Z_OK)
+  if (mz_deflateEnd(ZStream_val(vzs)) != MZ_OK)
     camlzip_error("Zlib.deflateEnd", vzs);
   return Val_unit;
 }
@@ -130,8 +130,8 @@ value camlzip_inflateInit(value expect_header)
 {
   buf_error_count = 0;
   value vzs = camlzip_new_stream();
-  if (inflateInit2(ZStream_val(vzs),
-                   Bool_val(expect_header) ? MAX_WBITS : -MAX_WBITS) != Z_OK)
+  if (mz_inflateInit2(ZStream_val(vzs),
+                   Bool_val(expect_header) ? 15 : -15) != MZ_OK)
     camlzip_error("Zlib.inflateInit", vzs);
   return vzs;
 }
@@ -140,7 +140,7 @@ value camlzip_inflate(value vzs, value srcbuf, value srcpos, value srclen,
                       value dstbuf, value dstpos, value dstlen,
                       value vflush)
 {
-  z_stream * zs = ZStream_val(vzs);
+  mz_stream * zs = ZStream_val(vzs);
   int retcode;
   long used_in, used_out;
   value res;
@@ -149,18 +149,18 @@ value camlzip_inflate(value vzs, value srcbuf, value srcpos, value srclen,
   zs->avail_in = Long_val(srclen);
   zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
-  retcode = inflate(zs, camlzip_flush_table[Int_val(vflush)]);
-  if (retcode == Z_BUF_ERROR) buf_error_count += 1; else buf_error_count = 0;
-  if (retcode < 0 && retcode != Z_BUF_ERROR ||
-      retcode == Z_BUF_ERROR && buf_error_count > 1 ||
-      retcode == Z_NEED_DICT)
+  retcode = mz_inflate(zs, camlzip_flush_table[Int_val(vflush)]);
+  if (retcode == MZ_BUF_ERROR) buf_error_count += 1; else buf_error_count = 0;
+  if (retcode < 0 && retcode != MZ_BUF_ERROR ||
+      retcode == MZ_BUF_ERROR && buf_error_count > 1 ||
+      retcode == MZ_NEED_DICT)
     camlzip_error("Zlib.inflate", vzs);
   used_in = Long_val(srclen) - zs->avail_in;
   used_out = Long_val(dstlen) - zs->avail_out;
   zs->next_in = NULL;           /* not required, but cleaner */
   zs->next_out = NULL;          /* (avoid dangling pointers into Caml heap) */
   res = caml_alloc_small(3, 0);
-  Field(res, 0) = Val_bool(retcode == Z_STREAM_END);
+  Field(res, 0) = Val_bool(retcode == MZ_STREAM_END);
   Field(res, 1) = Val_int(used_in);
   Field(res, 2) = Val_int(used_out);
   return res;
@@ -174,14 +174,14 @@ value camlzip_inflate_bytecode(value * arg, int nargs)
 
 value camlzip_inflateEnd(value vzs)
 {
-  if (inflateEnd(ZStream_val(vzs)) != Z_OK)
+  if (mz_inflateEnd(ZStream_val(vzs)) != MZ_OK)
     camlzip_error("Zlib.inflateEnd", vzs);
   return Val_unit;
 }
 
 value camlzip_update_crc32(value crc, value buf, value pos, value len)
 {
-  return copy_int32(crc32((uint32_t) Int32_val(crc), 
+  return copy_int32(mz_crc32((uint32_t) Int32_val(crc), 
                           &Byte_u(buf, Long_val(pos)),
                           Long_val(len)));
 }
