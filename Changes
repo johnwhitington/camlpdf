@@ -4,8 +4,14 @@ o Prefixed all C stubs to avoid clashes
 o Fix for zero-sixed Pdfio.input_outputs
 o Bad interaction between deferred decryption and object streams fixed
 o Optional content groups merged when merging
+o Pdfpage.change_pages can now alter bookmark destinations for transformed pages
 o Preserves zero bytes in malformed names
 o Merged files get fresh /ID
+o Pdfpagelabels.write now removes labels when given an empty list
+
+2.3 (patchlevel 2, 2020)
+
+o Bad interaction between deferred decryption and object streams worked around
 
 2.3 (patchlevel 1, December 2019)
 

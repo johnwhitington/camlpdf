@@ -176,7 +176,7 @@ let merge_pagelabels pdfs ranges =
 (* For now, just a flat number tree. Doesn't check ranges are well-formed (i.e
 contiguous / nonoverlapping) *)
 let write pdf labels =
-  if labels <> [] then
+  (*if labels <> [] then*) (* <-- removed for v2.4 *)
     let arr =
       flatten
         (map

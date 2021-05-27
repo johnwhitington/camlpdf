@@ -593,10 +593,17 @@ let add_root pageroot extras pdf =
 Other objects (e.g destinations in the document outline) may point to the
 individual page objects, so we must renumber these. We can only do this if the
 number of pages are the same. We do this [if change_references is true]. If the
-new and old page lists are of differenct lengths, change_references must be
+new and old page lists are of different lengths, change_references must be
 false, or you must supply the changes (expressed as (from, to) 1-based serial
-number pairs) *)
-let change_pages ?changes change_references basepdf pages' =
+number pairs). The matrices optional argument, only relevant when
+change_references is true and the number of pages has not changed, gives a list
+of (page number, matrix) pairs which indicate that the page has been
+transformed. We can then rewrite bookmark destinations to reflect the
+transformed destination ppositions. *)
+let change_pages_process_bookmarks matpairs pdf =
+  List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs
+
+let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
     let old_page_numbers = Pdf.page_reference_numbers basepdf in
@@ -626,7 +633,7 @@ let change_pages ?changes change_references basepdf pages' =
                          combine old_page_numbers new_page_numbers
                        else
                          begin
-                           Printf.printf "change_pages: No change supplied, and lengths differ\n";
+                           Printf.eprintf "change_pages: No change supplied, and lengths differ\n";
                            []
                          end
                    | Some cs ->
@@ -642,6 +649,14 @@ let change_pages ?changes change_references basepdf pages' =
                   Pdf.objselfmap
                     (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
                     pdf;
+                  begin match matrices with
+                    None -> ()
+                  | Some matpairs ->
+                      if length old_page_numbers = length new_page_numbers then
+                        change_pages_process_bookmarks matpairs pdf
+                      else
+                        Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ"
+                  end;
                   pdf
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
