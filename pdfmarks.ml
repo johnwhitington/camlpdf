@@ -255,3 +255,5 @@ let read_bookmarks pdf =
               traverse_outlines_lb (ref 0) pdf outlines output;
               rev !out
 
+let transform_bookmark tr m =
+  {m with target = Pdfdest.transform_destination tr m.target}

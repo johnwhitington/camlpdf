@@ -26,5 +26,8 @@ val read_destination : Pdf.t -> Pdf.pdfobject -> t
 (** Write a destination to a [Pdf.pdfobject]. *)
 val pdfobject_of_destination : t -> Pdf.pdfobject
 
+(** Transform a destination by a matrix *)
+val transform_destination : Pdftransform.transform_matrix -> t -> t
+
 (**/**)
 val string_of_destination : t -> string

@@ -588,6 +588,25 @@ let add_root pageroot extras pdf =
              Pdf.root = rootnum;
              Pdf.trailerdict = trailerdict'}
 
+(* Make sure to supply refnums to speed it up, if you already have them from a
+ * previous call to Pdf.page_reference_numbers *)
+let pagenumber_of_target ?fastrefnums pdf = function
+ | Pdfdest.NullDestination -> 0
+ | Pdfdest.NamedDestinationElsewhere _ -> 0
+ | Pdfdest.Action _ -> 0
+ | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
+ | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
+     match t with
+     | Pdfdest.OtherDocPageNumber i -> i + 1 (* If it's really a Pdfdest.OtherDocPageNumber, you must process this yourself before. *)
+     | Pdfdest.PageObject i ->
+         match fastrefnums with
+         | Some table ->
+             begin try Hashtbl.find table i with Not_found -> 0 end 
+         | None ->
+             match position_1 i (Pdf.page_reference_numbers pdf) with
+             | Some n -> n
+             | None -> 0
+
 (* Return a new PDF containing everything the old one does, but with new pages.
 
 Other objects (e.g destinations in the document outline) may point to the
@@ -601,7 +620,39 @@ of (page number, matrix) pairs which indicate that the page has been
 transformed. We can then rewrite bookmark destinations to reflect the
 transformed destination ppositions. *)
 let change_pages_process_bookmarks matpairs pdf =
-  List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs
+  let bookmarks = Pdfmarks.read_bookmarks pdf in
+  List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;
+  let bookmarks' =
+    (* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. *)
+    (* Improvement: don't bother if i_matrix or no target page. *)
+    (* Other improvements. Hashtbl to lookup in matpairs in O(1), lookup pagenum <-> pageobjects O(1) *)
+    List.map
+      (fun m ->
+         let tr =
+           match m.Pdfmarks.target with
+           | Pdfdest.XYZ (tp, _, _, _) | Pdfdest.FitH (tp, _) | Pdfdest.FitV (tp, _)
+           | Pdfdest.FitR (tp, _, _, _, _) | Pdfdest.FitBH (tp, _) | Pdfdest.FitBV (tp, _) ->
+               begin match tp with
+                 Pdfdest.PageObject i ->
+                   begin try
+                     let pagenumber = unopt (position_1 i (Pdf.page_reference_numbers pdf)) in (* do fastrefnums here *)
+                     let matrix = unopt (lookup pagenumber matpairs) in
+                       Printf.printf "For targetpage %i, which is page %i, we have matrix %s\n"
+                       i (pagenumber_of_target pdf m.Pdfmarks.target) (Pdftransform.string_of_matrix matrix);
+                       matrix
+                   with
+                     _ ->
+                       Printf.printf "not found for bookmark %s\n" (Pdfmarks.string_of_bookmark m);
+                       Pdftransform.i_matrix
+                   end
+               | _ -> Pdftransform.i_matrix
+               end
+           | _ -> Pdftransform.i_matrix
+         in
+           Pdfmarks.transform_bookmark tr m)
+      bookmarks
+  in
+    Pdfmarks.add_bookmarks bookmarks' pdf 
 
 let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
@@ -649,38 +700,21 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                   Pdf.objselfmap
                     (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
                     pdf;
-                  begin match matrices with
-                    None -> ()
+                  match matrices with
+                    None -> pdf
                   | Some matpairs ->
                       if length old_page_numbers = length new_page_numbers then
                         change_pages_process_bookmarks matpairs pdf
                       else
-                        Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ"
-                  end;
-                  pdf
+                        begin
+                          Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ";
+                          pdf
+                        end
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
 so only those in the range are kept. *)
 
-(* Make sure to supply refnums to speed it up, if you already have them from a
- * previous call to Pdf.page_reference_numbers *)
-let pagenumber_of_target ?fastrefnums pdf = function
- | Pdfdest.NullDestination -> 0
- | Pdfdest.NamedDestinationElsewhere _ -> 0
- | Pdfdest.Action _ -> 0
- | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
- | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
-     match t with
-     | Pdfdest.OtherDocPageNumber i -> i + 1 (* If it's really a Pdfdest.OtherDocPageNumber, you must process this yourself before. *)
-     | Pdfdest.PageObject i ->
-         match fastrefnums with
-         | Some table ->
-             begin try Hashtbl.find table i with Not_found -> 0 end 
-         | None ->
-             match position_1 i (Pdf.page_reference_numbers pdf) with
-             | Some n -> n
-             | None -> 0
 
 (* Find a page indirect from the page tree of a document, given a page number. *)
 (* FIXME speed up by caching *)

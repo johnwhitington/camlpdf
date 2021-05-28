@@ -134,6 +134,16 @@ let pdfobject_of_destination = function
   | FitBV (p, left) ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/FitBV"; pos_null left]
 
+(* Transform destinations by a given matrix. Where we have a proper pair making
+   a point, it is easy. Where we do not, we improvise. It is likely only to be
+   sensible for scaling / shifting / uprighting anyway. For example, a vertical
+   flip of a page is hardly likely to make a paragraph come up in the right
+   position. Careful to preserve nulls. *)
+let transform_destination t = function
+  | XYZ (p, Some left, Some top, zoom) ->
+      let left', top' = Pdftransform.transform_matrix t (left, top) in
+        XYZ (p, Some left', Some top', zoom)
+  | x -> x
+
 let string_of_destination d =
   Pdfwrite.string_of_pdf (pdfobject_of_destination d)
-
