@@ -618,39 +618,40 @@ number pairs). The matrices optional argument, only relevant when
 change_references is true and the number of pages has not changed, gives a list
 of (page number, matrix) pairs which indicate that the page has been
 transformed. We can then rewrite bookmark destinations to reflect the
-transformed destination ppositions. *)
+transformed destination positions. *)
 let change_pages_process_bookmarks matpairs pdf =
   let bookmarks = Pdfmarks.read_bookmarks pdf in
-  List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;
+  (*List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;*)
   let bookmarks' =
     (* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. *)
-    (* Improvement: don't bother if i_matrix or no target page. *)
-    (* Other improvements. Hashtbl to lookup in matpairs in O(1), lookup pagenum <-> pageobjects O(1) *)
-    List.map
-      (fun m ->
-         let tr =
-           match m.Pdfmarks.target with
-           | Pdfdest.XYZ (tp, _, _, _) | Pdfdest.FitH (tp, _) | Pdfdest.FitV (tp, _)
-           | Pdfdest.FitR (tp, _, _, _, _) | Pdfdest.FitBH (tp, _) | Pdfdest.FitBV (tp, _) ->
-               begin match tp with
-                 Pdfdest.PageObject i ->
-                   begin try
-                     let pagenumber = unopt (position_1 i (Pdf.page_reference_numbers pdf)) in (* do fastrefnums here *)
-                     let matrix = unopt (lookup pagenumber matpairs) in
-                       Printf.printf "For targetpage %i, which is page %i, we have matrix %s\n"
-                       i (pagenumber_of_target pdf m.Pdfmarks.target) (Pdftransform.string_of_matrix matrix);
-                       matrix
-                   with
-                     _ ->
-                       Printf.printf "not found for bookmark %s\n" (Pdfmarks.string_of_bookmark m);
-                       Pdftransform.i_matrix
-                   end
-               | _ -> Pdftransform.i_matrix
-               end
-           | _ -> Pdftransform.i_matrix
-         in
-           Pdfmarks.transform_bookmark tr m)
-      bookmarks
+    let refnums = Pdf.page_reference_numbers pdf in
+    let mattable = hashtable_of_dictionary matpairs in
+    let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
+      List.map
+        (fun m ->
+           let tr =
+             match m.Pdfmarks.target with
+             | Pdfdest.XYZ (tp, _, _, _) | Pdfdest.FitH (tp, _) | Pdfdest.FitV (tp, _)
+             | Pdfdest.FitR (tp, _, _, _, _) | Pdfdest.FitBH (tp, _) | Pdfdest.FitBV (tp, _) ->
+                 begin match tp with
+                   Pdfdest.PageObject i ->
+                     begin try
+                       let pagenumber = Hashtbl.find refnumstable i in
+                       let matrix = Hashtbl.find mattable pagenumber in
+                         (*Printf.printf "For targetpage %i, which is page %i, we have matrix %s\n"
+                         i (pagenumber_of_target pdf m.Pdfmarks.target) (Pdftransform.string_of_matrix matrix);*)
+                         matrix
+                     with
+                       _ ->
+                         Printf.eprintf "not found for bookmark %s\n" (Pdfmarks.string_of_bookmark m);
+                         Pdftransform.i_matrix
+                     end
+                 | _ -> Pdftransform.i_matrix
+                 end
+             | _ -> Pdftransform.i_matrix
+           in
+             if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
+        bookmarks
   in
     Pdfmarks.add_bookmarks bookmarks' pdf 
 
