@@ -614,46 +614,111 @@ individual page objects, so we must renumber these. We can only do this if the
 number of pages are the same. We do this [if change_references is true]. If the
 new and old page lists are of different lengths, change_references must be
 false, or you must supply the changes (expressed as (from, to) 1-based serial
-number pairs). The matrices optional argument, only relevant when
-change_references is true and the number of pages has not changed, gives a list
-of (page number, matrix) pairs which indicate that the page has been
-transformed. We can then rewrite bookmark destinations to reflect the
-transformed destination positions. *)
+number pairs).
+
+The matrices optional argument, only relevant when change_references is true
+and the number of pages has not changed, gives a list of (page number, matrix)
+pairs which indicate that the page has been transformed. We can then rewrite
+bookmark destinations to reflect the transformed destination positions. We also
+rewrite annotation destinations after the same fashion. *)
+let change_pages_find_matrix dest mattable refnumstable =
+  match dest with
+  | Pdfdest.XYZ (tp, _, _, _) | Pdfdest.FitH (tp, _) | Pdfdest.FitV (tp, _)
+  | Pdfdest.FitR (tp, _, _, _, _) | Pdfdest.FitBH (tp, _) | Pdfdest.FitBV (tp, _) ->
+      begin match tp with
+        Pdfdest.PageObject i ->
+          begin try
+            let pagenumber = Hashtbl.find refnumstable i in
+              Hashtbl.find mattable pagenumber
+          with
+            _ ->
+              Printf.eprintf "page not found for bookmark or annotation dest:%s\n" (Pdfdest.string_of_destination dest);
+              Pdftransform.i_matrix
+          end
+      | _ -> Pdftransform.i_matrix
+      end
+  | _ -> Pdftransform.i_matrix
+
+(* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. *)
 let change_pages_process_bookmarks matpairs pdf =
-  let bookmarks = Pdfmarks.read_bookmarks pdf in
   (*List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;*)
-  let bookmarks' =
-    (* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. *)
+  let bookmarks =
     let refnums = Pdf.page_reference_numbers pdf in
     let mattable = hashtable_of_dictionary matpairs in
     let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
       List.map
         (fun m ->
-           let tr =
-             match m.Pdfmarks.target with
-             | Pdfdest.XYZ (tp, _, _, _) | Pdfdest.FitH (tp, _) | Pdfdest.FitV (tp, _)
-             | Pdfdest.FitR (tp, _, _, _, _) | Pdfdest.FitBH (tp, _) | Pdfdest.FitBV (tp, _) ->
-                 begin match tp with
-                   Pdfdest.PageObject i ->
-                     begin try
-                       let pagenumber = Hashtbl.find refnumstable i in
-                       let matrix = Hashtbl.find mattable pagenumber in
-                         (*Printf.printf "For targetpage %i, which is page %i, we have matrix %s\n"
-                         i (pagenumber_of_target pdf m.Pdfmarks.target) (Pdftransform.string_of_matrix matrix);*)
-                         matrix
-                     with
-                       _ ->
-                         Printf.eprintf "not found for bookmark %s\n" (Pdfmarks.string_of_bookmark m);
-                         Pdftransform.i_matrix
-                     end
-                 | _ -> Pdftransform.i_matrix
-                 end
-             | _ -> Pdftransform.i_matrix
-           in
+           let tr = change_pages_find_matrix m.Pdfmarks.target mattable refnumstable in
              if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
-        bookmarks
+        (Pdfmarks.read_bookmarks pdf)
   in
-    Pdfmarks.add_bookmarks bookmarks' pdf 
+    Pdfmarks.add_bookmarks bookmarks pdf 
+
+(* For each page, find its annotations. For each, transform its annotations *)
+let change_pages_process_annotations matpairs pdf =
+  let refnums = Pdf.page_reference_numbers pdf in
+  let mattable = hashtable_of_dictionary matpairs in
+  let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
+  let rewrite_dest dest =
+    let parsed_dest = Pdfdest.read_destination pdf dest in
+    let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
+      if tr <> Pdftransform.i_matrix then
+        let transformed = Pdfdest.transform_destination tr parsed_dest in
+        let new_dest = Pdfdest.pdfobject_of_destination transformed in
+          Some (Pdf.addobj pdf new_dest)
+      else
+        None
+  in
+   List.iter2
+     (fun page pnum ->
+        Printf.eprintf "Page %i...\n" pnum;
+        match Pdf.lookup_direct pdf "/Annots" page.rest with
+        | Some (Pdf.Array annots) ->
+            List.iter
+              (fun annotobj ->
+                match annotobj with Pdf.Indirect i ->
+                  let annot = Pdf.lookup_obj pdf i in
+                  (* Find its destination, if it has one. Either in /Dest or /A *)
+                  begin match Pdf.lookup_direct pdf "/Subtype" annot with
+                  | Some (Pdf.Name "/Link") ->
+                      begin match Pdf.lookup_direct pdf "/Dest" annot with
+                      | Some dest ->
+                          begin match rewrite_dest dest with
+                          | Some objnum ->
+                              let new_annot = Pdf.add_dict_entry annot "/Dest" (Pdf.Indirect objnum) in
+                                Pdf.addobj_given_num pdf (i, new_annot)
+                          | None -> ()
+                          end
+                      | _ ->
+                          begin match Pdf.lookup_direct pdf "/A" annot with
+                          | Some action ->
+                              begin match Pdf.lookup_direct pdf "/S" action with
+                              | Some (Pdf.Name "/GoTo") ->
+                                  begin match Pdf.lookup_direct pdf "/D" action with
+                                  | Some dest ->
+                                      begin match rewrite_dest dest with
+                                      | Some objnum ->
+                                           let action = Pdf.add_dict_entry action "/D" (Pdf.Indirect objnum) in
+                                           let new_annot = Pdf.add_dict_entry annot "/A" action in
+                                             Pdf.addobj_given_num pdf (i, new_annot)
+                                      | None -> ()
+                                      end
+                                  | _ -> ()
+                                  end
+                              | _ -> ()
+                              end
+                          | _ -> ()
+                          end
+                      end
+                  | _ -> ()
+                  end
+                | _ -> Printf.eprintf "change_pages_process_annotations: annotation direct\n")
+                annots
+        | None -> ()
+        | _ ->
+            Printf.eprintf "change_pages_process_annotations: /Annots not an array\n")
+     (pages_of_pagetree pdf)
+     (indx (pages_of_pagetree pdf))
 
 let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
@@ -704,13 +769,19 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                   match matrices with
                     None -> pdf
                   | Some matpairs ->
-                      if length old_page_numbers = length new_page_numbers then
-                        change_pages_process_bookmarks matpairs pdf
-                      else
-                        begin
-                          Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ";
-                          pdf
-                        end
+                      let pdf =
+                        if length old_page_numbers = length new_page_numbers then
+                          change_pages_process_bookmarks matpairs pdf
+                        else
+                          begin
+                            Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ";
+                            pdf
+                          end
+                      in
+                        begin try change_pages_process_annotations matpairs pdf with
+                          e -> Printf.eprintf "failure in change_pages_process_annotations: %s" (Printexc.to_string e)
+                        end;
+                        pdf
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
