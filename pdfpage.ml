@@ -640,42 +640,50 @@ let change_pages_find_matrix dest mattable refnumstable =
   | _ -> Pdftransform.i_matrix
 
 (* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. Works only for destinations. /GoTo actions are rewritten globally, separately. *)
-let change_pages_process_bookmarks matpairs pdf =
+let change_pages_process_bookmarks mattable refnumstable pdf =
   (*List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;*)
   let bookmarks =
-    let refnums = Pdf.page_reference_numbers pdf in
-    let mattable = hashtable_of_dictionary matpairs in
-    let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
-      List.map
-        (fun m ->
-           let tr = change_pages_find_matrix m.Pdfmarks.target mattable refnumstable in
-             if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
-        (Pdfmarks.read_bookmarks pdf)
+    map
+      (fun m ->
+         let tr = change_pages_find_matrix m.Pdfmarks.target mattable refnumstable in
+           if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
+      (Pdfmarks.read_bookmarks pdf)
   in
     Pdfmarks.add_bookmarks bookmarks pdf 
 
+let rewrite_dest pdf mattable refnumstable dest =
+  let parsed_dest = Pdfdest.read_destination pdf dest in
+  let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
+    if tr <> Pdftransform.i_matrix then
+      let transformed = Pdfdest.transform_destination tr parsed_dest in
+      let new_dest = Pdfdest.pdfobject_of_destination transformed in
+        Some (Pdf.addobj pdf new_dest)
+    else
+      None
+
+let rewrite_action pdf mattable refnumstable action =
+  begin match Pdf.lookup_direct pdf "/S" action with
+  | Some (Pdf.Name "/GoTo") ->
+    begin match Pdf.lookup_direct pdf "/D" action with
+    | Some dest ->
+        begin match rewrite_dest pdf mattable refnumstable dest with
+        | Some objnum ->
+            Some (Pdf.add_dict_entry action "/D" (Pdf.Indirect objnum))
+        | None -> None
+        end
+    | _ -> None
+    end
+  | _ -> None
+  end
+
 (* For each page, find its annotations. For each, transform its annotations *)
-let change_pages_process_annotations matpairs pdf =
-  let refnums = Pdf.page_reference_numbers pdf in
-  let mattable = hashtable_of_dictionary matpairs in
-  let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
-  (* Deals with non-action destinations *)
-  let rewrite_dest dest =
-    let parsed_dest = Pdfdest.read_destination pdf dest in
-    let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
-      if tr <> Pdftransform.i_matrix then
-        let transformed = Pdfdest.transform_destination tr parsed_dest in
-        let new_dest = Pdfdest.pdfobject_of_destination transformed in
-          Some (Pdf.addobj pdf new_dest)
-      else
-        None
-  in
-   List.iter2
+let change_pages_process_annotations mattable refnumstable pdf =
+   iter2
      (fun page pnum ->
-        Printf.eprintf "Page %i...\n" pnum;
+        (*Printf.eprintf "Page %i...\n" pnum;*)
         match Pdf.lookup_direct pdf "/Annots" page.rest with
         | Some (Pdf.Array annots) ->
-            List.iter
+            iter
               (fun annotobj ->
                 match annotobj with Pdf.Indirect i ->
                   let annot = Pdf.lookup_obj pdf i in
@@ -684,7 +692,7 @@ let change_pages_process_annotations matpairs pdf =
                   | Some (Pdf.Name "/Link") ->
                       begin match Pdf.lookup_direct pdf "/Dest" annot with
                       | Some dest ->
-                          begin match rewrite_dest dest with
+                          begin match rewrite_dest pdf mattable refnumstable dest with
                           | Some objnum ->
                               let new_annot = Pdf.add_dict_entry annot "/Dest" (Pdf.Indirect objnum) in
                                 Pdf.addobj_given_num pdf (i, new_annot)
@@ -693,22 +701,13 @@ let change_pages_process_annotations matpairs pdf =
                       | _ ->
                           begin match Pdf.lookup_direct pdf "/A" annot with
                           | Some (Pdf.Dictionary _ as action) ->
-                              begin match Pdf.lookup_direct pdf "/S" action with
-                              | Some (Pdf.Name "/GoTo") ->
-                                  begin match Pdf.lookup_direct pdf "/D" action with
-                                  | Some dest ->
-                                      begin match rewrite_dest dest with
-                                      | Some objnum ->
-                                           let action = Pdf.add_dict_entry action "/D" (Pdf.Indirect objnum) in
-                                           let new_annot = Pdf.add_dict_entry annot "/A" action in
-                                             Pdf.addobj_given_num pdf (i, new_annot)
-                                      | None -> ()
-                                      end
-                                  | _ -> ()
-                                  end
+                              begin match rewrite_action pdf mattable refnumstable action with
+                              | Some action ->
+                                  let new_annot = Pdf.add_dict_entry annot "/A" action in
+                                    Pdf.addobj_given_num pdf (i, new_annot)
                               | _ -> ()
                               end
-                          | Some _ -> () 
+                          | _ -> () 
                           end
                       end
                   | _ -> ()
@@ -720,6 +719,34 @@ let change_pages_process_annotations matpairs pdf =
             Printf.eprintf "change_pages_process_annotations: /Annots not an array\n")
      (pages_of_pagetree pdf)
      (indx (pages_of_pagetree pdf))
+
+(* Process the /OpenAction if its destination or action points to a page which has been scaled. *)
+(* Trailer --/Root--> Catalog dict --/OpenAction--> (array = dest || dict == action). No name option. *)
+let rewrite_openaction pdf action =
+  let catalog = Pdf.catalog_of_pdf pdf in
+  let catalog = Pdf.add_dict_entry catalog "/OpenAction" action in
+    match Pdf.lookup_obj pdf pdf.Pdf.root with
+    | Pdf.Dictionary d ->
+        begin match lookup "/Catalog" d with
+        | Some (Pdf.Indirect i) ->
+            Pdf.addobj_given_num pdf (i, catalog)
+        | _ -> ()
+        end
+    | _ -> ()
+
+let change_pages_process_openaction mattable refnumstable pdf =
+  match Pdf.lookup_direct pdf "/OpenAction" (Pdf.catalog_of_pdf pdf) with
+  | Some (Pdf.Array dest) ->
+      begin match rewrite_dest pdf mattable refnumstable (Pdf.Array dest) with
+      | Some new_dest_objnum -> rewrite_openaction pdf (Pdf.Indirect new_dest_objnum)
+      | None -> Printf.eprintf "Warning: Failed to rewrite openaction\n"
+      end
+  | Some (Pdf.Dictionary action) ->
+      begin match rewrite_action pdf mattable refnumstable (Pdf.Dictionary action) with
+      | Some action -> rewrite_openaction pdf action
+      | _ -> ()
+      end
+  | Some _ | None -> ()
 
 let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
@@ -770,18 +797,22 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                   match matrices with
                     None -> pdf
                   | Some matpairs ->
+                      let refnums = Pdf.page_reference_numbers pdf in
+                      let mattable = hashtable_of_dictionary matpairs in
+                      let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
                       let pdf =
                         if length old_page_numbers = length new_page_numbers then
-                          change_pages_process_bookmarks matpairs pdf
+                          change_pages_process_bookmarks mattable refnumstable pdf
                         else
                           begin
                             Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ";
                             pdf
                           end
                       in
-                        begin try change_pages_process_annotations matpairs pdf with
+                        begin try change_pages_process_annotations mattable refnumstable pdf with
                           e -> Printf.eprintf "failure in change_pages_process_annotations: %s" (Printexc.to_string e)
                         end;
+                        change_pages_process_openaction mattable refnumstable pdf;
                         pdf
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
