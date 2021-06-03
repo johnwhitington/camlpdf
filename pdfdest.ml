@@ -139,6 +139,12 @@ let pdfobject_of_destination = function
    sensible for scaling / shifting / uprighting anyway. For example, a vertical
    flip of a page is hardly likely to make a paragraph come up in the right
    position. Careful to preserve nulls, and handle all combinations. *)
+
+(* FIXME: Need to also allow for transformation of GoTo Actions. They may be
+   names, byte strings (point into name tree?) or immediate arrays.  We should
+   write a Pdfaction module. Also need to update
+   Pdfpage.change_pages_process_annotations to use it. Actions can be immediate
+   or in trees. *)
 let transform_destination t = function
   | FitH (PageObject _ as p, Some top) ->
       let (_, top) = Pdftransform.transform_matrix t (0., top) in

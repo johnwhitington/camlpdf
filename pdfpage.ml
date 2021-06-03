@@ -639,7 +639,7 @@ let change_pages_find_matrix dest mattable refnumstable =
       end
   | _ -> Pdftransform.i_matrix
 
-(* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. *)
+(* For each bookmark, find the page its target is on, look up the appropriate matrix, and transform it. Works only for destinations. /GoTo actions are rewritten globally, separately. *)
 let change_pages_process_bookmarks matpairs pdf =
   (*List.iter (fun (p, m) -> Printf.printf "chppb: %i = %s\n" p (Pdftransform.string_of_matrix m)) matpairs;*)
   let bookmarks =
@@ -659,6 +659,7 @@ let change_pages_process_annotations matpairs pdf =
   let refnums = Pdf.page_reference_numbers pdf in
   let mattable = hashtable_of_dictionary matpairs in
   let refnumstable = hashtable_of_dictionary (combine refnums (indx refnums)) in
+  (* Deals with non-action destinations *)
   let rewrite_dest dest =
     let parsed_dest = Pdfdest.read_destination pdf dest in
     let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
@@ -691,7 +692,7 @@ let change_pages_process_annotations matpairs pdf =
                           end
                       | _ ->
                           begin match Pdf.lookup_direct pdf "/A" annot with
-                          | Some action ->
+                          | Some (Pdf.Dictionary _ as action) ->
                               begin match Pdf.lookup_direct pdf "/S" action with
                               | Some (Pdf.Name "/GoTo") ->
                                   begin match Pdf.lookup_direct pdf "/D" action with
@@ -707,7 +708,7 @@ let change_pages_process_annotations matpairs pdf =
                                   end
                               | _ -> ()
                               end
-                          | _ -> ()
+                          | Some _ -> () 
                           end
                       end
                   | _ -> ()
