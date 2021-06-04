@@ -139,31 +139,41 @@ let pdfobject_of_destination = function
    sensible for scaling / shifting / uprighting anyway. For example, a vertical
    flip of a page is hardly likely to make a paragraph come up in the right
    position. Careful to preserve nulls, and handle all combinations. *)
+
+(* Acrobat doesn't like /OpenActions (at least) which contain numbers outside
+   the float range -32768...32768. This is the old (pre-ISO) float range. *)
+let clip_pair (a, b) =
+  let clip f =
+    if f < -32768.0 then -32768.0 else
+    if f > 32768.0 then 32768.0 else f
+  in
+    (clip a, clip b) 
+
 let transform_destination t = function
   | FitH (PageObject _ as p, Some top) ->
-      let (_, top) = Pdftransform.transform_matrix t (0., top) in
+      let (_, top) = clip_pair (Pdftransform.transform_matrix t (0., top)) in
         FitH (p, Some top)
   | FitV (PageObject _ as p, Some left) ->
-      let (left, _) = Pdftransform.transform_matrix t (left, 0.) in
+      let (left, _) = clip_pair (Pdftransform.transform_matrix t (left, 0.)) in
         FitV (p, Some left)
   | FitBH (PageObject _ as p, Some top) ->
-      let (_, top) = Pdftransform.transform_matrix t (0., top) in
+      let (_, top) = clip_pair (Pdftransform.transform_matrix t (0., top)) in
         FitBH (p, Some top)
   | FitBV (PageObject _ as p, Some left) ->
-      let (left, _) = Pdftransform.transform_matrix t (left, 0.) in
+      let (left, _) = clip_pair (Pdftransform.transform_matrix t (left, 0.)) in
         FitBV (p, Some left)
   | XYZ (PageObject _ as p, Some left, Some top, zoom) ->
-      let left, top = Pdftransform.transform_matrix t (left, top) in
+      let left, top = clip_pair (Pdftransform.transform_matrix t (left, top)) in
         XYZ (p, Some left, Some top, zoom)
   | XYZ (PageObject _ as p, None, Some top, zoom) ->
-      let _, top = Pdftransform.transform_matrix t (0., top) in
+      let _, top = clip_pair (Pdftransform.transform_matrix t (0., top)) in
         XYZ (p, None, Some top, zoom)
   | XYZ (PageObject _ as p, Some left, None, zoom) ->
-      let left, _ = Pdftransform.transform_matrix t (left, 0.) in
+      let left, _ = clip_pair (Pdftransform.transform_matrix t (left, 0.)) in
         XYZ (p, Some left, None, zoom)
   | FitR (PageObject _ as p, left, bottom, right, top) ->
-      let left, top = Pdftransform.transform_matrix t (left, top) in
-      let right, bottom = Pdftransform.transform_matrix t (right, bottom) in
+      let left, top = clip_pair (Pdftransform.transform_matrix t (left, top)) in
+      let right, bottom = clip_pair (Pdftransform.transform_matrix t (right, bottom)) in
         FitR (p, left, bottom, right, top)
   | x -> x
 

@@ -654,6 +654,7 @@ let change_pages_process_bookmarks mattable refnumstable pdf =
 let rewrite_dest pdf mattable refnumstable dest =
   let parsed_dest = Pdfdest.read_destination pdf dest in
   let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
+    (*Printf.printf "tr is %s\n" (Pdftransform.string_of_matrix tr);*)
     if tr <> Pdftransform.i_matrix then
       let transformed = Pdfdest.transform_destination tr parsed_dest in
       let new_dest = Pdfdest.pdfobject_of_destination transformed in
@@ -725,28 +726,21 @@ let change_pages_process_annotations mattable refnumstable pdf =
 let rewrite_openaction pdf action =
   let catalog = Pdf.catalog_of_pdf pdf in
   let catalog = Pdf.add_dict_entry catalog "/OpenAction" action in
-    match Pdf.lookup_obj pdf pdf.Pdf.root with
-    | Pdf.Dictionary d ->
-        begin match lookup "/Catalog" d with
-        | Some (Pdf.Indirect i) ->
-            Pdf.addobj_given_num pdf (i, catalog)
-        | _ -> ()
-        end
-    | _ -> ()
+    Pdf.addobj_given_num pdf (pdf.Pdf.root, catalog)
 
 let change_pages_process_openaction mattable refnumstable pdf =
   match Pdf.lookup_direct pdf "/OpenAction" (Pdf.catalog_of_pdf pdf) with
   | Some (Pdf.Array dest) ->
       begin match rewrite_dest pdf mattable refnumstable (Pdf.Array dest) with
       | Some new_dest_objnum -> rewrite_openaction pdf (Pdf.Indirect new_dest_objnum)
-      | None -> Printf.eprintf "Warning: Failed to rewrite openaction\n"
+      | None -> ()
       end
   | Some (Pdf.Dictionary action) ->
       begin match rewrite_action pdf mattable refnumstable (Pdf.Dictionary action) with
       | Some action -> rewrite_openaction pdf action
       | _ -> ()
       end
-  | Some _ | None -> ()
+  | _ -> ()
 
 let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
@@ -812,7 +806,9 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                         begin try change_pages_process_annotations mattable refnumstable pdf with
                           e -> Printf.eprintf "failure in change_pages_process_annotations: %s" (Printexc.to_string e)
                         end;
-                        change_pages_process_openaction mattable refnumstable pdf;
+                        begin try change_pages_process_openaction mattable refnumstable pdf with
+                          e -> Printf.eprintf "failure in change_pages_process_openaction: %s" (Printexc.to_string e)
+                        end;
                         pdf
 
 (* Return a pdf with a subset of pages, but nothing else changed - exactly the
