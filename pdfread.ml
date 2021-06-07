@@ -1298,15 +1298,11 @@ let sanitize_trailerdict l trailerdict =
               (remove "/Filter"
                 (remove "/DecodeParms" trailerdict)))))))
 
-(* FIXME temporary -- remove, see below *)
-let last_read_had_objstms = ref false
-
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
-  last_read_had_objstms := false;
   if !read_debug then
     Printf.eprintf "read_pdf, revision is %s\n%!"
       (match revision with None -> "None" | Some x -> string_of_int x);
@@ -1511,8 +1507,6 @@ let read_pdf ?revision user_pw owner_pw opt i =
                     Printf.printf "STREAMONES: Obj %i, Stream %i, Index %i\n"
                     n s i)
                  streamones;*)
-             (* FIXME next line temporary -- see above *)
-             if length streamones > 0 then last_read_had_objstms := true;
              iter
                (function (n, s, _) -> Hashtbl.add object_stream_ids n s)
                streamones;
@@ -1646,20 +1640,6 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 | Some _ -> Printf.eprintf "***File is encrypted\n" | _ -> ()
               end;
             pdf
-
-(* FIXME This is a very temporary function which disables lazy reading for
- * files containing encryption and object streams. There appears to be some
- * sort of bad interaction between the two leading to either double decryption,
- * or no decryption. Remove this function when the actual bug is fixed. *)
-let read_pdf ?revision user_pw owner_pw opt i =
-  if opt then
-    read_pdf ?revision user_pw owner_pw opt i 
-  else
-    let candidate_pdf = read_pdf ?revision user_pw owner_pw opt i in
-      if Pdfcrypt.is_encrypted candidate_pdf && !last_read_had_objstms then
-        begin (*flprint "Throwing away candidate PDF\n";*) i.seek_in 0; read_pdf ?revision user_pw owner_pw true i end
-      else
-        candidate_pdf
 
 (* Read the number of revisions of the document, by performing a dummy read. For
 example, if this function returns 3, then appropriate values to pass to
