@@ -260,7 +260,7 @@ and decrypt_stream
                        Pdf.file_encryption_key = file_encryption_key;
                        Pdf.obj = obj;
                        Pdf.gen = gen;
-                       Pdf.key = key;
+                       Pdf.key = unhashed_key;
                        Pdf.keylength = keylength;
                        Pdf.r = r}
                   in
