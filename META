@@ -1,5 +1,5 @@
 name="camlpdf"
 description="Read, write and modify PDF files"
-version="2.3"
+version="2.4"
 archive(byte)="camlpdf.cma"
 archive(native)="camlpdf.cmxa"

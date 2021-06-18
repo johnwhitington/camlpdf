@@ -8,21 +8,21 @@ the basis of the commercial "CPDF" command line tool, which is available at
 License
 ---
 
-Copyright Coherent Graphics Ltd 2007 - 2013. Released under the LGPL with
+Copyright Coherent Graphics Ltd 2007 - 2021. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 To Build
 ---
 
-If downloading from Github, obtain the correct source. This means choosing the tag for a
-particular version, such as "v2.1.1". The head of the master branch is
-unstable.
+If downloading from Github, obtain the correct source. This means choosing the
+tag for a particular version, such as "v2.4". The head of the master branch
+is unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
-documentation (in doc/camlpdf/html).
+   documentation (in doc/camlpdf/html).
 
 2. If your environment has "ocamlfind", "make install" will install the
-library. Otherwise, use the built outputs as you will.
+   library. Otherwise, use the built outputs as you will.
 
 Documentation
 ---
@@ -56,11 +56,12 @@ here:
 
 [http://pauillac.inria.fr/~xleroy/software.html](http://pauillac.inria.fr/~xleroy/software.html)
 
+The file rijndael-alg-fst.c was written by Vincent Rijmen, Antoon Bosselaers
+and Paulo Barreto.
+
 OCamlMakefile was written by Markus Mottl. It is available here:
 
 [http://bitbucket.org/mmottl/ocaml-makefile](http://bitbucket.org/mmottl/ocaml-makefile)
 
-
 These works are also released under the LGPL with special linking exception, as
 described in LICENCE.
-

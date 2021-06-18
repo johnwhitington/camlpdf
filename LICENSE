@@ -553,3 +553,6 @@ In addition, this program contains the sha2 implementation by Olivier Gay:
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
 
+---
+
+Please see also the licenses in each .c file in this directory.
