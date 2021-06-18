@@ -1,7 +1,7 @@
 2.4 (June 2021)
 
 o Prefixed all C stubs to avoid clashes with zlib / cryptokit
-o Fix for zero-sixed Pdfio.input_outputs
+o Fix for zero-sized Pdfio.input_outputs
 o Bad interaction between deferred decryption and object streams fixed
 o Optional content groups merged when merging
 o Pdfpage.change_pages can now alter bookmark destinations for transformed pages
