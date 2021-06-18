@@ -1,7 +1,5 @@
 (** Optional Content Groups. *)
 
-(** This will eventually be support for optional content group manipulation. It is as-yet unfinished *)
-
 open Pdfutil
 
 type ocgusage (* Nothing for now; expand later *)
