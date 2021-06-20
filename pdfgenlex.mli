@@ -30,4 +30,3 @@ val lex_single : (Pdfio.input -> t)
 val lex : (Pdfio.input -> t list)
 
 val lex_string : string -> t list
-

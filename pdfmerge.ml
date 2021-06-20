@@ -428,4 +428,3 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
        if do_remove_duplicate_fonts then remove_duplicate_fonts pdf;
        Pdf.change_id pdf "";
        pdf
-

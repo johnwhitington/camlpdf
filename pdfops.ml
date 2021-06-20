@@ -882,4 +882,3 @@ let stream_of_ops ops =
       (ref
         (Pdf.Dictionary
           [("/Length", Pdf.Integer (bytes_size data))], Pdf.Got data))
-

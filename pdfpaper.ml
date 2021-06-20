@@ -26,5 +26,3 @@ let a10 = Paper (Pdfunits.Millimetre, 26., 37.)
 (* US Imperial sizes. *)
 let usletter = Paper (Pdfunits.Inch, 8.5, 11.)
 let uslegal = Paper (Pdfunits.Inch, 8.5, 14.)
-
-

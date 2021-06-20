@@ -144,4 +144,3 @@ let rectangle x y w h =
        Pdfgraphics.Straight ((x +. w, y), (x +. w, y +. h));
        Pdfgraphics.Straight ((x +. w, y +. h), (x, y +. h));
        Pdfgraphics.Straight ((x, y +. h), (x, y))])]))
-

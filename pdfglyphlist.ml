@@ -4879,4 +4879,3 @@ let name_to_pdf_hashes =
 
 let reverse_name_to_pdf_hashes =
   hashtable_of_dictionary (map (fun (a, b) -> (b, a)) name_to_pdf)
-

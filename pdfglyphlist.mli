@@ -32,6 +32,3 @@ val name_to_dingbats : (string * int) list
 (**/**)
 val name_to_pdf_hashes : (string, int) Hashtbl.t
 val reverse_name_to_pdf_hashes : (int, string) Hashtbl.t
-
-
-

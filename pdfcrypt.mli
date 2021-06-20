@@ -64,4 +64,3 @@ val get_encryption_values : Pdf.t -> Pdfcryptprimitives.encryption * string * st
 val banlist_of_p : int32 -> permission list
 
 val string_of_pdf : (Pdf.pdfobject -> string) ref
-

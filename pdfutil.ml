@@ -1244,4 +1244,3 @@ let memoize f =
       match !result with
       | Some thing -> thing
       | None -> result := Some (f ()); unopt !result
-

@@ -90,4 +90,3 @@ val pdfobject_of_function : Pdf.t -> t -> Pdf.pdfobject
 
 (**/**)
 val print_function : t -> unit
-

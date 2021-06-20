@@ -42,4 +42,3 @@ val write_ocg : Pdf.t -> ocgproperties -> unit
 (**/**)
 
 val print_document_ocg : Pdf.t -> unit
-

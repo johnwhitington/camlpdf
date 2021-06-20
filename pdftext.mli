@@ -159,4 +159,3 @@ val table_of_encoding : encoding -> (int, string) Hashtbl.t
 
 (** Reverse table of all the entries in an encoding. *)
 val reverse_table_of_encoding : encoding -> (string, int) Hashtbl.t
-

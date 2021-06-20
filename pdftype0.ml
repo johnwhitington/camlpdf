@@ -22,4 +22,3 @@ let to_type3 pdf = function
       in
         Pdfcff.to_type3 pdf font
   | _ -> raise (Pdf.PDFError "Pdftype0.to_type3 : not supported")
-

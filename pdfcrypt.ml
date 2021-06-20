@@ -1209,4 +1209,3 @@ let recrypt_pdf ?(renumber=true) pdf pw =
       try recrypt_pdf_user pdf pw with _ -> recrypt_pdf_owner pdf pw
     with
       _ -> raise (Pdf.PDFError "recrypt_pdf failed. Wrong password?")
-

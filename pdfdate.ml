@@ -112,4 +112,3 @@ let test () =
   in
     Printf.printf "\n%i %i %i %i %i %i %i %i\n" d.year d.month d.day d.hour d.minute d.second d.hour_offset d.minute_offset;
     flprint "\n"
-

@@ -219,4 +219,3 @@ let remove pdf =
       pdf.Pdf.root <- rootnum;
       pdf.Pdf.trailerdict <-
         Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
-  

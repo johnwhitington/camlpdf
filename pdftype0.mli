@@ -4,4 +4,3 @@
 descendant font into a Type 3 font. Only deals with /Identity-H at the moment.
 Used for rendering, not a valid type3 font for inclusion in a PDF. *)
 val to_type3 : Pdf.t -> Pdftext.font -> Pdftext.font
-

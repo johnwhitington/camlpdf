@@ -26,4 +26,3 @@ val helvetica_bold_oblique_afm : string
 val symbol_afm : string
 
 val zapf_dingbats_afm : string
-

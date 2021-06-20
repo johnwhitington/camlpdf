@@ -73,4 +73,3 @@ val string_of_pdf : Pdf.pdfobject -> string
 
 (* For debug, print out the PDFs objects to standard output *)
 val debug_whole_pdf : Pdf.t -> unit
-

@@ -709,5 +709,3 @@ let get_image_unprocessed_pixel pdf resources stream =
                  _ -> raise (Pdf.PDFError "bad serial in get_image_unprocessed_pixel"))
       end 
   | _ -> None 
-
-

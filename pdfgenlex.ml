@@ -170,4 +170,3 @@ let lex = lex_inner []
 
 let lex_string s =
   lex (Pdfio.input_of_string s)
-

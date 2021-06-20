@@ -34,4 +34,3 @@ val a10 : t
 val usletter : t
 val uslegal : t
 (** United States paper sizes. portrait. *)
-

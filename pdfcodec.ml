@@ -1443,4 +1443,3 @@ let encode_pdfstream pdf encoding ?predictor ?(predictor_columns = 1) stream =
           let d'' = add_encoding (bytes_size data) pdf encoding d' in
             stream := d'', Pdf.Got data
   | _ -> raise (Pdf.PDFError "Pdf.encode_pdfstream: malformed Stream")
-

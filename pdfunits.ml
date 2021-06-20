@@ -97,4 +97,3 @@ let convert dpi u u' =
                 i := i'
             done;
             fun x -> x *. !m
-

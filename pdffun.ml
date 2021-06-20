@@ -804,4 +804,3 @@ and pdfobject_of_function pdf f =
     Pdf.Dictionary
       (["/FunctionType", Pdf.Integer (funtype_of_function f); "/Domain", domain]
       @ range @ extra_entries_of_function pdf f)
-

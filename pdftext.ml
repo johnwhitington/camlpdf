@@ -1014,4 +1014,3 @@ let charcode_extractor_of_encoding encoding =
           Some (Hashtbl.find table glyphname)
       with
         Not_found -> None
-

@@ -1743,5 +1743,3 @@ let transform_element tr = function
 
 let transform_graphic tr g =
   {g with elements = map (transform_element tr) g.elements} 
-
-

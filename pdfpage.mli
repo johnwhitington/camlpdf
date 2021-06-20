@@ -96,4 +96,3 @@ val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
 val flat_pagetrees : bool ref
-

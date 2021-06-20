@@ -23646,4 +23646,3 @@ C 253 ; WX 970 ; N a190 ; B 35 76 931 616 ;
 C 254 ; WX 918 ; N a191 ; B 34 99 884 593 ;
 EndCharMetrics
 EndFontMetrics"
-

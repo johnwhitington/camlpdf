@@ -13,4 +13,3 @@ val merge_pdfs :
 (** Remove duplicate fonts from a PDF. For example, if it was created by merging
 several documents from the same source. *)
 val remove_duplicate_fonts : Pdf.t -> unit
-

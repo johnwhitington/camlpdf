@@ -58,4 +58,3 @@ val write : Pdf.t -> t list -> unit
 
 (** Remove all page labels. *)
 val remove : Pdf.t -> unit
-

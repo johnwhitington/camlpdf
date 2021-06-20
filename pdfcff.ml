@@ -1357,4 +1357,3 @@ let to_type3 pdf = function
         end
   | _ ->
      raise (Pdf.PDFError "Pdfcff.to_type3: This is not a type 1 CFF font")
-

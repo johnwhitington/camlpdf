@@ -170,4 +170,3 @@ val streams_of_simple_graphic : t -> Pdf.pdfobject list
 
 (** Transform a graphic by a matrix. *)
 val transform_graphic : Pdftransform.transform_matrix -> t -> t
-

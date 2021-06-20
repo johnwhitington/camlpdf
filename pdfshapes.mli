@@ -15,4 +15,3 @@ val circle : float -> float -> float -> Pdfgraphics.path
 (** Calling [rectangle x y w h] builds a path representing a rectangle with top
 left [(x, y)], width [w] and height [h]. *)
 val rectangle : float -> float -> float -> float -> Pdfgraphics.path
-

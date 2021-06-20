@@ -37,4 +37,3 @@ val read_colourspace : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> t
 
 (** Write a colourspace to a PDF, returning it. *)
 val write_colourspace : Pdf.t -> t -> Pdf.pdfobject
-

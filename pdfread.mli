@@ -71,4 +71,3 @@ val permissions : Pdf.t -> Pdfcrypt.permission list
 
 (** Given a filename, see if the file is linearized. *)
 val is_linearized : Pdfio.input -> bool
-

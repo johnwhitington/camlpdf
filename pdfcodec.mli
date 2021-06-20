@@ -71,5 +71,3 @@ val flate_level : int ref
 val encode_flate : Pdfio.bytes -> Pdfio.bytes
 
 val debug : bool ref
-
-
