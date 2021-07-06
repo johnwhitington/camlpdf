@@ -1,3 +1,7 @@
+2.5 (Upcoming)
+
+o AFM and glyphlists loaded from compressed sources
+
 2.4 (June 2021)
 
 o Prefixed all C stubs to avoid clashes with zlib / cryptokit
