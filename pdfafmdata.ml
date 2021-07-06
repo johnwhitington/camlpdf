@@ -1,18 +1,19 @@
 (* AFM data for standard 14 fonts *)
 
-let afmnotice =
-"This file constitutes a modification of Adobe's AFM data files. This file also\
-constitutes a modification of Adobe's license file.\
-\
-This file and the 14 PostScript(R) AFM files it accompanies may be used,\
-copied, and distributed for any purpose and without charge, with or without\
-modification, provided that all copyright notices are retained; that the AFM\
-files are not distributed without this file; that all modifications to this\
-file or any of the AFM files are prominently noted in the modified file(s); and\
-that this paragraph is not modified. Adobe Systems has no responsibility or\
-obligation to support the use of the AFM files."
+(* This file constitutes a modification of Adobe's AFM data files. This file
+   also constitutes a modification of Adobe's license file.
 
-let courier_afm = "StartFontMetrics 4.1
+   This file and the 14 PostScript(R) AFM files it accompanies may be used,
+   copied, and distributed for any purpose and without charge, with or without
+   modification, provided that all copyright notices are retained; that the AFM
+   files are not distributed without this file; that all modifications to this
+   file or any of the AFM files are prominently noted in the modified file(s);
+   and that this paragraph is not modified. Adobe Systems has no responsibility
+   or obligation to support the use of the AFM files. *)
+
+(* Soon we will generate these from zipped data in source, so they need a unit
+   argument so memoization can work. *)
+let courier_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 17:27:09 1997
 Comment UniqueID 43050
@@ -355,7 +356,7 @@ C -1 ; WX 600 ; N Euro ; B 0 0 0 0 ;
 EndCharMetrics
 EndFontMetrics"
 
-let courier_oblique_afm = "StartFontMetrics 4.1
+let courier_oblique_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 17:37:52 1997
 Comment UniqueID 43051
@@ -698,7 +699,7 @@ C -1 ; WX 600 ; N Euro ; B 0 0 0 0 ;
 EndCharMetrics
 EndFontMetrics"
 
-let courier_bold_afm = "StartFontMetrics 4.1
+let courier_bold_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Mon Jun 23 16:28:00 1997
 Comment UniqueID 43048
@@ -1041,7 +1042,7 @@ C -1 ; WX 600 ; N Euro ; B 0 0 0 0 ;
 EndCharMetrics
 EndFontMetrics"
 
-let courier_bold_oblique_afm = "StartFontMetrics 4.1
+let courier_bold_oblique_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Mon Jun 23 16:28:46 1997
 Comment UniqueID 43049
@@ -1384,8 +1385,7 @@ C -1 ; WX 600 ; N Euro ; B 0 0 0 0 ;
 EndCharMetrics
 EndFontMetrics"
 
-
-let times_roman_afm = "StartFontMetrics 4.1
+let times_roman_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:49:17 1997
 Comment UniqueID 43068
@@ -3805,7 +3805,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let times_bold_afm = "StartFontMetrics 4.1
+let times_bold_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:52:56 1997
 Comment UniqueID 43065
@@ -6394,7 +6394,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let times_italic_afm = "StartFontMetrics 4.1
+let times_italic_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:56:55 1997
 Comment UniqueID 43067
@@ -9062,7 +9062,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let times_bold_italic_afm = "StartFontMetrics 4.1
+let times_bold_italic_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 13:04:06 1997
 Comment UniqueID 43066
@@ -11447,7 +11447,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let helvetica_afm = "StartFontMetrics 4.1
+let helvetica_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:38:23 1997
 Comment UniqueID 43054
@@ -14499,7 +14499,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let helvetica_bold_afm = "StartFontMetrics 4.1
+let helvetica_bold_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:43:52 1997
 Comment UniqueID 43052
@@ -17327,7 +17327,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let helvetica_oblique_afm = "StartFontMetrics 4.1
+let helvetica_oblique_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:44:31 1997
 Comment UniqueID 43055
@@ -20379,7 +20379,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let helvetica_bold_oblique_afm = "StartFontMetrics 4.1
+let helvetica_bold_oblique_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 12:45:12 1997
 Comment UniqueID 43053
@@ -23207,7 +23207,7 @@ EndKernPairs
 EndKernData
 EndFontMetrics"
 
-let symbol_afm = "StartFontMetrics 4.1
+let symbol_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1989, 1990, 1997 Adobe Systems Incorporated. All rights reserved.
 Comment Creation Date: Thu May  1 15:12:25 1997
 Comment UniqueID 43064
@@ -23421,7 +23421,7 @@ C -1 ; WX 790 ; N apple ; B 56 -3 733 808 ;
 EndCharMetrics
 EndFontMetrics"
 
-let zapf_dingbats_afm = "StartFontMetrics 4.1
+let zapf_dingbats_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1985, 1987, 1988, 1989, 1997 Adobe Systems Incorporated. All Rights Reserved.
 Comment Creation Date: Thu May  1 15:14:13 1997
 Comment UniqueID 43082

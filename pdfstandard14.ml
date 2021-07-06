@@ -13,20 +13,20 @@ let read_afm afm =
 
 (* Main functions *)
 let tables =
-  [Pdftext.TimesRoman, memoize (fun () -> read_afm Pdfafmdata.times_roman_afm);
-   Pdftext.TimesBold, memoize (fun () -> read_afm Pdfafmdata.times_bold_afm);
-   Pdftext.TimesItalic, memoize (fun () -> read_afm Pdfafmdata.times_italic_afm);
-   Pdftext.TimesBoldItalic, memoize (fun () -> read_afm Pdfafmdata.times_bold_italic_afm);
-   Pdftext.Helvetica, memoize (fun () -> read_afm Pdfafmdata.helvetica_afm);
-   Pdftext.HelveticaBold, memoize (fun () -> read_afm Pdfafmdata.helvetica_bold_afm);
-   Pdftext.HelveticaOblique, memoize (fun () -> read_afm Pdfafmdata.helvetica_oblique_afm);
-   Pdftext.HelveticaBoldOblique, memoize (fun () -> read_afm Pdfafmdata.helvetica_bold_oblique_afm);
-   Pdftext.Courier, memoize (fun () -> read_afm Pdfafmdata.courier_afm);
-   Pdftext.CourierBold, memoize (fun () -> read_afm Pdfafmdata.courier_bold_afm);
-   Pdftext.CourierOblique, memoize (fun () -> read_afm Pdfafmdata.courier_oblique_afm);
-   Pdftext.CourierBoldOblique, memoize (fun () -> read_afm Pdfafmdata.courier_bold_oblique_afm);
-   Pdftext.Symbol, memoize (fun () -> read_afm Pdfafmdata.symbol_afm);
-   Pdftext.ZapfDingbats, memoize (fun () -> read_afm Pdfafmdata.zapf_dingbats_afm)]
+  [Pdftext.TimesRoman, memoize (fun () -> read_afm (Pdfafmdata.times_roman_afm ()));
+   Pdftext.TimesBold, memoize (fun () -> read_afm (Pdfafmdata.times_bold_afm ()));
+   Pdftext.TimesItalic, memoize (fun () -> read_afm (Pdfafmdata.times_italic_afm ()));
+   Pdftext.TimesBoldItalic, memoize (fun () -> read_afm (Pdfafmdata.times_bold_italic_afm ()));
+   Pdftext.Helvetica, memoize (fun () -> read_afm (Pdfafmdata.helvetica_afm ()));
+   Pdftext.HelveticaBold, memoize (fun () -> read_afm (Pdfafmdata.helvetica_bold_afm ()));
+   Pdftext.HelveticaOblique, memoize (fun () -> read_afm (Pdfafmdata.helvetica_oblique_afm ()));
+   Pdftext.HelveticaBoldOblique, memoize (fun () -> read_afm (Pdfafmdata.helvetica_bold_oblique_afm ()));
+   Pdftext.Courier, memoize (fun () -> read_afm (Pdfafmdata.courier_afm ()));
+   Pdftext.CourierBold, memoize (fun () -> read_afm (Pdfafmdata.courier_bold_afm ()));
+   Pdftext.CourierOblique, memoize (fun () -> read_afm (Pdfafmdata.courier_oblique_afm ()));
+   Pdftext.CourierBoldOblique, memoize (fun () -> read_afm (Pdfafmdata.courier_bold_oblique_afm ()));
+   Pdftext.Symbol, memoize (fun () -> read_afm (Pdfafmdata.symbol_afm ()));
+   Pdftext.ZapfDingbats, memoize (fun () -> read_afm (Pdfafmdata.zapf_dingbats_afm ()))]
 
 (* The height of a capital H divided by 2. Allows the text to be placed
 vertically aligned with its middle rather than baseline *)
