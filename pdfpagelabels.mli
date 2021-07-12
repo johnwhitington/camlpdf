@@ -2,16 +2,26 @@
 
 (** The type for page labels. The page labels of a document, if well-formed,
 are a list of [t]s where the [startpage] values are in increasing numerical
-order. In the most basic case, [startvalue] will always be equal to
-[startpage]. The default labelstyle is [DecimalArabic]. The default
-[labelprefix] is the empty string.
+order. The numerical page number for the page range is [startvalue]. The
+default labelstyle is [DecimalArabic]. The default [labelprefix] is the empty
+string.
 
 For example, a document might have five pages of introduction with roman
 numerals, followed by the rest of the pages in decimal arabic, numbered from
-one.
+one:
+
+{labelstyle = LowercaseRoman;
+ labelprefix = "";
+ startpage = 1;
+ startvalue = 1}
+
+{labelstyle = DecimalArabic;
+ labelprefix = "";
+ startpage = 6;
+ startvalue = 1}
 
 For more details, see ISO 32000 12.4.2, but note that in our implementation,
-pages are 1-based. *)
+pages are 1-based not 0-based, just like PDF page numbers. *)
 type labelstyle =
   | DecimalArabic
   | UppercaseRoman
