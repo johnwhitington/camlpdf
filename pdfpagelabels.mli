@@ -52,9 +52,9 @@ val coalesce : t list -> t list
 (** Merge some page labels for some PDFs and page ranges. *)
 val merge_pagelabels : Pdf.t list -> int list list -> t list
 
-(** Write page labels to a document, replacing any there. The list must contain
-at least one element. *)
+(** Write page labels to a document, replacing any there. Any existing page
+    labels are removed. *)
 val write : Pdf.t -> t list -> unit
 
-(** Remove all page labels. *)
+(** Remove all page labels. Equivalent to an empty list given to [write]. *)
 val remove : Pdf.t -> unit

@@ -173,10 +173,19 @@ let merge_pagelabels pdfs ranges =
       in
         coalesce (change_labels (flatten new_labels))
 
+let remove pdf =
+  let root = Pdf.lookup_obj pdf pdf.Pdf.root in
+    let rootnum =
+      Pdf.addobj pdf (Pdf.remove_dict_entry root "/PageLabels")
+    in
+      pdf.Pdf.root <- rootnum;
+      pdf.Pdf.trailerdict <-
+        Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
+
 (* For now, just a flat number tree. Doesn't check ranges are well-formed (i.e
 contiguous / nonoverlapping) *)
 let write pdf labels =
-  (*if labels <> [] then*) (* <-- removed for v2.4 *)
+  if labels = [] then remove pdf else
     let arr =
       flatten
         (map
@@ -210,12 +219,3 @@ let write pdf labels =
           pdf.Pdf.trailerdict <-
             Pdf.add_dict_entry
               pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
-
-let remove pdf =
-  let root = Pdf.lookup_obj pdf pdf.Pdf.root in
-    let rootnum =
-      Pdf.addobj pdf (Pdf.remove_dict_entry root "/PageLabels")
-    in
-      pdf.Pdf.root <- rootnum;
-      pdf.Pdf.trailerdict <-
-        Pdf.add_dict_entry pdf.Pdf.trailerdict "/Root" (Pdf.Indirect rootnum)
