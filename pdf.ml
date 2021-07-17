@@ -857,7 +857,11 @@ let unique_key prefix obj =
 (* Given a PDF and potential filename, calculate an MD5 string and build a
 suitable /ID entry from it. *)
 let generate_id _ path gettime =
-  let d = Digest.string (path ^ string_of_float (gettime ())) in
+  let d =
+    match Sys.getenv_opt "CAMLPDF_REPRODUCIBLE_IDS" with
+    | Some "true" -> Digest.string "camlpdf"
+    | _ -> Digest.string (path ^ string_of_float (gettime ()))
+  in
     Array [String d; String d]
 
 (* Find the indirect reference given by the value associated with a key in a

@@ -243,9 +243,11 @@ val objects_of_list :
 
 val objects_referenced : string list -> (string * pdfobject) list -> t -> pdfobject -> int list
 
-(** Generate and ID for a PDF document given its prospective file name (and using
-the current date and time). If the file name is blank, the ID is still likely to
-be unique, being based on date and time only. *)
+(** Generate and ID for a PDF document given its prospective file name (and
+    using the current date and time). If the file name is blank, the ID is
+    still likely to be unique, being based on date and time only. If
+    environment variable CAMLPDF_REPRODUCIBLE_IDS=true is set, the ID will instead
+    be set to a standard value. *)
 val generate_id : t -> string -> (unit -> float) -> pdfobject
 
 val is_delimiter : char -> bool
