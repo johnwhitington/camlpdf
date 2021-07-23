@@ -736,7 +736,7 @@ let rec parse_tounicode pdf tounicode =
                 (get_sections
                    (lose Pdf.is_whitespace (charlist_of_bytes data))))
           with
-            e -> Printf.eprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e); []
+            e -> Printf.eprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e); []
           end
       | _ -> assert false
       end
@@ -863,7 +863,7 @@ let text_extractor_of_font pdf font =
                 begin try
                   hashtable_of_dictionary <| parse_tounicode pdf tounicode, true
                 with
-                  e -> Printf.eprintf "bad tounicode (%s)\n" (Printexc.to_string e); (null_hash (), false)
+                  e -> Printf.eprintf "bad tounicode (%s)\n%!" (Printexc.to_string e); (null_hash (), false)
                 end
             | None -> null_hash (), false
           in
@@ -919,9 +919,9 @@ let codepoint_of_pdfdocencoding_character i =
           (Hashtbl.find Pdfglyphlist.reverse_name_to_pdf_hashes i)
       with
       | [codepoint] -> Some codepoint
-      | _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n" i; None
+      | _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i; None
     with
-      _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n" i; None
+      _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i; None
 
 (* Build a UTF-8 string from a list of unicode codepoints. *)
 let get_utf8_chars c =
@@ -951,7 +951,7 @@ let codepoints_of_pdfdocstring s =
 
 let utf8_of_pdfdocstring s =
   try utf8_of_codepoints (codepoints_of_pdfdocstring s) with
-    e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n" (Printexc.to_string e); ""
+    e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n%!" (Printexc.to_string e); ""
 
 (* Build a PDFDocEncoding or UTF16BE string from a UTF8 encoded string *)
 let rec codepoints_of_utf8 = function
@@ -975,7 +975,7 @@ let rec codepoints_of_utf8 = function
         lor ((c3 land 0b00_11_11_11) lsl 6)
         lor (c4 land 0b00_11_11_11)::codepoints_of_utf8 cs
   | _ ->
-      Printf.eprintf "Bad UTF8 in codepoints_of_utf8\n"; []
+      Printf.eprintf "Bad UTF8 in codepoints_of_utf8\n%!"; []
 
 let codepoints_of_utf8 s = codepoints_of_utf8 (map int_of_char (explode s))
 

@@ -27,7 +27,7 @@ let read_targetpage = function
 
 (* We don't allow indirect references anywhere except in the page reference. *)
 let read_destination_error n s =
-  Printf.eprintf "Warning: Could not read destination %s %s \n" n s;
+  Printf.eprintf "Warning: Could not read destination %s %s \n%!" n s;
   NullDestination
 
 let rec read_destination pdf pdfobject =

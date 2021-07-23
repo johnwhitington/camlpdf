@@ -94,7 +94,7 @@ let make_pdf_name_inner b s =
   for x = 1 to String.length s - 1 do (* skip / *)
     match String.get s x with
     | '\000' ->
-      Printf.eprintf "Warning: name %S contains the null character\n" s;
+      Printf.eprintf "Warning: name %S contains the null character\n%!" s;
       Buffer.add_string b "#00"
     | h when h < '\033' || h > '\126' || Pdf.is_delimiter h || h = '#' ->
       Buffer.add_char b '#';

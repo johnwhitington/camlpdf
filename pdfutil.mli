@@ -1,10 +1,13 @@
-(** General Functions. Typically one will [open Pdfutil] and not use [open] elsewhere. *)
+(** General Functions. Typically one will [open Pdfutil]. *)
 
 
 (** {2 Debug Printing} *)
 
-(** Print a string and flush standard output. *)
+(** Print a string to standard output and flush. *)
 val flprint : string -> unit
+
+(** Print a string to standard error and flush. *)
+val fleprint : string -> unit
 
 (** Print a list of floating point numbers separated by spaces. *)
 val print_floats : float list -> unit

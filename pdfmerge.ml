@@ -110,7 +110,7 @@ let merge_bookmarks changes pdfs ranges pdf =
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
   with
-    e -> Printf.eprintf "failure in merge_bookmarks %s\n" (Printexc.to_string e); pdf
+    e -> Printf.eprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e); pdf
 
 let debug_pagelabels ls =
   iter (Printf.printf "%s\n") (map Pdfpagelabels.string_of_pagelabel ls)
@@ -163,7 +163,7 @@ let rec read_name_tree pdf tree =
         if odd (length elts)
           then
              begin
-               Printf.eprintf "Bad /Names array. Name tree will be read as empty\n";
+               Printf.eprintf "Bad /Names array. Name tree will be read as empty\n%!";
                []
              end
           else pairs_of_list elts
@@ -180,7 +180,7 @@ let read_name_tree pdf tree =
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with
       Exit ->
-        Printf.eprintf "Pdfmerge.read_names tree: skipping malformed name tree\n";
+        Printf.eprintf "Pdfmerge.read_names tree: skipping malformed name tree\n%!";
         []
 
 let maxsize = 10 (* Must be at least two *)

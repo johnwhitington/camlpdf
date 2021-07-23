@@ -671,7 +671,7 @@ let write_bitstream_append_aligned a b =
 let debug_next_char i =
   try
     let a = unopt (i.input_char ()) in
-      Printf.eprintf "%C = %i\n" a (int_of_char a)
+      Printf.eprintf "%C = %i\n%!" a (int_of_char a)
   with
     _ -> ()
 

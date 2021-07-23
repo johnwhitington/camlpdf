@@ -299,7 +299,7 @@ in the case of a malformed operator stream, not on any legitimate content. *)
 exception Couldn'tHandleContent
 
 let nocontent i =
-  Printf.eprintf "Failed to understand content on page\n";
+  Printf.eprintf "Failed to understand content on page\n%!";
   if !Pdfread.read_debug then
     begin
       Pdfio.debug_next_n_chars 20 i;
@@ -354,12 +354,12 @@ let rec components pdf resources t =
   | Pdf.Array [Pdf.Name "/Pattern"; alternate] ->
       components pdf resources (Pdf.direct pdf alternate)
   | cs ->
-     Printf.eprintf "%s\n" (Pdfwrite.string_of_pdf cs);
+     Printf.eprintf "%s\n%!" (Pdfwrite.string_of_pdf cs);
      raise (Pdf.PDFError "Unknown colourspace")
 
 (* Lex an inline image. We read the dictionary, and then the stream. *)
 let lex_inline_image pdf resources i =
-  if !debug then Printf.eprintf "lex_inline_image at %i\n" (i.pos_in ());
+  if !debug then Printf.eprintf "lex_inline_image at %i\n%!" (i.pos_in ());
   try
   let dict =
     let lexemes = Pdfread.lex_dictionary i in
@@ -367,7 +367,7 @@ let lex_inline_image pdf resources i =
         (Pdfread.parse
           ([Pdfgenlex.LexLeftDict] @ lexemes @ [Pdfgenlex.LexRightDict]))
   in
-    if !debug then Printf.eprintf "dict was %s\n" (Pdfwrite.string_of_pdf dict);
+    if !debug then Printf.eprintf "dict was %s\n%!" (Pdfwrite.string_of_pdf dict);
     (* Read ID token *)
     Pdfread.dropwhite i;
     let c = char_of_int (i.input_byte ()) in
@@ -385,7 +385,7 @@ let lex_inline_image pdf resources i =
           not (filterspecial filters)
       in
         if toskip then ignore (i.input_byte ());
-        if !debug then Printf.eprintf "**got ID header, skipped possble byte";
+        if !debug then Printf.eprintf "**got ID header, skipped possble byte%!";
         let bytes =
           let bpc =
             match
@@ -393,7 +393,7 @@ let lex_inline_image pdf resources i =
             with
             | Some (Pdf.Integer bpc) -> bpc
             | _ ->
-                Printf.eprintf "no BPC\n";
+                Printf.eprintf "no BPC\n%!";
                 nocontent i
           in
           let cspace =
@@ -404,17 +404,17 @@ let lex_inline_image pdf resources i =
             | Some (Pdf.Name ("/G" | "/RGB" | "/CMYK") as n) -> n
             | Some ((Pdf.Array _) as n) -> n
             | Some (Pdf.Name cspace) ->
-                if !debug then Printf.eprintf "resources is %s\n" (Pdfwrite.string_of_pdf resources);
+                if !debug then Printf.eprintf "resources is %s\n%!" (Pdfwrite.string_of_pdf resources);
                 begin match Pdf.lookup_direct pdf "/ColorSpace" resources with
                 | Some (Pdf.Dictionary _ as d) ->
                     begin match Pdf.lookup_direct pdf cspace d with
                     | Some c -> c
                     | _ ->
-                        Printf.eprintf "no colourspace A\n";
+                        Printf.eprintf "no colourspace A\n%!";
                         nocontent i
                     end
                 | _ ->
-                    Printf.eprintf "no colourspace B\n";
+                    Printf.eprintf "no colourspace B\n%!";
                     nocontent i
                 end
             | None ->
@@ -424,23 +424,23 @@ let lex_inline_image pdf resources i =
                 with
                 | Some (Pdf.Boolean true) -> Pdf.Name "/DeviceGray"
                 | _ ->
-                    Printf.eprintf "no colourspace C\n";
+                    Printf.eprintf "no colourspace C\n%!";
                     nocontent i
                 end
             | _ ->
-                Printf.eprintf "no colourspace D\n";
+                Printf.eprintf "no colourspace D\n%!";
                 nocontent i
           in let width =
             match Pdf.lookup_direct_orelse pdf "/W" "/Width" dict with
             | Some (Pdf.Integer w) -> w
             | _ ->
-                Printf.eprintf "no or malformed /W";
+                Printf.eprintf "no or malformed /W%!";
                 nocontent i 
           in let height =
             match Pdf.lookup_direct_orelse pdf "/H" "/Height" dict with
             | Some (Pdf.Integer h) -> h
             | _ ->
-                Printf.eprintf "no or malformed /H";
+                Printf.eprintf "no or malformed /H%!";
                 nocontent i
           in
             let bitwidth =
@@ -463,25 +463,25 @@ let lex_inline_image pdf resources i =
                     done;
                   data
                 with
-                | e -> Printf.eprintf "%s" (Printexc.to_string e); raise e
+                | e -> Printf.eprintf "%s%!" (Printexc.to_string e); raise e
                 end
             | Some (Pdf.Name ("/DCT" | "/DCTDecode") | Pdf.Array [Pdf.Name ("/DCT" | "/DCTDecode")]) ->
                 (* FIXME. The case of DCT combined with another one is possible e.g ["/DCT"; "/A85"]. Need to re-work. But have not seen an example yet. *)
                 begin try Pdfjpeg.get_jpeg_data i with
                   e ->
-                    Printf.eprintf "Couldn't read inline image JPEG data %s\n" (Printexc.to_string e);
+                    Printf.eprintf "Couldn't read inline image JPEG data %s\n%!" (Printexc.to_string e);
                     raise e
                 end
             | Some _ ->
                 try
                   match Pdfcodec.decode_from_input i dict with
                   | None ->
-                      Printf.eprintf "decode_from_input failed\n";
+                      Printf.eprintf "decode_from_input failed\n%!";
                       nocontent i
                   | Some data -> data 
                 with
                   | Pdfcodec.DecodeNotSupported d ->
-                      Printf.eprintf "Content DecodeNotSupported: %s\n" d;
+                      Printf.eprintf "Content DecodeNotSupported: %s\n%!" d;
                       nocontent i
                   | Pdfcodec.Couldn'tDecodeStream r ->
                       raise (Pdf.PDFError ("Inline image, bad data: " ^ r))
@@ -493,7 +493,7 @@ let lex_inline_image pdf resources i =
               let c' = char_of_int (i.input_byte ()) in
                 if c <> 'E' || c' <> 'I' then
                   begin
-                    Printf.eprintf "warning: bad end to inline image %C, %C\n" c c';
+                    Printf.eprintf "warning: bad end to inline image %C, %C\n%!" c c';
                     (* We try to find "EI" anyway, in case there is just some junk.
                      * To do this, we drop any whitespace and any E or I character. *)
                     Pdfread.ignoreuntil true (fun x -> Pdf.is_not_whitespace x && x <> 'E' && x <> 'I') i;
@@ -514,11 +514,11 @@ let lex_inline_image pdf resources i =
                 in
                   dict', data
     | _ ->
-        Printf.eprintf "Did not recognise beginning of inline image ID\n";
+        Printf.eprintf "Did not recognise beginning of inline image ID\n%!";
         nocontent i
   with
     e ->
-      Printf.eprintf "inline image reading failed: %s\n" (Printexc.to_string e);
+      Printf.eprintf "inline image reading failed: %s\n%!" (Printexc.to_string e);
       nocontent i
 
 (* Lex a keyword. *)
@@ -770,7 +770,7 @@ let parse_operator compatibility = function
                        | (Obj (Pdfgenlex.LexReal i)) -> Some (Pdf.Real i)
                        | (Obj (Pdfgenlex.LexString s)) -> Some (Pdf.String s)
                        | e ->
-                           Printf.eprintf "Warning: malformed TJ element; skipping\n";
+                           Printf.eprintf "Warning: malformed TJ element; skipping\n%!";
                            None)
                       t
                   in
@@ -779,7 +779,7 @@ let parse_operator compatibility = function
               end
           | Op _::_ as l -> Op_Unknown (string_of_lexemes l)
           | l ->
-             Printf.eprintf "Empty or malformed graphics operation %s.\n" (string_of_lexemes l);
+             Printf.eprintf "Empty or malformed graphics operation %s.\n%!" (string_of_lexemes l);
              Op_Unknown (string_of_lexemes l)
       in
         r, more

@@ -50,6 +50,9 @@ let string_replace_all_lazy x x' s =
 let flprint s =
   print_string s; flush stdout
 
+let fleprint s =
+  print_string s; flush stderr
+
 (* Debug printing *)
 let dp_print = ref false
 

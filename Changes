@@ -2,6 +2,7 @@
 
 o AFM and glyphlists loaded from compressed sources
 o Environment variable CAMLPDF_REPRODUCIBLE_IDS
+o Effectively make stderr unbuffered
 
 2.4 (June 2021)
 

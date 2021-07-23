@@ -287,13 +287,13 @@ let encode_flate stream =
 let debug_stream_serial = ref 0
 
 let debug_stream s =
-  (*Printf.eprintf "First 50 bytes\n";
+  (*Printf.eprintf "First 50 bytes%!\n";
   for x = 0 to 50 do
-    Printf.eprintf "%C = %i\n" (char_of_int (bget s x)) (bget s x)
+    Printf.eprintf "%C = %i\n%!" (char_of_int (bget s x)) (bget s x)
   done*)
   (* Write stream to current directory as <length>_<serial>.zlib *)
   let name = string_of_int (bytes_size s) ^ "_" ^ string_of_int !debug_stream_serial ^ ".zlib" in
-  Printf.eprintf "Writing %s\n" name;
+  Printf.eprintf "Writing %s\n%!" name;
     debug_stream_serial += 1;
     let fh = open_out_bin name in
       for x = 0 to bytes_size s - 1 do
@@ -1098,7 +1098,7 @@ let decode_runlength i =
         done
       with
         End_of_file ->
-          Printf.eprintf "Warning: Missing EOD marker in runlength decode...\n"
+          Printf.eprintf "Warning: Missing EOD marker in runlength decode...\n%!"
       end;
       extract_bytes_from_input_output o data
 

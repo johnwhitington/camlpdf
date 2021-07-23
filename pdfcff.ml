@@ -284,7 +284,7 @@ let parse_topdict_entry = function
       let getnum = function
         | IntOp i -> Int32.to_float i
         | RealOp r -> r
-        | _ -> Printf.eprintf "cff.ml: bad mat"; 0.
+        | _ -> Printf.eprintf "cff.ml: bad mat%!"; 0.
       in
         Some
           (FontMatrix
@@ -369,7 +369,7 @@ let read_encoding b = function
                     n := !n + nLeft + 1
               done;
               rev !encoding, true
-      | n -> Printf.eprintf "Unknown encoding format %i (CFF)" n; [], false
+      | n -> Printf.eprintf "Unknown encoding format %i (CFF)%!" n; [], false
 
 let read_charset b off numglyphs =
   assert (numglyphs >= 0);
@@ -533,7 +533,7 @@ let rec parse_charstring_inner (cx, cy) stk prev thing =
           let cx = i32tof x +. cx
           and cy = i32tof y +. cy in
             parse_charstring_inner (cx, cy) [] (Pdfops.Op_m (cx, cy)::prev) t
-      | _ -> Printf.eprintf "bad rmoveto"; raise (Pdf.PDFError "bad rmoveto")
+      | _ -> Printf.eprintf "bad rmoveto%!"; raise (Pdf.PDFError "bad rmoveto")
       end
   | CSOperator 4::t -> mflprint "op: vmoveto\n";
       begin match stk with
@@ -541,7 +541,7 @@ let rec parse_charstring_inner (cx, cy) stk prev thing =
       | CSInt y::_ ->
           let cy = i32tof y +. cy in
             parse_charstring_inner (cx, cy) [] (Pdfops.Op_m (cx, cy)::prev) t
-      | _ -> Printf.eprintf "bad vmoveto"; raise (Pdf.PDFError "bad vmoveto")
+      | _ -> Printf.eprintf "bad vmoveto%!"; raise (Pdf.PDFError "bad vmoveto")
       end
   | CSOperator 22::t -> mflprint "op: hmoveto\n";
       begin match stk with
@@ -549,7 +549,7 @@ let rec parse_charstring_inner (cx, cy) stk prev thing =
       | CSInt x::_ ->
           let cx = i32tof x +. cx in
             parse_charstring_inner (cx, cy) [] (Pdfops.Op_m (cx, cy)::prev) t
-      | _ -> Printf.eprintf "bad hmoveto"; raise (Pdf.PDFError "bad hmoveto")
+      | _ -> Printf.eprintf "bad hmoveto%!"; raise (Pdf.PDFError "bad hmoveto")
       end
   (* vvcurveto *)
   | CSOperator 26::t -> mflprint "op: vvcurveto\n";
@@ -918,7 +918,7 @@ let rec parse_charstring_inner (cx, cy) stk prev thing =
                 cx := !cx +. i32tof dxa;
                 ops =| Pdfops.Op_l (!cx, !cy +. i32tof dyb);
                 cy := !cy +. i32tof dyb
-            | _ -> Printf.eprintf "%i items on stack\n" (length !stk); assert false
+            | _ -> Printf.eprintf "%i items on stack\n%!" (length !stk); assert false
           done;
           parse_charstring_inner (!cx, !cy) [] (!ops @ prev) t
       else
@@ -1035,7 +1035,7 @@ let rec parse_charstring_inner (cx, cy) stk prev thing =
       parse_charstring_inner (cx, cy) stk prev t
   (* anything else: stick it on the stack *)
   | (CSOperator n | CSOperator2 n)::t ->
-      Printf.eprintf "CFF: operator %i not understood\n" n;
+      Printf.eprintf "CFF: operator %i not understood\n%!" n;
       parse_charstring_inner (cx, cy) [] prev t
   | h::t -> parse_charstring_inner (cx, cy) (h::stk) prev t
 
@@ -1352,7 +1352,7 @@ let to_type3 pdf = function
                   Pdftext.encoding = encoding;
                   Pdftext.fontdescriptor = Some fontdescriptor}
         with e ->
-          Printf.eprintf "Failed to read CFF font with error %s\n" (Printexc.to_string e);
+          Printf.eprintf "Failed to read CFF font with error %s\n%!" (Printexc.to_string e);
           raise e
         end
   | _ ->

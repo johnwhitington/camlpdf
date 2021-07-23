@@ -283,7 +283,7 @@ let change_operator pdf lookup lookup_option seqnum = function
         | Some x ->
             Pdfops.Op_BDC (n, Pdf.Name x)
         | None ->
-            Printf.eprintf "Warning: Missing Op_BDC /Properties entry\n";
+            Printf.eprintf "Warning: Missing Op_BDC /Properties entry\n%!";
             Pdfops.Op_BDC (n, Pdf.Name p)
       end
   | Pdfops.InlineImage (dict, bytes) ->
@@ -632,7 +632,7 @@ let change_pages_find_matrix dest mattable refnumstable =
               Hashtbl.find mattable pagenumber
           with
             _ ->
-              Printf.eprintf "page not found for bookmark or annotation dest:%s\n" (Pdfdest.string_of_destination dest);
+              Printf.eprintf "page not found for bookmark or annotation dest:%s\n%!" (Pdfdest.string_of_destination dest);
               Pdftransform.i_matrix
           end
       | _ -> Pdftransform.i_matrix
@@ -713,11 +713,11 @@ let change_pages_process_annotations mattable refnumstable pdf =
                       end
                   | _ -> ()
                   end
-                | _ -> Printf.eprintf "change_pages_process_annotations: annotation direct\n")
+                | _ -> Printf.eprintf "change_pages_process_annotations: annotation direct\n%!")
                 annots
         | None -> ()
         | _ ->
-            Printf.eprintf "change_pages_process_annotations: /Annots not an array\n")
+            Printf.eprintf "change_pages_process_annotations: /Annots not an array\n%!")
      (pages_of_pagetree pdf)
      (indx (pages_of_pagetree pdf))
 
@@ -772,7 +772,7 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                          combine old_page_numbers new_page_numbers
                        else
                          begin
-                           Printf.eprintf "change_pages: No change supplied, and lengths differ\n";
+                           Printf.eprintf "change_pages: No change supplied, and lengths differ\n%!";
                            []
                          end
                    | Some cs ->
@@ -799,15 +799,15 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                           change_pages_process_bookmarks mattable refnumstable pdf
                         else
                           begin
-                            Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ";
+                            Printf.eprintf "Pdfpage.change_pages: non-null matrices when lengths differ\n%!";
                             pdf
                           end
                       in
                         begin try change_pages_process_annotations mattable refnumstable pdf with
-                          e -> Printf.eprintf "failure in change_pages_process_annotations: %s" (Printexc.to_string e)
+                          e -> Printf.eprintf "failure in change_pages_process_annotations: %s\n%!" (Printexc.to_string e)
                         end;
                         begin try change_pages_process_openaction mattable refnumstable pdf with
-                          e -> Printf.eprintf "failure in change_pages_process_openaction: %s" (Printexc.to_string e)
+                          e -> Printf.eprintf "failure in change_pages_process_openaction: %s\n%!" (Printexc.to_string e)
                         end;
                         pdf
 
@@ -1087,7 +1087,7 @@ let protect pdf resources content =
     let qs = length (keep (eq Pdfops.Op_q) ops)
     and bigqs = length (keep (eq Pdfops.Op_Q) ops) in
     let deficit = if qs > bigqs then qs - bigqs else 0 in
-      if deficit <> 0 then Printf.eprintf "Q Deficit was nonzero. Fixing. %i\n" deficit;
+      if deficit <> 0 then Printf.eprintf "Q Deficit was nonzero. Fixing. %i\n%!" deficit;
       many Pdfops.Op_Q deficit
 
 (* We check for q/Q mismatches in existing section. *)
@@ -1235,10 +1235,10 @@ let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
     match i with Pdf.Indirect i ->
-      (*Printf.eprintf "fixing stream %i\n" i;*)
+      (*Printf.eprintf "fixing stream %i\n%!" i;*)
       if not (Hashtbl.mem fixed_streams i) then
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
-          (*Printf.eprintf "calling prefix_operator on stream %i\n" i;*)
+          (*Printf.eprintf "calling prefix_operator on stream %i\n%!" i;*)
           let operators' = map (prefix_operator pdf prefix) operators in
             begin match Pdf.lookup_obj pdf i with
               Pdf.Stream ({contents = (dict, stream)} as s) ->
@@ -1283,4 +1283,4 @@ let add_prefix pdf prefix =
            end
        | _ -> obj)
     pdf(*;
-    Printf.eprintf "***add_prefix has concluded\n";*)
+    Printf.eprintf "***add_prefix has concluded\n%!";*)
