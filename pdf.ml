@@ -412,7 +412,7 @@ let lookup_direct pdf key dict =
   match direct pdf dict with
   | Dictionary d | Stream {contents = (Dictionary d, _)} ->
       begin match lookup_string_compare key d with
-      | None -> None
+      | None | Some Null -> None
       | Some o -> Some (direct pdf o)
       end
   | _ -> None
@@ -446,7 +446,7 @@ let lookup_exception (exp : exn) pdf key dict =
     | _ -> raise (PDFError ("lookup_exception: not a dictionary, key = " ^ key))
   in
     match lookup key dict' with
-    | None -> raise exp
+    | None | Some Null -> raise exp
     | Some v -> direct pdf v
 
 (* A specialised one raising PDFError. *)
