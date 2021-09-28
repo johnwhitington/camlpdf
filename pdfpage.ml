@@ -69,6 +69,13 @@ let rec remove_dict_entries e = function
 (* Given a page tree, find the first page resources, contents and
 mediabox.  The resources and mediabox may be inherited from any node above in
 the page tree. *)
+
+(* Some files erroneously miss out a mediabox, expecting the reader to inherit
+it not from the page tree node above, but from the previous page. Most PDF
+readers can do this, and GhostScript can too. So we adopt this behaviour in
+the case of a missing mediabox. *)
+let last_mediabox_seen = ref None
+
 let rec find_pages pages pdf resources mediabox rotate =
   match Pdf.lookup_direct pdf "/Type" pages with
   | Some (Pdf.Name "/Pages") | None ->
@@ -163,8 +170,12 @@ let rec find_pages pages pdf resources mediabox rotate =
                 end);
           mediabox =
             (match mediabox with
-            | Some m -> m
-            | None -> raise (Pdf.PDFError "Bad /MediaBox"));
+            | Some m -> last_mediabox_seen := Some m; m
+            | None ->
+                begin match !last_mediabox_seen with
+                | Some m -> Printf.eprintf "Warning: missing mediabox. Using most recently seen.\n%!"; m
+                | None -> raise (Pdf.PDFError "Bad /MediaBox")
+                end);
           rotate = rotate;
           rest =
             (match pages with
