@@ -666,5 +666,4 @@ val roman_upper : int -> string
 val roman_lower : int -> string
 
 (** / **)
-val second_clock : unit -> int
 val tt' : unit -> unit
