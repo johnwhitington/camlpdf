@@ -1195,13 +1195,13 @@ let read_xref_stream i =
         in let xrefs = ref [] in
           begin try
             if !read_debug then
-              Printf.eprintf "About to start read_xref_stream\n%!";
+              (Printf.eprintf "About to start read_xref_stream\n%!"; tt' ());
             while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
 
           with
             _ ->
               if !read_debug then
-                Printf.eprintf "End of read_xref_stream\n%!";
+                (Printf.eprintf "End of read_xref_stream\n%!"; tt' ());
               ()
           end;
           xrefs := rev !xrefs;
@@ -1469,7 +1469,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           | Some (XRefStream _) -> 0
           | None -> raise Not_found
         in
-        if !read_debug then Printf.eprintf "Reading non-stream objects%!\n";
+        if !read_debug then (Printf.eprintf "Reading non-stream objects%!\n"; tt' ());
         let objects_nonstream =
           let objnumbers = ref [] in
             xrefs_table_iter
@@ -1489,7 +1489,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                      fun o -> o, (ref Pdf.ToParse, getgen o))
                 !objnumbers
           in
-          if !read_debug then Printf.eprintf "Reading stream objects%!\n";
+          if !read_debug then (Printf.eprintf "Reading stream objects%!\n"; tt' ());
           let objects_stream =
            let streamones =
              map

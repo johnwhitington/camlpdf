@@ -1265,3 +1265,10 @@ let second_clock () =
           Sys.remove tempfile;
           let get_int o l = int_of_string (String.sub r o l) in
             get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2
+
+let time = ref (second_clock ())
+
+let tt' () =
+  let t = second_clock () in
+  Printf.eprintf "Elapsed: %s\n%!" (string_of_int (t - !time));
+  time := t
