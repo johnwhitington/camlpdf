@@ -1247,3 +1247,21 @@ let memoize f =
       match !result with
       | Some thing -> thing
       | None -> result := Some (f ()); unopt !result
+
+(* A second clock for debugging huge files without needing the Unix module.
+   Does not work on Windows (needs POSIX date command). *)
+let second_clock () =
+  let contents_of_file filename =
+    let ch = open_in_bin filename in
+      let s = really_input_string ch (in_channel_length ch) in
+        close_in ch;
+        s
+  in
+    let tempfile = Filename.temp_file "cpdf" "strftime" in
+    let command = Filename.quote_command "date" ~stdout:tempfile ["+%S-%M-%H-%d-%m-%Y-%w-%j"] in
+    let outcode = Sys.command command in
+      if outcode > 0 then raise (Failure "Date command returned non-zero exit code") else
+        let r = contents_of_file tempfile in
+          Sys.remove tempfile;
+          let get_int o l = int_of_string (String.sub r o l) in
+            get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2
