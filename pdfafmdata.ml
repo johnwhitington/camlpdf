@@ -11,8 +11,6 @@
    and that this paragraph is not modified. Adobe Systems has no responsibility
    or obligation to support the use of the AFM files. *)
 
-(* Soon we will generate these from zipped data in source, so they need a unit
-   argument so memoization can work. *)
 let courier_afm () = "StartFontMetrics 4.1
 Comment Copyright (c) 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated.  All Rights Reserved.
 Comment Creation Date: Thu May  1 17:27:09 1997
