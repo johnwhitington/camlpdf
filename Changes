@@ -1,6 +1,7 @@
 2.5 (Upcoming)
 
-o TODO: AFM and glyphlists loaded from compressed sources
+o Harden Pdfmarks against erroneous empty /Title in doc outline
+o AFM and glyphlists loaded from compressed sources
 o Environment variable CAMLPDF_REPRODUCIBLE_IDS
 o Effectively make stderr unbuffered for all output
 o A dictionary entry with null for its value now does not exist
