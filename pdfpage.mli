@@ -81,6 +81,8 @@ val pdf_of_pages : ?retain_numbering:bool -> Pdf.t -> int list -> Pdf.t
 
 (**/**)
 
+val rectangle_of_paper : Pdfpaper.t -> Pdf.pdfobject
+
 val shortest_unused_prefix : Pdf.t -> string
 
 val add_prefix : Pdf.t -> string -> unit

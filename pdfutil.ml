@@ -1263,7 +1263,6 @@ let clock () =
     let outcode = Sys.command command in
       if outcode > 0 then raise (Failure "Date command returned non-zero exit code") else
         let r = contents_of_file tempfile in
-          Printf.printf "|%s|\n" r;
           Sys.remove tempfile;
           let get_int o l = int_of_string (String.sub r o l) in
               float_of_int (get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2)
@@ -1272,6 +1271,7 @@ let clock () =
 let time = ref (clock ())
 
 let tt' () =
+  (*Gc.major ();*)
   let t = clock () in
     Printf.eprintf "Elapsed: %.2f\n%!" (t -. !time);
     time := t

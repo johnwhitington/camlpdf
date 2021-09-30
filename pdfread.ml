@@ -904,12 +904,12 @@ let parse_single_object s =
 let lex_stream_object
   i xrefs parse opt obj indexes user_pw owner_pw partial_pdf gen
 =
-  if !read_debug then
+  (*if !read_debug then
     begin
       Printf.eprintf "lexing object stream at %i\n%!" (i.Pdfio.pos_in ());
       Printf.eprintf "lexing object stream %i\nTo find the indexes:\n%!" obj;
       iter (Printf.eprintf "%i %!") indexes; Printf.eprintf "\n%!"
-    end;
+    end;*)
   let _, stmobj = parse (lex_object i xrefs parse opt obj) in
     match stmobj with
     | Pdf.Stream {contents = d, stream} ->
@@ -1181,7 +1181,7 @@ let read_xref_stream i =
         | _ -> raise err
       in
         if !read_debug then
-          Printf.eprintf "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n%!";
+          (Printf.eprintf "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n%!"; tt' ());
         Pdfcodec.decode_pdfstream (Pdf.empty ()) stream;
         let w1, w2, w3 =
           match Pdf.lookup_direct (Pdf.empty ()) "/W" stream with
@@ -1206,8 +1206,8 @@ let read_xref_stream i =
           end;
           xrefs := rev !xrefs;
           if !read_debug then
-            Printf.eprintf
-              "****** read %i raw Xref stream entries\n%!" (length !xrefs);
+            (Printf.eprintf
+              "****** read %i raw Xref stream entries\n%!" (length !xrefs); tt' ());
           let starts_and_lens =
             match Pdf.lookup_direct (Pdf.empty ()) "/Index" stream with
             | Some (Pdf.Array elts) ->
@@ -1263,8 +1263,8 @@ let read_xref_stream i =
                 starts_and_lens;
               i.seek_in original_pos;
               if !read_debug then
-                Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n%!"
-                (length !xrefs');
+                (Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n%!"
+                (length !xrefs'); tt' ());
               rev !xrefs', xrefstream_objectnumber
 
 (* A suitable function for the Pdf module to use to lex and parse an object.
@@ -1298,14 +1298,19 @@ let sanitize_trailerdict l trailerdict =
               (remove "/Filter"
                 (remove "/DecodeParms" trailerdict)))))))
 
+(* FIXME: Further ideas for monster_squeezed.pdf - too many intermediate data
+   structures here - should we split the xref table into two instead of
+   splitting it into plain / stream ones on-the-fly all the time? Also,
+   generally too many lists. *)
+
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
   if !read_debug then
-    Printf.eprintf "read_pdf, revision is %s\n%!"
-      (match revision with None -> "None" | Some x -> string_of_int x);
+    (Printf.eprintf "read_pdf, revision is %s\n%!"
+      (match revision with None -> "None" | Some x -> string_of_int x); tt' ());
   begin match revision with
      Some x when x < 1 && x <> (-1) -> raise BadRevision
    | _ -> ()
@@ -1365,7 +1370,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
       | xrefchars -> xref := int_of_string (implode xrefchars);
       end;
-      if !read_debug then Printf.eprintf "Reading Cross-reference table\n%!";
+      if !read_debug then (Printf.eprintf "Reading Cross-reference table\n%!"; tt' ());
       while not !got_all_xref_sections do
         if !read_debug then Printf.eprintf "Reading xref section at %i\n%!" !xref;
         i.seek_in !xref;
@@ -1453,7 +1458,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           raise (Revisions real_revisions)
       else
       if !read_debug then
-        Printf.eprintf "*** READ %i XREF entries\n%!" (Hashtbl.length xrefs);
+        (Printf.eprintf "*** READ %i XREF entries\n%!" (Hashtbl.length xrefs); tt' ());
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) ->
@@ -1492,14 +1497,11 @@ let read_pdf ?revision user_pw owner_pw opt i =
           if !read_debug then (Printf.eprintf "Reading stream objects%!\n"; tt' ());
           let objects_stream =
            let streamones =
-             map
-               (function
-                  | (n, XRefStream (s, i)) -> (n, s, i)
-                  | _ -> assert false)
-               (keep
-                 (function (n, XRefStream _) -> true | _ -> false)
-                 (list_of_hashtbl xrefs))
+             let l = ref [] in
+               Hashtbl.iter (fun k v -> match v with XRefStream (s, i) -> l =| (k, s, i) | _ -> ()) xrefs;
+               !l
            in
+             if !read_debug then (Printf.eprintf "Made streamones\n"; tt' ());
              (*Printf.printf
                 "*** %i objects are in streams\n" (length streamones);
                iter
@@ -1510,41 +1512,46 @@ let read_pdf ?revision user_pw owner_pw opt i =
              iter
                (function (n, s, _) -> Hashtbl.add object_stream_ids n s)
                streamones;
+             if !read_debug then (Printf.eprintf "Added object_stream_ids \n"; tt' ());
              if opt then
                begin
-                 let cmp_objs (_, s, _) (_, s', _) = compare_i s s' in
-                   let sorted = sort cmp_objs streamones in
-                     let collated = collate cmp_objs sorted in
-                       let inputs_to_lex_stream_object =
-                         map
-                           (fun l ->
-                             match hd l with (_, s, _) ->
-                               s, map (fun (_, _, i) -> i) l)
-                           collated
+                 let collated =
+                   let gt = Hashtbl.create 200 in
+                   let sst = Hashtbl.create 200 in
+                   List.iter (function (_, s, _) as x -> Hashtbl.add gt s x; Hashtbl.replace sst s 0) streamones;
+                   List.map (Hashtbl.find_all gt) (map fst (list_of_hashtbl sst))
+                 in
+                   let inputs_to_lex_stream_object =
+                     map
+                       (fun l ->
+                         match hd l with (_, s, _) ->
+                           s, map (fun (_, _, i) -> i) l)
+                       collated
+                   in
+                     (* Read objects from object streams now *)
+                     let outputs_from_lex_stream_object =
+                       let partial =
+                         mkpartial
+                           objects_nonstream (Pdf.Dictionary !trailerdict)
                        in
-                         (* Read objects from object streams now *)
-                         let outputs_from_lex_stream_object =
-                           let partial =
-                             mkpartial
-                               objects_nonstream (Pdf.Dictionary !trailerdict)
-                           in
-                             map
-                               (function (s, is) ->
-                                  let r =
-                                    lex_stream_object
-                                      i xrefs parse opt s is user_pw owner_pw
-                                      partial (getgen s)
-                                  in
-                                    postdeletes := s::!postdeletes;
-                                    r)
-                               inputs_to_lex_stream_object
-                         in
-                           flatten outputs_from_lex_stream_object
+                         map
+                           (function (s, is) ->
+                              let r =
+                                lex_stream_object
+                                  i xrefs parse opt s is user_pw owner_pw
+                                  partial (getgen s)
+                              in
+                                postdeletes := s::!postdeletes;
+                                r)
+                           inputs_to_lex_stream_object
+                     in
+                       flatten outputs_from_lex_stream_object
                end
              else
                let partial =
                  mkpartial objects_nonstream (Pdf.Dictionary !trailerdict)
                in
+                 if !read_debug then (Printf.eprintf "Made partial \n"; tt' ());
                  let readstream streamobjnumber indexes =
                    lex_stream_object
                     i xrefs parse opt streamobjnumber indexes user_pw owner_pw
@@ -1553,20 +1560,21 @@ let read_pdf ?revision user_pw owner_pw opt i =
                    let themap =
                      let t = Hashtbl.create 200 in
                        let groups =
-                         let sf = fun (_, s, _) (_, s', _) -> compare_i s s' in
-                           collate sf (sort sf streamones)
+                         let gt = Hashtbl.create 200 in
+                         let sst = Hashtbl.create 200 in
+                         List.iter (function (_, s, _) as x -> Hashtbl.add gt s x; Hashtbl.replace sst s 0) streamones;
+                         List.map (Hashtbl.find_all gt) (map fst (list_of_hashtbl sst))
                        in
+                         if !read_debug then (Printf.eprintf "Made groups \n"; tt' ());
                          iter
                            (fun group ->
-                              let pairs =
-                                map (fun (n, _, i) -> (n, i)) group
-                              in
-                                let all_indexes = map snd pairs in
-                                  iter (fun (n, _) ->
-                                    Hashtbl.add t n all_indexes) pairs)
+                              let firsts = map (fun (n, _, _) -> n) group in
+                              let seconds = map (fun (_, _, i) -> i) group in
+                                iter (fun n -> Hashtbl.add t n seconds) firsts)
                              groups;
                              t
                    in
+                     if !read_debug then (Printf.eprintf "Made themap \n"; tt' ());
                      map
                        (function (n, s, i) ->
                          (n,
@@ -1581,11 +1589,12 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 "There were %i nonstream objects\n%!" (length objects_nonstream);
               Printf.eprintf
                 "There were %i stream objects\n%!" (length objects_stream);
-              Printf.eprintf "\n%!"
+              Printf.eprintf "\n%!";
+              tt' ();
             end;
           objects_stream, objects_nonstream, root, trailerdict
     in
-      if !read_debug then Printf.eprintf "Finishing up...\n%!";
+      if !read_debug then (Printf.eprintf "Finishing up...\n%!"; tt' ());
       let objects = objects_stream @ objects_nonstream in
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
@@ -1600,6 +1609,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None}
           in
+          if !read_debug then (Printf.eprintf "made final objects...\n%!"; tt' ());
           (* Check for a /Version in the document catalog *)
           begin match Pdf.lookup_direct pdf "/Version" (Pdf.lookup_obj pdf root) with
             Some (Pdf.Name s) ->
@@ -1635,7 +1645,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
               end;*)
             if !read_debug then
               begin
-                Printf.eprintf "Done.\n%!";
+                Printf.eprintf "Done reading PDF file.\n%!"; tt' ();
                 match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
                 | Some _ -> Printf.eprintf "***File is encrypted\n%!" | _ -> ()
               end;
