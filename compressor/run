@@ -1,0 +1,1 @@
+./compressor ../pdfglyphlist.source.ml ../pdfglyphlist.ml
