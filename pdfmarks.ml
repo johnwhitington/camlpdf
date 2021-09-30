@@ -215,25 +215,29 @@ let rec traverse_outlines_lb indent_lb pdf outlines output =
   | Some first -> do_until_no_next_lb indent_lb pdf first output
 
 and do_until_no_next_lb indent_lb pdf outline output =
-  begin match Pdf.lookup_direct pdf "/Title" outline with
-  | Some (Pdf.String s) ->
-      let page =
-        match Pdf.lookup_direct pdf "/Dest" outline with
-        | Some dest -> Pdfdest.read_destination pdf dest
-        | None ->
-            match Pdf.lookup_direct pdf "/A" outline with
-            | None -> Pdfdest.NullDestination
-            | Some action ->
-                match Pdf.lookup_direct pdf "/D" action with
-                | None -> Pdfdest.Action (Pdf.direct pdf action)
-                | Some dest -> Pdfdest.read_destination pdf dest
-      in let opn =
-        match Pdf.lookup_direct pdf "/Count" outline with
-        | Some (Pdf.Integer i) when i > 0 -> true
-        | _ -> false
-      in
-        output {level = !indent_lb; text = s; target = page; isopen = opn}
-    | _ -> raise (Pdf.PDFError "/Title not a string or not present in document outline entry")
+  let title =
+    match Pdf.lookup_direct pdf "/Title" outline with
+    | Some (Pdf.String s) -> s
+    | _ ->
+      Printf.eprintf "/Title not a string or not present in document outline entry. Using the empty string.\n";
+      ""
+  in
+    begin let page =
+      match Pdf.lookup_direct pdf "/Dest" outline with
+      | Some dest -> Pdfdest.read_destination pdf dest
+      | None ->
+          match Pdf.lookup_direct pdf "/A" outline with
+          | None -> Pdfdest.NullDestination
+          | Some action ->
+              match Pdf.lookup_direct pdf "/D" action with
+              | None -> Pdfdest.Action (Pdf.direct pdf action)
+              | Some dest -> Pdfdest.read_destination pdf dest
+    in let opn =
+      match Pdf.lookup_direct pdf "/Count" outline with
+      | Some (Pdf.Integer i) when i > 0 -> true
+      | _ -> false
+    in
+      output {level = !indent_lb; text = title; target = page; isopen = opn}
     end;
     incr indent_lb;
     traverse_outlines_lb indent_lb pdf outline output;
