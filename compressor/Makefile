@@ -4,7 +4,7 @@ RESULT = compressor
 
 PACKS = camlpdf
 
-TARGETS := byte-code
+TARGETS := native-code
 
 OCAMLFLAGS = -bin-annot
 OCAMLNCFLAGS = -g -safe-string -w -3
