@@ -5,7 +5,8 @@ open Pdfutil
  * encodings for textwidth here *)
 
 let read_afm afm =
-  let headers, ws, ks, ws' = Pdfafm.read (Pdfio.input_of_string afm) in
+  let decompressed = Pdfio.string_of_bytes (Pdfcodec.decode_flate (Pdfio.bytes_of_string afm)) in
+  let headers, ws, ks, ws' = Pdfafm.read (Pdfio.input_of_string decompressed) in
     hashtable_of_dictionary headers,
     hashtable_of_dictionary ws,
     hashtable_of_dictionary (map (fun (c, c', k) -> (c, c'), k) ks),

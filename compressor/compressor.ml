@@ -18,8 +18,10 @@ let contents_to_file filename contents =
 let rec process a = function
   | '_'::'_'::'D'::'A'::'T'::'A'::':'::more ->
       let filename, rest = cleavewhile (neq '\n') more in
-      let data = contents_of_file (implode filename) in
-        process ('"'::(rev (all_but_last (explode data))) @ ('"'::a)) rest
+      let data = all_but_last (explode (contents_of_file (implode filename))) in
+      let compressed = Pdfio.string_of_bytes (Pdfcodec.encode_flate (Pdfio.bytes_of_string (implode data))) in
+      let ocaml = explode (Printf.sprintf "%S" compressed) in
+        process (rev ocaml @ a) rest
   | h::t -> process (h::a) t
   | [] -> rev a
 

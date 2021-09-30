@@ -39,7 +39,13 @@ let parse_glyphlist i =
       End_of_file -> rev !out
 
 let glyphmap =
-  memoize (fun () -> parse_glyphlist (Pdfio.input_of_string glyphlist_src))
+  memoize
+    (fun () ->
+       parse_glyphlist
+         (Pdfio.input_of_string
+           (Pdfio.string_of_bytes
+             (Pdfcodec.decode_flate
+               (Pdfio.bytes_of_string glyphlist_src)))))
 
 (*let _ =
   iter
