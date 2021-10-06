@@ -1,5 +1,6 @@
 2.5 (Upcoming)
 
+o Fix Pdfio.setinit and friends to deal with 0-length data
 o Harden Pdfmarks against erroneous empty /Title in doc outline
 o AFM and glyphlists loaded from compressed sources
 o Environment variable CAMLPDF_REPRODUCIBLE_IDS

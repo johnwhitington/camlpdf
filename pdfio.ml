@@ -454,6 +454,7 @@ let read_lines i =
       End_of_file -> rev !ls
 
 let setinit i s o l =
+  if l = 0 then () else
   let max = bytes_size s - 1
   and last = o + 1 - 1 in
     if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit") else
@@ -468,6 +469,7 @@ let setinit i s o l =
           for x = o to o + l - 1 do bigarray_unsafe_set s x (i.input_byte ()) done
 
 let setinit_string i s o l =
+  if l = 0 then () else
   let max = Bytes.length s - 1
   and last = o + 1 - 1 in
     if o > max || o < 0 || last < 0 || last > max then raise (Failure "setinit_string") else
@@ -487,6 +489,7 @@ let bytes_of_input i o l =
       bytes_of_caml_bytes s
 
 let getinit i s o l =
+  if l = 0 then () else
   let max = bytes_size s - 1
   and last = o + 1 - 1 in
     if o > max || o < 0 || last < 0 || last > max then raise (Failure "getinit") else
