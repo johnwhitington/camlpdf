@@ -1268,10 +1268,10 @@ let clock () =
               float_of_int (get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2)
            +. float_of_int (get_int 9 3) /. 1000.
 
-let time = ref (clock ())
+let time = ref 0. (*ref (clock ())*)
 
-let tt' () =
-  (*Gc.major ();*)
+let tt' () = ()
+  (*(*Gc.major ();*)
   let t = clock () in
     Printf.eprintf "Elapsed: %.2f\n%!" (t -. !time);
-    time := t
+    time := t*)
