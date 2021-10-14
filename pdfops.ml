@@ -777,7 +777,9 @@ let parse_operator compatibility = function
                     Op_TJ (Pdf.Array elements)
               | _ -> raise (Pdf.PDFError "malformed TJ op")
               end
-          | Op _::_ as l -> Op_Unknown (string_of_lexemes l)
+          | Op _::_ as l ->
+             Printf.eprintf "Empty or malformed graphics operation %s.\n%!" (string_of_lexemes (rev l));
+             Op_Unknown (string_of_lexemes (rev l))
           | l ->
              Printf.eprintf "Empty or malformed graphics operation %s.\n%!" (string_of_lexemes (rev l));
              Op_Unknown (string_of_lexemes (rev l))
