@@ -369,6 +369,33 @@ let merge_optional_content_groups pdf pdfs =
     in
       Some (Pdf.addobj pdf new_ocproperties)
 
+(* Look up any acroforms and merge their fields entries, retaining any
+   other entries from any found. This is very basic, and we need to
+   see more example files to know what to do properly. *)
+let merge_acroforms pdf pdfs =
+  let form_dicts =
+    option_map
+      (fun pdf -> Pdf.lookup_direct pdf "/AcroForm" (Pdf.catalog_of_pdf pdf))
+      pdfs
+  in
+    if form_dicts = [] then None else
+    let merged_field_arrays =
+      flatten
+        (map
+          (fun d -> match Pdf.lookup_direct pdf "/Fields" d with Some (Pdf.Array a) -> a | _ -> [])
+          form_dicts)
+    in
+    let merged_nonfield_items =
+      fold_left
+        (fun d (k, v) -> Pdf.add_dict_entry d k v)
+        (Pdf.Dictionary [])
+        (flatten (map (function (Pdf.Dictionary d) -> d | _ -> []) form_dicts))
+    in
+    let new_dict =
+      Pdf.add_dict_entry merged_nonfield_items "/Fields" (Pdf.Array merged_field_arrays)
+    in
+      Some (Pdf.addobj pdf new_dict)
+
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
   let pdfs = merge_pdfs_rename_name_trees names pdfs in
@@ -405,6 +432,11 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
               match merge_optional_content_groups pdf pdfs with
                 None -> extra_catalog_entries
               | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
+            in
+            let extra_catalog_entries =
+              match merge_acroforms pdf pdfs with
+              | None -> extra_catalog_entries
+              | Some acroformnum -> add "/AcroForm" (Pdf.Indirect acroformnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
