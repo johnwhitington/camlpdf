@@ -950,6 +950,7 @@ let codepoints_of_pdfdocstring s =
     option_map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
 
 let utf8_of_pdfdocstring s =
+  (*Printf.eprintf "trying:%s\n" s;*)
   try utf8_of_codepoints (codepoints_of_pdfdocstring s) with
     e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n%!" (Printexc.to_string e); ""
 

@@ -1,10 +1,11 @@
 2.5 (Upcoming)
 
+o Expose Pdftext.is_unicode
 o Merge now merges AcroForms
 o Fix Pdfio.setinit and friends to deal with 0-length data
 o Harden Pdfmarks against erroneous empty /Title in doc outline
 o AFM and glyphlists loaded from compressed sources
-o Environment variable CAMLPDF_REPRODUCIBLE_IDS
+o Environment variable CAMLPDF_REPRODUCIBLE_IDS for testing
 o Effectively make stderr unbuffered for all output
 o A dictionary entry with null for its value now does not exist
 o A missing mediabox now not fatal - we use the most-recently seen

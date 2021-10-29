@@ -108,6 +108,8 @@ val write_font : Pdf.t -> font -> int
 
 (** {2 Utility functions} *)
 
+val is_unicode : string -> bool
+
 (** A list of unicode codepoints for a UTF8 string *)
 val codepoints_of_utf8 : string -> int list
 
