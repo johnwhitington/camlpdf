@@ -1015,3 +1015,11 @@ let charcode_extractor_of_encoding encoding =
           Some (Hashtbl.find table glyphname)
       with
         Not_found -> None
+
+(* PDF strings (except /ID in the trailer dictionary) are either PDFDocEncoding
+or UTF16BE. Many times the UTF16BE can all be represented in PDFDocEncoding.
+In this case, there are just lots of \000 bytes getting in the way making any
+JSON output hard to edit. So we preprocess such simple UTF16BE strings into
+PDFDocEncoding. *)
+let simplify_utf16be s =
+  if is_unicode s then pdfdocstring_of_utf8 (utf8_of_pdfdocstring s) else s
