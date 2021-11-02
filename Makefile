@@ -10,16 +10,16 @@ SOURCES = flatestubs.c rijndael-alg-fst.c stubs-aes.c sha2.c stubs-sha2.c \
 
 RESULT = camlpdf
 
-LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
-  dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
-  $(foreach x,$(PDFMODS),$x.cmt) $(foreach x,$(PDFMODS),$x.cmi)
-
-TARGETS := byte-code-library htdoc
-
 OCAMLFLAGS = -bin-annot
 OCAMLNCFLAGS = -g -safe-string -w -3
 OCAMLBCFLAGS = -g -safe-string -w -3
 OCAMLLDFLAGS = -g
+
+TARGETS := byte-code-library htdoc
+
+LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
+  dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
+  $(foreach x,$(PDFMODS),$x.cmt) $(foreach x,$(PDFMODS),$x.cmi)
 
 ifneq ($(shell which ocamlopt),)
   TARGETS += native-code-library

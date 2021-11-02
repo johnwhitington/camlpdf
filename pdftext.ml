@@ -1,8 +1,6 @@
-(* \chaptertitle{PDFText}{Reading and writing text} *)
+(* Reading and writing text *)
 open Pdfutil
 open Pdfio
-
-(* \section{Data type for fonts} *)
 
 (* Type 3 Specific Glyph Data *)
 type type3_glpyhs =
@@ -582,7 +580,7 @@ let write_font pdf = function
             Pdf.addobj pdf dict
   | _ -> raise (Pdf.PDFError "write_font only supports type 3 fonts")
 
-(* \section{Font encodings} *)
+(* Font encodings *)
 
 (* Parse a /ToUnicode CMap to extract font mapping. *)
 type section =
@@ -906,6 +904,51 @@ let codepoints_of_text extractor text =
 let glyphnames_of_text extractor text =
   map fst (glyphnames_and_codepoints_of_text extractor text)
 
+(* Charcode extractor (the opposite of a text extractor) Return the character
+code for a given unicode codepoint, if it exists in this encoding and font. *)
+let charcode_extractor_of_font pdf fontobj =
+  let font = read_font pdf fontobj in
+  flprint ((string_of_font font) ^ "\n");
+  let encoding =
+    match font with
+    | StandardFont (_, e) -> e
+    | SimpleFont {encoding = e} -> e
+    | _ -> ImplicitInFontFile (* No support *)
+  in
+  let tounicode_reverse_table, use_tounicode =
+    match Pdf.lookup_direct pdf "/ToUnicode" fontobj with
+    | Some tounicode ->
+        Printf.printf "Found a /ToUnicode table here.\n";
+        begin try
+          let parsed = parse_tounicode pdf tounicode in
+            List.iter
+              (fun (charcode, utf16be_str) -> Printf.printf "/ToUnicode entry %i --> %s\n" charcode utf16be_str)
+              parsed;
+            let reversed =
+              map (fun (charcode, s) -> (codepoints_of_utf16be s, charcode)) parsed
+            in
+            hashtable_of_dictionary reversed, true
+        with
+          e -> Printf.eprintf "bad tounicode (%s)\n%!" (Printexc.to_string e); (null_hash (), false)
+        end
+    | None -> null_hash (), false
+  in
+  let table = reverse_table_of_encoding encoding in
+  let reverse_glyph_hashes = Pdfglyphlist.reverse_glyph_hashes () in
+    function codepoint ->
+      Printf.printf "Input codepoint: %X\n" codepoint;
+      try
+        if use_tounicode then
+          Some (let r = Hashtbl.find tounicode_reverse_table [codepoint] in Printf.printf "Found charcode %i\n\n" r; r)
+        else
+          let glyphname = Hashtbl.find reverse_glyph_hashes [codepoint] in
+            Printf.printf "Found glyph name %s\n" glyphname;
+            Some (let r = Hashtbl.find table glyphname in Printf.printf "Found charcode %i\n\n" r; r)
+      with
+        Not_found ->
+          Printf.printf "Found no charcode.\n\n";
+          None
+
 (* Is a PDF string unicode (does it have a byte order marker at the beginning). *)
 let is_unicode s =
   (String.length s >= 2) && s.[0] = '\254' && s.[1] = '\255'
@@ -1002,19 +1045,6 @@ let pdfdocstring_of_codepoints codepoints =
 let pdfdocstring_of_utf8 s =
   pdfdocstring_of_codepoints (codepoints_of_utf8 s)
 
-(** Return the character code for a given unicode codepoint, if it exists in
-this encoding. This is only really suitable for simple stuff like standard 14
-fonts, or editing text in existing fonts. *)
-let charcode_extractor_of_encoding encoding =
-  let table = reverse_table_of_encoding encoding in
-    function codepoint ->
-      try
-        let glyphname =
-          Hashtbl.find (Pdfglyphlist.reverse_glyph_hashes ()) [codepoint]
-        in
-          Some (Hashtbl.find table glyphname)
-      with
-        Not_found -> None
 
 (* PDF strings (except /ID in the trailer dictionary) are either PDFDocEncoding
 or UTF16BE. Many times the UTF16BE can all be represented in PDFDocEncoding.
