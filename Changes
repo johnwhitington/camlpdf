@@ -1,6 +1,6 @@
 2.5 (Upcoming)
 
-o Pdftext.charcode_extractor_of_encoding copes with more encodings, is two-way
+o Pdftext.charcode_extractor_of_font copes with more encodings
 o Expose Pdftext.is_unicode, add Pdftext.simplify_utf16be
 o Merge now merges AcroForms
 o Fix Pdfio.setinit and friends to deal with 0-length data
