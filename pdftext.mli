@@ -152,8 +152,9 @@ val glyphnames_of_text : text_extractor -> string -> string list
 (** {2 Building text for strings inside page content} *)
 
 (** Return the character code for a given unicode codepoint, if it exists in
-the encoding and font. *)
-val charcode_extractor_of_font : Pdf.t -> Pdf.pdfobject -> (int -> int option)
+the encoding and font. If [debug] is set (default false) missing characters are
+reported to stderr. *)
+val charcode_extractor_of_font : ?debug:bool -> Pdf.t -> Pdf.pdfobject -> (int -> int option)
 
 (** Table of all the entries in an encoding. *)
 val table_of_encoding : encoding -> (int, string) Hashtbl.t
