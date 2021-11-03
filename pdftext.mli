@@ -136,6 +136,9 @@ val codepoints_of_pdfdocstring : string -> int list
 
 (** {2 Text from strings inside page content} *)
 
+(* Parse a /ToUnicode stream, returning the table of codepoint-utf16be pairs *)
+val parse_tounicode : Pdf.t -> Pdf.pdfobject -> (int * string) list
+
 (** The type of text extractors. *)
 type text_extractor
 
