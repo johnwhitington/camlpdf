@@ -868,10 +868,10 @@ let text_extractor_of_font pdf font =
             if use_tounicode then
               function i ->
                 try
-                  begin try Hashtbl.find tounicode_table i with Not_found -> "/.notdef" end,
+                  begin try "/" ^ Hashtbl.find tounicode_table i with Not_found -> ".notdef" end,
                   codepoints_of_utf16be (Hashtbl.find tounicode_table i)
                 with
-                  _ -> (* Failed *) ("/.notdef", [i])
+                  _ -> (* Failed *) (".notdef", [i])
             else
               function i ->
                 try
@@ -880,9 +880,9 @@ let text_extractor_of_font pdf font =
                       let codepoints = Hashtbl.find (Pdfglyphlist.glyph_hashes ()) decoded in
                         decoded, codepoints
                     with
-                      _ -> (decoded, [i])
+                      _ -> ("/" ^ decoded, [i])
                 with
-                _ -> (* Failed *) ("/.notdef", [i]));
+                _ -> (* Failed *) (".notdef", [i]));
     font = read_font pdf font}
 
 (* For now, the only composite font encoding scheme we understand is /Identity-H *)
