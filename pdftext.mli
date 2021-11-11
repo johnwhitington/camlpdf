@@ -27,7 +27,8 @@ type fontdescriptor =
    leading : float;
    avgwidth : float;
    maxwidth : float;
-   fontfile : fontfile option}
+   fontfile : fontfile option;
+   charset : string list option}
 
 type differences = (string * int) list
 

@@ -32,7 +32,8 @@ type fontdescriptor =
    leading : float;
    avgwidth : float;
    maxwidth : float;
-   fontfile : fontfile option}
+   fontfile : fontfile option;
+   charset : string list option}
 
 type differences = (string * int) list
 
@@ -166,6 +167,22 @@ let read_basefont pdf font =
   | Some (Pdf.Name n) -> n
   | _ -> ""
 
+let parse_charset s =
+  let i = Pdfio.input_of_string s in
+  let gs = ref [] in
+    try
+      while true do
+        Pdfread.dropwhite i;
+        begin match Pdfread.lex_name i with
+        | Pdfgenlex.LexName s ->
+            if s = "/" then raise Exit else gs := s::!gs
+        | _ -> raise Exit
+        end
+      done;
+      []
+   with
+     _ -> rev !gs
+
 let read_fontdescriptor pdf font =
   match Pdf.lookup_direct pdf "/FontDescriptor" font with
   | None -> None
@@ -200,6 +217,10 @@ let read_fontdescriptor pdf font =
                 match Pdf.find_indirect "/FontFile3" fontdescriptor with
                 | Some i -> Some (FontFile3 i)
                 | None -> None
+      in let charset =
+        match Pdf.lookup_direct pdf "/CharSet" fontdescriptor with
+        | Some (Pdf.String s) -> Some (parse_charset s)
+        | _ -> None
       in
         Some
           {ascent = ascent;
@@ -207,7 +228,8 @@ let read_fontdescriptor pdf font =
            leading = leading;
            avgwidth = avgwidth;
            maxwidth = maxwidth;
-           fontfile = fontfile}
+           fontfile = fontfile;
+           charset = charset}
 
 (* Read the widths from a font. Normally in the font descriptor, but in Type3
 fonts at the top level. *)
