@@ -35,6 +35,10 @@ val read_header : (Pdfio.input -> int * int)
 
 val lex_stream_data : Pdfio.input -> int -> bool -> Pdfgenlex.t
 
+val getuntil : bool -> (char -> bool) -> Pdfio.input -> char list
+
+val ignoreuntil : bool -> (char -> bool) -> Pdfio.input -> unit
+
 val getuntil_white_or_delimiter : (Pdfio.input -> char list)
 
 val getuntil_white_or_delimiter_string : (Pdfio.input -> string)
@@ -54,8 +58,6 @@ val lex_dictionary : Pdfio.input -> Pdfgenlex.t list
 val parse : ?failure_is_ok:bool -> Pdfgenlex.t list -> int * Pdf.pdfobject
 
 val dropwhite : Pdfio.input -> unit
-
-val ignoreuntil : bool -> (char -> bool) -> Pdfio.input -> unit
 
 val print_lexeme : Pdfgenlex.t -> unit
 
