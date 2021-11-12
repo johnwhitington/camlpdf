@@ -756,7 +756,9 @@ let rec parse_tounicode pdf tounicode =
                 (get_sections
                    (lose Pdf.is_whitespace (charlist_of_bytes data))))
           with
-            e -> Printf.eprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e); []
+            e ->
+              Printf.eprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e);
+              raise e
           end
       | _ -> assert false
       end
