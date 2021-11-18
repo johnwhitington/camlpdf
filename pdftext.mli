@@ -167,4 +167,3 @@ val reverse_table_of_encoding : encoding -> (string, int) Hashtbl.t
 (** Remake a UTF16BE string into a PDFDocEncoding string if all characters are
     in PDFDocRncoding *)
 val simplify_utf16be : string -> string
-
