@@ -2,6 +2,8 @@
 open Pdfutil
 open Pdfio
 
+(* FIXME Extractors (text, charcode) should work on fonts not fontdicts. Add these. *)
+
 (* Type 3 Specific Glyph Data *)
 type type3_glpyhs =
   {fontbbox : float * float * float * float;

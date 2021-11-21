@@ -64,12 +64,13 @@ contents, so as to allow them to be merged without name clashes. *)
 val renumber_pages : Pdf.t -> t list -> t list
 
 (** Change the pages in a document for some new ones. If the boolean is true
-and the number of pages in the old and new documents are equal, references to
-the old pages from outside the page tree (for instance in destinations or
-bookmarks) are renumbered. This ensures bookmarks are preserved correctly. A
-list of (page number, matrix) pairs may also be supplied if the boolean is true
-and the number of old and new pages are equal. This allows transformed pages
-(e.g scaled) to have their bookmark destionations pointed at correctly. *)
+and the number of pages in the old and new documents are equal (or ~changes, a
+list of (from, to) page nummber changes, is provided), references to the old
+pages from outside the page tree (for instance in destinations or bookmarks)
+are renumbered. This ensures bookmarks are preserved correctly. A list of (page
+number, matrix) pairs may also be supplied if the boolean is true and the
+number of old and new pages are equal. This allows transformed pages (e.g
+scaled) to have their bookmark destionations pointed at correctly. *)
 val change_pages :
   ?matrices:(int * Pdftransform.transform_matrix) list ->
   ?changes:((int * int) list) -> bool -> Pdf.t -> t list -> Pdf.t
