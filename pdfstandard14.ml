@@ -52,13 +52,13 @@ let find_kern kerns key =
   match tryfind kerns key with Some x -> x | None -> 0
 
 (* Take character code --> character name --> width *)
-let find_width widths charname_to_width encoding h =
+let find_width widths charname_to_width encoding encoding_table h =
   match encoding with
   | Pdftext.ImplicitInFontFile ->
       begin match tryfind widths h with Some x -> x | None -> 0 end
-  | encoding ->
+  | _ ->
       let charname =
-        match tryfind (Pdftext.table_of_encoding encoding) h with
+        match tryfind encoding_table h with
           Some x -> x
         | None -> "/space" (* Really, a failure *)
       in
@@ -66,18 +66,19 @@ let find_width widths charname_to_width encoding h =
         Some x -> x
       | None -> 0 (* Really, a failure *)
 
-let rec width dokern widths charname_to_width encoding kerns = function
+let rec width dokern widths charname_to_width encoding encoding_table kerns = function
   | [] -> 0
-  | [h] -> find_width widths charname_to_width encoding h
+  | [h] -> find_width widths charname_to_width encoding encoding_table h
   | h::h'::t ->
-      find_width widths charname_to_width encoding h +
+      find_width widths charname_to_width encoding encoding_table h +
       (if dokern then find_kern kerns (h, h') else 0) +
-      width dokern widths charname_to_width encoding kerns (h'::t)
+      width dokern widths charname_to_width encoding encoding_table kerns (h'::t)
 
 (* The main function. Give a font and the text string. *)
 let textwidth dokern encoding f s =
   let _, widths, kerns, charname_to_width = lookup_failnull f tables () in
-  width dokern widths charname_to_width encoding kerns (map int_of_char (explode s))
+  let encoding_table = Pdftext.table_of_encoding encoding in
+  width dokern widths charname_to_width encoding encoding_table kerns (map int_of_char (explode s))
 
 (* Return the AFM table data itself *)
 let afm_data f =

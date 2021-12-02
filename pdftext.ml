@@ -918,8 +918,7 @@ parse it, we do.
 
 FIXME: InlineImages2.pdf - Acrobat can extract text, why can't we?
 *)
-let text_extractor_of_font pdf fontdict =
-  let font = read_font pdf fontdict in
+let text_extractor_of_font_real font =
   {convert =
      (let encoding =
         match font with
@@ -953,6 +952,10 @@ let text_extractor_of_font pdf fontdict =
                 _ -> (* Failed *) (".notdef", [i]));
     font}
 
+let text_extractor_of_font pdf fontdict =
+  let font = read_font pdf fontdict in
+    text_extractor_of_font_real font
+
 (* For now, the only composite font encoding scheme we understand is /Identity-H *)
 let is_identity_h = function
   | CIDKeyedFont (_, _, Predefined "/Identity-H") -> true
@@ -974,8 +977,7 @@ let glyphnames_of_text extractor text =
 
 (* Charcode extractor (the opposite of a text extractor) Return the character
 code for a given unicode codepoint, if it exists in this encoding and font. *)
-let charcode_extractor_of_font ?(debug=false) pdf fontdict =
-  let font = read_font pdf fontdict in
+let charcode_extractor_of_font_real ?(debug=false) font =
   if debug then flprint ((string_of_font font) ^ "\n");
   let encoding =
     match font with
@@ -1017,6 +1019,10 @@ let charcode_extractor_of_font ?(debug=false) pdf fontdict =
         Not_found ->
           if debug then Printf.eprintf "Found no charcode for unicode codepoint %X.\n" codepoint;
           None
+
+let charcode_extractor_of_font ?(debug=false) pdf fontdict =
+  let font = read_font pdf fontdict in
+    charcode_extractor_of_font_real ~debug font
 
 (* Is a PDF string unicode (does it have a byte order marker at the beginning). *)
 let is_unicode s =
@@ -1062,7 +1068,6 @@ let codepoints_of_pdfdocstring s =
     option_map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
 
 let utf8_of_pdfdocstring s =
-  (*Printf.eprintf "trying:%s\n" s;*)
   try utf8_of_codepoints (codepoints_of_pdfdocstring s) with
     e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n%!" (Printexc.to_string e); ""
 
@@ -1092,8 +1097,6 @@ let rec codepoints_of_utf8 = function
 
 let codepoints_of_utf8 s = codepoints_of_utf8 (map int_of_char (explode s))
 
-exception RequiresUnicode
-
 (* Looks up each codepoint in the adobe glyphmap, and look up that name in
 name_to_pdf above, raising the exception only if we find something that can't
 be handled. *)
@@ -1102,18 +1105,18 @@ let rec pdfdocencoding_of_codepoints sofar = function
   | c::cs ->
        try
          pdfdocencoding_of_codepoints
-           ((Hashtbl.find Pdfglyphlist.name_to_pdf_hashes (Hashtbl.find (Pdfglyphlist.reverse_glyph_hashes ()) [c]))::sofar)
+           ((Hashtbl.find Pdfglyphlist.name_to_pdf_hashes
+               (Hashtbl.find (Pdfglyphlist.reverse_glyph_hashes ()) [c]))::sofar)
            cs
        with
-         Not_found -> raise RequiresUnicode
+         Not_found -> raise Exit
 
 let pdfdocstring_of_codepoints codepoints =
   try implode (map char_of_int (pdfdocencoding_of_codepoints [] codepoints)) with
-    RequiresUnicode -> utf16be_of_codepoints codepoints
+    Exit -> utf16be_of_codepoints codepoints
 
 let pdfdocstring_of_utf8 s =
   pdfdocstring_of_codepoints (codepoints_of_utf8 s)
-
 
 (* PDF strings (except /ID in the trailer dictionary) are either PDFDocEncoding
 or UTF16BE. Many times the UTF16BE can all be represented in PDFDocEncoding.

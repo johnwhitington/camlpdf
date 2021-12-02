@@ -12,7 +12,7 @@ val baseline_adjustment : Pdftext.standard_font -> int
 (** The data extracted from the font AFM. This is a 4-tuple, consisting of a
 table of header pairs, a table of (character number, width) pairs, a table
 of (first, second, kern) triples representing the kerning table and a table
-of (character name, width) pairs.  The last table is useful for character which
+of (character name, width) pairs.  The last table is useful for characters which
 are identified with a custom encoding and which might not be assigned a number
 in the standard encoding. *)
 val afm_data :

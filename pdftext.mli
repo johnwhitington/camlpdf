@@ -146,7 +146,7 @@ type text_extractor
 val text_extractor_of_font : Pdf.t -> Pdf.pdfobject -> text_extractor
 
 (** Build a text extractor from a document and a font *)
-(*val text_extractor_of_font_real : Pdf.t -> t -> text_extractor*)
+val text_extractor_of_font_real : font -> text_extractor
 
 (** Return a list of unicode points from a given extractor and string (for
 example from a [Pdfpages.Op_Tj] or [Op_TJ] operator). *)
@@ -165,7 +165,7 @@ val charcode_extractor_of_font : ?debug:bool -> Pdf.t -> Pdf.pdfobject -> (int -
 (** Return the character code for a given unicode codepoint, if it exists in
 the encoding and font. If [debug] is set (default false) missing characters are
 reported to stderr. *)
-(*val charcode_extractor_of_font_real : ?debug:bool -> Pdf.t -> t -> (int -> int option)*)
+val charcode_extractor_of_font_real : ?debug:bool -> font -> (int -> int option)
 
 (** Table of all the entries in an encoding. *)
 val table_of_encoding : encoding -> (int, string) Hashtbl.t
