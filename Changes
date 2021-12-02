@@ -1,5 +1,6 @@
 2.5 (Upcoming)
 
+o Charcode and text extractors have font not fontdict counterparts
 o Pdftext.charcode_extractor_of_font copes with more encodings
 o Add Pdftext.simplify_utf16be
 o Merge now merges AcroForms

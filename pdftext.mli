@@ -28,7 +28,8 @@ type fontdescriptor =
    avgwidth : float;
    maxwidth : float;
    fontfile : fontfile option;
-   charset : string list option}
+   charset : string list option;
+   tounicode : (int, string) Hashtbl.t option}
 
 type differences = (string * int) list
 
@@ -144,6 +145,9 @@ type text_extractor
 (** Build a text extractor from a document and font object *)
 val text_extractor_of_font : Pdf.t -> Pdf.pdfobject -> text_extractor
 
+(** Build a text extractor from a document and a font *)
+(*val text_extractor_of_font_real : Pdf.t -> t -> text_extractor*)
+
 (** Return a list of unicode points from a given extractor and string (for
 example from a [Pdfpages.Op_Tj] or [Op_TJ] operator). *)
 val codepoints_of_text : text_extractor -> string -> int list
@@ -154,9 +158,14 @@ val glyphnames_of_text : text_extractor -> string -> string list
 (** {2 Building text for strings inside page content} *)
 
 (** Return the character code for a given unicode codepoint, if it exists in
+the encoding and font object. If [debug] is set (default false) missing
+characters are reported to stderr. *)
+val charcode_extractor_of_font : ?debug:bool -> Pdf.t -> Pdf.pdfobject -> (int -> int option)
+
+(** Return the character code for a given unicode codepoint, if it exists in
 the encoding and font. If [debug] is set (default false) missing characters are
 reported to stderr. *)
-val charcode_extractor_of_font : ?debug:bool -> Pdf.t -> Pdf.pdfobject -> (int -> int option)
+(*val charcode_extractor_of_font_real : ?debug:bool -> Pdf.t -> t -> (int -> int option)*)
 
 (** Table of all the entries in an encoding. *)
 val table_of_encoding : encoding -> (int, string) Hashtbl.t
@@ -165,5 +174,5 @@ val table_of_encoding : encoding -> (int, string) Hashtbl.t
 val reverse_table_of_encoding : encoding -> (string, int) Hashtbl.t
 
 (** Remake a UTF16BE string into a PDFDocEncoding string if all characters are
-    in PDFDocRncoding *)
+    in PDFDocEncoding *)
 val simplify_utf16be : string -> string
