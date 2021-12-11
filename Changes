@@ -1,5 +1,6 @@
 2.5 (Upcoming)
 
+o Pdfpage.change_pages now preserves object streams
 o Width calculation in Pdfstandard14 now more efficient
 o Charcode and text extractors have font not fontdict counterparts
 o Pdftext.charcode_extractor_of_font copes with more encodings
