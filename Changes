@@ -1,4 +1,4 @@
-2.5 (Upcoming)
+2.5 (January 2022)
 
 o Pdfpage.change_pages now preserves object streams
 o Width calculation in Pdfstandard14 now more efficient
