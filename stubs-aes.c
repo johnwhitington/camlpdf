@@ -30,7 +30,7 @@ CAMLprim value camlpdf_caml_aes_cook_encrypt_key(value key)
   int nr =
     camlpdf_rijndaelKeySetupEnc((u32 *) String_val(ckey),
                         (const u8 *) String_val(key),
-                        8 * string_length(key));
+                        8 * caml_string_length(key));
   Byte(ckey, Cooked_key_NR_offset) = nr;
   CAMLreturn(ckey);
 }
@@ -42,7 +42,7 @@ CAMLprim value camlpdf_caml_aes_cook_decrypt_key(value key)
   int nr =
     camlpdf_rijndaelKeySetupDec((u32 *) String_val(ckey),
                         (const u8 *) String_val(key),
-                        8 * string_length(key));
+                        8 * caml_string_length(key));
   Byte(ckey, Cooked_key_NR_offset) = nr;
   CAMLreturn(ckey);
 }
