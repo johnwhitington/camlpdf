@@ -1,3 +1,7 @@
+2.6 (Upcoming)
+
+o Replace deprecated C interface functions for OCaml 5.0
+
 2.5 (January 2022)
 
 o Pdfpage.change_pages now preserves object streams
