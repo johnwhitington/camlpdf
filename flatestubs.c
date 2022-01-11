@@ -41,7 +41,7 @@ static void camlpdf_camlzip_error(char * fn, value vzs)
   if (camlpdf_camlzip_error_exn == NULL) {
     camlpdf_camlzip_error_exn = caml_named_value("Pdfflate.Error");
     if (camlpdf_camlzip_error_exn == NULL)
-      invalid_argument("Exception Pdfflate.Error not initialized");
+      caml_invalid_argument("Exception Pdfflate.Error not initialized");
   }
   Begin_roots3(s1, s2, bucket);
     s1 = caml_copy_string(fn);

@@ -643,7 +643,9 @@ let change_pages_find_matrix dest mattable refnumstable =
               Hashtbl.find mattable pagenumber
           with
             _ ->
-              Printf.eprintf "page not found for bookmark or annotation dest:%s\n%!" (Pdfdest.string_of_destination dest);
+              Printf.eprintf
+                "page not found for bookmark or annotation dest:%s\n%!"
+                (Pdfwrite.string_of_pdf (Pdfdest.pdfobject_of_destination dest));
               Pdftransform.i_matrix
           end
       | _ -> Pdftransform.i_matrix

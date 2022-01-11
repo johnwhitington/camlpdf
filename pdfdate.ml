@@ -101,14 +101,3 @@ let date_of_string s =
                         in
                           check_date date;
                           date
-
-(* Example *)
-let test () =
-  flprint
-    (string_of_date
-      {year = 2000; month = 3; day = 16; hour = 13; minute = 2; second = 34; hour_offset = -1; minute_offset = 24});
-  let d =
-    date_of_string "D:199812231952-08'00'"
-  in
-    Printf.printf "\n%i %i %i %i %i %i %i %i\n" d.year d.month d.day d.hour d.minute d.second d.hour_offset d.minute_offset;
-    flprint "\n"

@@ -8,7 +8,11 @@ type t =
    isopen : bool}
 
 let string_of_bookmark m =
-   Printf.sprintf "%i %s %s %b\n" m.level m.text (Pdfdest.string_of_destination m.target) m.isopen
+   Printf.sprintf "%i %s %s %b\n"
+     m.level
+     m.text
+     (Pdfwrite.string_of_pdf (Pdfdest.pdfobject_of_destination m.target))
+     m.isopen
 
 let remove_bookmarks pdf =
   match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with

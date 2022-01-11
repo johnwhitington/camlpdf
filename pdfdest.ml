@@ -176,6 +176,3 @@ let transform_destination t = function
       let right, bottom = clip_pair (Pdftransform.transform_matrix t (right, bottom)) in
         FitR (p, left, bottom, right, top)
   | x -> x
-
-let string_of_destination d =
-  Pdfwrite.string_of_pdf (pdfobject_of_destination d)
