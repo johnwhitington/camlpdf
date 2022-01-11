@@ -6,7 +6,7 @@
 CAMLprim value camlpdf_caml_sha256(value message)
 {
   CAMLparam1(message);
-  value digest = alloc_string(32);
+  value digest = caml_alloc_string(32);
   camlpdf_sha256((const unsigned char *) (String_val(message)),
          caml_string_length(message),
          ((unsigned char *) String_val(digest)));
@@ -16,7 +16,7 @@ CAMLprim value camlpdf_caml_sha256(value message)
 CAMLprim value camlpdf_caml_sha384(value message)
 {
   CAMLparam1(message);
-  value digest = alloc_string(48);
+  value digest = caml_alloc_string(48);
   camlpdf_sha384((const unsigned char *) (String_val(message)),
          caml_string_length(message),
          ((unsigned char *) String_val(digest)));
@@ -26,7 +26,7 @@ CAMLprim value camlpdf_caml_sha384(value message)
 CAMLprim value camlpdf_caml_sha512(value message)
 {
   CAMLparam1(message);
-  value digest = alloc_string(64);
+  value digest = caml_alloc_string(64);
   camlpdf_sha512((const unsigned char *) (String_val(message)),
          caml_string_length(message),
          ((unsigned char *) String_val(digest)));

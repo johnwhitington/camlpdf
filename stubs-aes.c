@@ -26,7 +26,7 @@
 CAMLprim value camlpdf_caml_aes_cook_encrypt_key(value key)
 {
   CAMLparam1(key);
-  value ckey = alloc_string(Cooked_key_size);
+  value ckey = caml_alloc_string(Cooked_key_size);
   int nr =
     camlpdf_rijndaelKeySetupEnc((u32 *) String_val(ckey),
                         (const u8 *) String_val(key),
@@ -38,7 +38,7 @@ CAMLprim value camlpdf_caml_aes_cook_encrypt_key(value key)
 CAMLprim value camlpdf_caml_aes_cook_decrypt_key(value key)
 {
   CAMLparam1(key);
-  value ckey = alloc_string(Cooked_key_size);
+  value ckey = caml_alloc_string(Cooked_key_size);
   int nr =
     camlpdf_rijndaelKeySetupDec((u32 *) String_val(ckey),
                         (const u8 *) String_val(key),
