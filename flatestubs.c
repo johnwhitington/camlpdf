@@ -51,7 +51,7 @@ static void camlpdf_camlzip_error(char * fn, value vzs)
     Field(bucket, 1) = s1;
     Field(bucket, 2) = s2;
   End_roots();
-  mlraise(bucket);
+  caml_raise(bucket);
 }
 
 static value camlpdf_camlzip_new_stream(void)
