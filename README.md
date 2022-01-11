@@ -62,6 +62,3 @@ and Paulo Barreto.
 OCamlMakefile was written by Markus Mottl. It is available here:
 
 [http://bitbucket.org/mmottl/ocaml-makefile](http://bitbucket.org/mmottl/ocaml-makefile)
-
-These works are also released under the LGPL with special linking exception, as
-described in LICENCE.
