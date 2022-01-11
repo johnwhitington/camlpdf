@@ -1,5 +1,6 @@
 2.5 (January 2022)
 
+o Build byte code top level camlpdf.top by default
 o Replace deprecated C interface functions for OCaml 5.0
 o Document most undocumented functions
 o Pdfpage.change_pages now preserves object streams
