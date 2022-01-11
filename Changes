@@ -1,9 +1,7 @@
-2.6 (Upcoming)
-
-o Replace deprecated C interface functions for OCaml 5.0
-
 2.5 (January 2022)
 
+o Replace deprecated C interface functions for OCaml 5.0
+o Document most undocumented functions
 o Pdfpage.change_pages now preserves object streams
 o Width calculation in Pdfstandard14 now more efficient
 o Charcode and text extractors have font not fontdict counterparts

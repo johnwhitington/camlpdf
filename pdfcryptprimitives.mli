@@ -31,14 +31,19 @@ val sha384 : Pdfio.input -> string
 (** SHA512 digest *)
 val sha512 : Pdfio.input -> string
 
-(**/**)
+(** Types of encryption *)
 type encryption = 
   | ARC4 of int * int
   | AESV2
-  | AESV3 of bool (* true = iso, false = old algorithm *)
+  | AESV3 of bool (** true = iso, false = old algorithm *)
 
+(* Given an object number, generation number, input key and key length in bits,
+apply Algorithm 3.1 from the PDF Reference manual to obtain the hash to be used
+by the encryption function. *)
 val find_hash : encryption -> int32 -> int32 -> int array -> int -> int array
 
+(* [decrypt_stream_data crypt_type encrypt file_encryption_key obj gen key
+   keylength r data] decrypts data. *)
 val decrypt_stream_data :
   encryption ->
   bool ->

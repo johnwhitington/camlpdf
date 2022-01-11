@@ -30,9 +30,6 @@ val decrypt_pdf_owner : string -> Pdf.t -> Pdf.t option
 (** Is a PDF encrypted? *)
 val is_encrypted : Pdf.t -> bool
 
-(**/**)
-(* only for the use of PDFWrite *)
-
 (** [recrypt_pdf decrypted_and_modified] re-encrypts a PDF document
 which was decrypted using the user password and owner password from the
 original encrypted file and the same permissions and encryption parameters. *)
@@ -54,13 +51,19 @@ val encrypt_pdf_AES256 : bool -> string -> string -> permission list -> Pdf.t ->
 (** Encrypt a file using the AESV4 (ISO) Crypt filter *)
 val encrypt_pdf_AES256ISO : bool -> string -> string -> permission list -> Pdf.t -> Pdf.t
 
-(* only for the use of Pdfread *)
+(* Just decrypt a single stream, given the user password, and pdf. This is used
+to decrypt cross-reference streams during the reading of a file -- the PDF is
+only partially formed at this stage. For internal use by Pdfread. *)
 val decrypt_single_stream :
   string option -> string option -> Pdf.t -> int -> int -> Pdf.pdfobject -> Pdf.pdfobject
 
-(* Don't call on an unencrypted PDF *)
+(* Read encryption parameters from an encrypted PDF. *)
 val get_encryption_values : Pdf.t -> Pdfcryptprimitives.encryption * string * string * int32 * string * string option * string option
 
+(* Parse a /P value, giving the permissions *)
 val banlist_of_p : int32 -> permission list
 
+(**/**)
+
+(* For inter-module recursion...*)
 val string_of_pdf : (Pdf.pdfobject -> string) ref
