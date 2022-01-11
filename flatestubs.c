@@ -44,9 +44,9 @@ static void camlpdf_camlzip_error(char * fn, value vzs)
       invalid_argument("Exception Pdfflate.Error not initialized");
   }
   Begin_roots3(s1, s2, bucket);
-    s1 = copy_string(fn);
-    s2 = copy_string(msg);
-    bucket = alloc_small(3, 0);
+    s1 = caml_copy_string(fn);
+    s2 = caml_copy_string(msg);
+    bucket = caml_alloc_small(3, 0);
     Field(bucket, 0) = *camlpdf_camlzip_error_exn;
     Field(bucket, 1) = s1;
     Field(bucket, 2) = s2;
@@ -56,7 +56,7 @@ static void camlpdf_camlzip_error(char * fn, value vzs)
 
 static value camlpdf_camlzip_new_stream(void)
 {
-  value res = alloc((sizeof(mz_stream) + sizeof(value) - 1) / sizeof(value),
+  value res = caml_alloc((sizeof(mz_stream) + sizeof(value) - 1) / sizeof(value),
                     Abstract_tag);
   ZStream_val(res)->zalloc = NULL;
   ZStream_val(res)->zfree = NULL;
@@ -101,7 +101,7 @@ value camlpdf_camlzip_deflate(value vzs, value srcbuf, value srcpos, value srcle
   used_out = Long_val(dstlen) - zs->avail_out;
   zs->next_in = NULL;         /* not required, but cleaner */
   zs->next_out = NULL;        /* (avoid dangling pointers into Caml heap) */
-  res = alloc_small(3, 0);
+  res = caml_alloc_small(3, 0);
   Field(res, 0) = Val_bool(retcode == MZ_STREAM_END);
   Field(res, 1) = Val_int(used_in);
   Field(res, 2) = Val_int(used_out);
@@ -181,7 +181,7 @@ value camlpdf_camlzip_inflateEnd(value vzs)
 
 value camlpdf_camlzip_update_crc32(value crc, value buf, value pos, value len)
 {
-  return copy_int32(mz_crc32((uint32_t) Int32_val(crc), 
+  return caml_copy_int32(mz_crc32((uint32_t) Int32_val(crc), 
                           &Byte_u(buf, Long_val(pos)),
                           Long_val(len)));
 }
