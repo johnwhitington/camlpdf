@@ -88,5 +88,5 @@ val eval_function : t -> float list -> float list
 (** Flatten a function to its PDF representation *)
 val pdfobject_of_function : Pdf.t -> t -> Pdf.pdfobject
 
-(**/**)
+(** Print a function to Standard Output. For debug only. *)
 val print_function : t -> unit
