@@ -39,6 +39,6 @@ val read_ocg : Pdf.t -> ocgproperties option
 (** Write optional content data. *)
 val write_ocg : Pdf.t -> ocgproperties -> unit
 
-(**/**)
-
+(** Print information about the document's Optional Content Groups to Standard
+    Output. For debug only. *)
 val print_document_ocg : Pdf.t -> unit

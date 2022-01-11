@@ -19,6 +19,3 @@ val date_of_string : string -> t
 
 (** Build a string from a date. *)
 val string_of_date : t -> string
-
-(**/**)
-val test : unit -> unit
