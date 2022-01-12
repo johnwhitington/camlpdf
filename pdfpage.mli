@@ -80,20 +80,35 @@ same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
 so only those in the range are kept. *)
 val pdf_of_pages : ?retain_numbering:bool -> Pdf.t -> int list -> Pdf.t
 
+(** Make a PDF rectangle from a Paper.papersize. *)
 val rectangle_of_paper : Pdfpaper.t -> Pdf.pdfobject
 
+(** Find the shortest lower-case alphabetic string which is not a prefix of any
+    name in /Resources. This prefix can be added to the other PDF's names, and
+    will never clash with any of these. *)
 val shortest_unused_prefix : Pdf.t -> string
 
+(** For every page in the PDF, add the prefix to any name in /Resources and add
+    the prefix to any name used in any content streams. *)
 val add_prefix : Pdf.t -> string -> unit
 
+(** Calling [protect pdf resources streams] add stack operators to a pre-ISO
+    content stream to ensure it is composeable. *)
 val protect : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject list -> Pdfops.t list
 
+(** Add operators to the beginning of a page. If [fast] is set (default false),
+    don't check for mismatched stack operators. *)
 val prepend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
 
+(** Add operators to the end of a page. If [fast] is set (default false),
+    don't check for mismatched stack operators. *)
 val postpend_operators : Pdf.t -> Pdfops.t list -> ?fast:bool -> t -> t
 
+(** Return a page number given a destination. Supply [fastrefnums] from a
+    previous call to [Pdf.page_reference_numbers] to speed things up. *)
 val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest.t -> int
 
+(** Build a basic [Fit] destintation from a page number of a PDF. *)
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
 (**/**)
