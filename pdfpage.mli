@@ -80,8 +80,6 @@ same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
 so only those in the range are kept. *)
 val pdf_of_pages : ?retain_numbering:bool -> Pdf.t -> int list -> Pdf.t
 
-(**/**)
-
 val rectangle_of_paper : Pdfpaper.t -> Pdf.pdfobject
 
 val shortest_unused_prefix : Pdf.t -> string
@@ -98,4 +96,8 @@ val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest
 
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
+(**/**)
+
+(* Some old (and broken) software couldn't read page trees. Set this to output
+   entirely flat page trees. *)
 val flat_pagetrees : bool ref
