@@ -206,9 +206,84 @@ val iter_stream : (pdfobject -> unit) -> t -> unit
 (** Garbage-collect a pdf document. *)
 val remove_unreferenced : t -> unit
 
-(**/**)
+(** {2 Miscellaneous} *)
 
-(* FIXME: Which of these need to be exposed? *)
+(** These functions were previsouly undocumented. They are documented here for
+    now, and in the future will be categorised more sensibly. *)
+
+(** True if a character is PDF whitespace. *)
+val is_whitespace : char -> bool
+
+(** True if a character is not PDF whitespace. *)
+val is_not_whitespace : char -> bool
+
+(** True if a character is a PDF delimiter. *)
+val is_delimiter : char -> bool
+
+(** List, in order, the page reference numbers of a PDF's page tree. *)
+val page_reference_numbers : t -> int list
+
+(** List the object numbers in a PDF. *)
+val objnumbers : t -> int list
+
+(** Use the given function on each element of a PDF dictionary. *)
+val recurse_dict :
+  (pdfobject -> pdfobject) -> (string * pdfobject) list -> pdfobject 
+
+(** Similarly for an [Array]. The function is applied to each element. *)
+val recurse_array :
+  (pdfobject -> pdfobject) -> pdfobject list -> pdfobject 
+
+(** Calculate the changes required to renumber a PDF's objects 1..n. *)
+val changes : t -> (int, int) Hashtbl.t
+
+(** Perform the given renumberings on a PDF. *)
+val renumber : (int, int) Hashtbl.t -> t -> t
+
+(* Renumber an object given a change table. *)
+val renumber_object_parsed : t -> (int, int) Hashtbl.t -> pdfobject -> pdfobject
+
+(** Fetch a stream, if necessary, and return its contents (with no processing). *)
+val bigarray_of_stream : pdfobject -> Pdfio.bytes
+
+(** Make a objects entry from a parser and a list of (number, object) pairs. *)
+val objects_of_list :
+  (int -> pdfobject) option -> (int * (objectdata ref * int)) list -> pdfobjects
+
+(** Calling [objects_referenced no_follow_entries no_follow_contains pdf
+    pdfobject] find the objects reachable from the given object. Dictionary
+    keys in [no_follow_entries] are not explored. Dictionaries containing
+    entries in [no_follow_contains] are not explored. *)
+val objects_referenced : string list -> (string * pdfobject) list -> t -> pdfobject -> int list
+
+(** Generate and ID for a PDF document given its prospective file name (and
+    using the current date and time). If the file name is blank, the ID is
+    still likely to be unique, being based on date and time only. If
+    environment variable CAMLPDF_REPRODUCIBLE_IDS=true is set, the ID will instead
+    be set to a standard value. *)
+val generate_id : t -> string -> (unit -> float) -> pdfobject
+
+(** Return the document catalog. *)
+val catalog_of_pdf : t -> pdfobject
+
+(** Find the indirect reference given by the value associated with a key in a
+dictionary. *)
+val find_indirect : string -> pdfobject -> int option
+
+(** Calling [nametree_lookup pdf k dict] looks up the name in the document's
+    name tree *)
+val nametree_lookup : t -> pdfobject -> pdfobject -> pdfobject option
+
+(** Return an ordered list of the key-value pairs in a given name tree. *)
+val contents_of_nametree : t -> pdfobject -> (pdfobject * pdfobject) list
+
+(** Copy a PDF data structure so that nothing is shared with the original. *)
+val deep_copy : t -> t
+
+(* Change the /ID string in a PDF's trailer dicfionary *)
+val change_id : t -> string -> unit
+
+(**/**)
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
 type toget_crypt =
@@ -220,52 +295,5 @@ val input_of_toget : toget -> Pdfio.input
 val position_of_toget : toget -> int
 val toget : ?crypt:toget_crypt -> Pdfio.input -> int -> int -> toget
 
-val changes : t -> (int, int) Hashtbl.t
-
-val renumber : (int, int) Hashtbl.t -> t -> t
-
-val is_whitespace : char -> bool
-
-val is_not_whitespace : char -> bool
-
-val recurse_dict :
-  (pdfobject -> pdfobject) -> (string * pdfobject) list -> pdfobject 
-
-val recurse_array :
-  (pdfobject -> pdfobject) -> pdfobject list -> pdfobject 
-
-val bigarray_of_stream : pdfobject -> Pdfio.bytes
-
-val objnumbers : t -> int list
-
-val objects_of_list :
-  (int -> pdfobject) option -> (int * (objectdata ref * int)) list -> pdfobjects
-
-val objects_referenced : string list -> (string * pdfobject) list -> t -> pdfobject -> int list
-
-(** Generate and ID for a PDF document given its prospective file name (and
-    using the current date and time). If the file name is blank, the ID is
-    still likely to be unique, being based on date and time only. If
-    environment variable CAMLPDF_REPRODUCIBLE_IDS=true is set, the ID will instead
-    be set to a standard value. *)
-val generate_id : t -> string -> (unit -> float) -> pdfobject
-
-val is_delimiter : char -> bool
-
-val page_reference_numbers : t -> int list
-
-val catalog_of_pdf : t -> pdfobject
-
-val find_indirect : string -> pdfobject -> int option
-
-val renumber_object_parsed : t -> (int, int) Hashtbl.t -> pdfobject -> pdfobject
-
-val nametree_lookup : t -> pdfobject -> pdfobject -> pdfobject option
-
-val contents_of_nametree : t -> pdfobject -> (pdfobject * pdfobject) list
-
-val deep_copy : t -> t
-
+(* For inter-module recursion within CamlPDF, hence undocumented. *)
 val string_of_pdf : (pdfobject -> string) ref
-
-val change_id : t -> string -> unit
