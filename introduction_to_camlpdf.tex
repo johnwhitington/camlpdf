@@ -33,7 +33,7 @@
 \noindent For bug reports, feature requests and comments, email\\ \texttt{contact@coherentgraphics.co.uk}
 
 \vspace*{\fill}
-\noindent\copyright 2010-2013 Coherent Graphics Limited. All rights reserved.
+\noindent\copyright 2010-2022 Coherent Graphics Limited. All rights reserved.
 
 \smallgap 
 \noindent Adobe, Acrobat, Adobe PDF, Adobe Reader and PostScript are
@@ -73,7 +73,18 @@ To build \textsf{CamlPDF}, navigate to the source directory and type
 \begin{framed}
 \verb!./pdfhello!
 \end{framed}
-\noindent Now we can enter the top level:
+\noindent Now we can enter the top level by using the supplied \texttt{camlpdf.top} system:
+
+\begin{framed}
+\begin{verbatim}
+./camlpdf.top
+        Objective Caml
+#
+\end{verbatim}
+\end{framed}
+
+\noindent Alternatively, we may load CamlPDF into any other top level:
+
 \begin{framed}
 \begin{verbatim}
 ocaml
@@ -115,8 +126,8 @@ val pdf : Pdf.t =
      [("/Root", Pdf.Indirect 2);
       ("/ID",
        Pdf.Array
-        [Pdf.String "?W???`??w\r?\001??٫";
-         Pdf.String "?W???`??w\r?\001??٫"]);
+        [Pdf.String "<elided>";
+         Pdf.String "<elided>"]);
       ("/Size", Pdf.Integer 4)]}
 \end{verbatim}
 \end{framed}
@@ -166,7 +177,7 @@ Here is the contents of the file \texttt{hello.pdf}, as you might see it in a te
 \noindent\small\verb!0000000227 00000 n !\\
 \noindent\small\verb!0000000449 00000 n !\\
 \noindent\small\verb!trailer! \textit{The trailer dictionary}\\
-\noindent\small\verb!<< /Size 5 /Root 4 0 R /ID [ (ñ:.]ZzÆ¢ßÙÇE) (ñ:.?ZzÆ¢ßÙÇE) ] >>!\\
+\noindent\small\verb!<< /Size 5 /Root 4 0 R /ID [ (<elided>) (<elided>) ] >>!\\
 \noindent\small\verb!startxref!\\
 \noindent\small\verb!498! \textit{The trailer}\\
 \noindent\small\verb!%%EOF!\\
@@ -465,7 +476,7 @@ Merge PDF files, optionally rotating some pages.
 }
 
 \smallgap
-\noindent The HTML documentation for CamlPDF is built in \texttt{doc/html/camlpdf} when \textsf{CamlPDF} is built.
+\noindent The HTML documentation for CamlPDF is built in \texttt{doc/html/camlpdf} when \textsf{CamlPDF} is built. You can, of course, eschew the top level and compile projects using the CamlPDF library directly: this gives native speeds and self-contained executables.
 
 \smallgap
 
