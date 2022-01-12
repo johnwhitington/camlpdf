@@ -61,15 +61,19 @@ the right place. The exceptions above can both be raised, in the case of bad
 data or a completely unknown encoding. *)
 val decode_from_input : Pdfio.input -> Pdf.pdfobject -> Pdfio.bytes option
 
+(** Setting this changes globally the FlateDecode compression level. Default 6. *)
+val flate_level : int ref
+
+(** Encode data in FlateDecode. *)
+val encode_flate : Pdfio.bytes -> Pdfio.bytes
+
+(** Decode data in FlateDecode. *)
+val decode_flate : Pdfio.bytes -> Pdfio.bytes
+
+(** Setting this boolean prints some debug information. *)
+val debug : bool ref
+
 (**/**)
 
 (* Inter-module recursion. *)
 val string_of_pdf : (Pdf.pdfobject -> string) ref
-
-val flate_level : int ref
-
-val encode_flate : Pdfio.bytes -> Pdfio.bytes
-
-val decode_flate : Pdfio.bytes -> Pdfio.bytes
-
-val debug : bool ref
