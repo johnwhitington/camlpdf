@@ -8,14 +8,14 @@ the basis of the commercial "CPDF" command line tool, which is available at
 License
 ---
 
-Copyright Coherent Graphics Ltd 2007 - 2021. Released under the LGPL with
+Copyright Coherent Graphics Ltd 2007 - 2022. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 To Build
 ---
 
 If downloading from Github, obtain the correct source. This means choosing the
-tag for a particular version, such as "v2.4". The head of the master branch
+tag for a particular version, such as "v2.5". The head of the master branch
 is unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
