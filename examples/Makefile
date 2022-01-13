@@ -47,4 +47,3 @@ all: native-code
 
 %:
 	@make -f OCamlMakefile subprojs SUBTARGET=$@
-
