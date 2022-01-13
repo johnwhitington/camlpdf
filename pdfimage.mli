@@ -1,6 +1,5 @@
-(** Extract Images. *)
+(** Extract Images *)
 
-(* FIXME: Also CMYK etc... *)
 type pixel_layout =
   | BPP1 (* Black and white *)
   | BPP8 (* Greyscale *)

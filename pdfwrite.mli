@@ -69,5 +69,5 @@ on string length, this should be used only when the length of the output is
 known to be limited (for example for debug purposes). *)
 val string_of_pdf : Pdf.pdfobject -> string
 
-(* For debug, print out the PDFs objects to standard output. *)
+(** For debug, print out the PDFs objects to standard output. *)
 val debug_whole_pdf : Pdf.t -> unit

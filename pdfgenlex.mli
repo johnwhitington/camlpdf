@@ -23,10 +23,10 @@ type t =
   | StopLexing
   | LexNone
 
-(** For debug only *)
+(** For debug only. *)
 val string_of_token : t -> string
 
-(** For debug only *)
+(** For debug only. *)
 val string_of_tokens : t list -> string
 
 (** Lex a single token from a [Pdfio.input]. *)

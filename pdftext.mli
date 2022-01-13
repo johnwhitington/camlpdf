@@ -137,6 +137,10 @@ val pdfdocstring_of_codepoints : int list -> string
 document string *)
 val codepoints_of_pdfdocstring : string -> int list
 
+(** Remake a UTF16BE string into a PDFDocEncoding string if all characters are
+    in PDFDocEncoding *)
+val simplify_utf16be : string -> string
+
 (** {2 Text from strings inside page content} *)
 
 (** The type of text extractors. *)
@@ -172,7 +176,3 @@ val table_of_encoding : encoding -> (int, string) Hashtbl.t
 
 (** Reverse table of all the entries in an encoding. *)
 val reverse_table_of_encoding : encoding -> (string, int) Hashtbl.t
-
-(** Remake a UTF16BE string into a PDFDocEncoding string if all characters are
-    in PDFDocEncoding *)
-val simplify_utf16be : string -> string

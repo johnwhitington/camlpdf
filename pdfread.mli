@@ -18,6 +18,20 @@ val pdf_of_channel_lazy : ?revision:int -> ?source:string -> string option -> st
 (** Read a PDF from the given filename with optional user and owner passwords. *)
 val pdf_of_file : ?revision:int -> string option -> string option -> string -> Pdf.t
 
+(** {2 Configuration and debugging} *)
+
+(** If set, some debug output is produced. *)
+val read_debug : bool ref
+
+(** If set, a malformed PDF will cause an error, not an attempt to read using
+    the malformed PDF reader. *)
+val error_on_malformed : bool ref
+
+(** If set, we always use the malformed PDF reader. For debug. *)
+val debug_always_treat_malformed : bool ref
+
+(** {2 Low level functions} *)
+
 (** Read the number of revisions of the document, by performing a dummy read. For
 example, if this function returns 3, then appropriate values to pass to
 [?revision] in a subsequent call to pdf_of_input are 1, 2, and 3. *)
@@ -31,16 +45,6 @@ val permissions : Pdf.t -> Pdfcrypt.permission list
 
 (** Given a filename, see if the file is linearized. *)
 val is_linearized : Pdfio.input -> bool
-
-(** If set, some debug output is produced. *)
-val read_debug : bool ref
-
-(** If set, a malformed PDF will cause an error, not an attempt to read using
-    the malformed PDF reader. *)
-val error_on_malformed : bool ref
-
-(** If set, we always use the malformed PDF reader. For debug. *)
-val debug_always_treat_malformed : bool ref
 
 (** Read a PDF header *)
 val read_header : Pdfio.input -> int * int
@@ -96,6 +100,3 @@ val string_of_lexeme : Pdfgenlex.t -> string
 
 (** Print a lexeme to Standard Output with a space after it, for debug. *)
 val print_lexeme : Pdfgenlex.t -> unit
-
-
-

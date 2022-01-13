@@ -240,7 +240,7 @@ val changes : t -> (int, int) Hashtbl.t
 (** Perform the given renumberings on a PDF. *)
 val renumber : (int, int) Hashtbl.t -> t -> t
 
-(* Renumber an object given a change table. *)
+(** Renumber an object given a change table. *)
 val renumber_object_parsed : t -> (int, int) Hashtbl.t -> pdfobject -> pdfobject
 
 (** Fetch a stream, if necessary, and return its contents (with no processing). *)
@@ -280,7 +280,7 @@ val contents_of_nametree : t -> pdfobject -> (pdfobject * pdfobject) list
 (** Copy a PDF data structure so that nothing is shared with the original. *)
 val deep_copy : t -> t
 
-(* Change the /ID string in a PDF's trailer dicfionary *)
+(** Change the /ID string in a PDF's trailer dicfionary *)
 val change_id : t -> string -> unit
 
 (**/**)

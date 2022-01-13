@@ -80,6 +80,8 @@ same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
 so only those in the range are kept. *)
 val pdf_of_pages : ?retain_numbering:bool -> Pdf.t -> int list -> Pdf.t
 
+(** {2 Miscellaneous} *)
+
 (** Make a PDF rectangle from a Paper.papersize. *)
 val rectangle_of_paper : Pdfpaper.t -> Pdf.pdfobject
 

@@ -1,4 +1,5 @@
 (** AFM Data for the standard 14 fonts *)
+
 val courier_afm : unit -> string
 
 val courier_oblique_afm : unit -> string
@@ -26,3 +27,4 @@ val helvetica_bold_oblique_afm : unit -> string
 val symbol_afm : unit -> string
 
 val zapf_dingbats_afm : unit -> string
+(** We pass unit because the AFM files are parsed upon demand and then memoised. *)

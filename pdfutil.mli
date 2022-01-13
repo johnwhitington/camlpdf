@@ -665,7 +665,7 @@ val roman_upper : int -> string
 (** Lowercase roman representation of a number *)
 val roman_lower : int -> string
 
-(** / **)
+(**/**)
 
 (* This is legitimately not documented because it requires altering the source
    to use. See the .ml *)

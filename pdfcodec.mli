@@ -61,6 +61,8 @@ the right place. The exceptions above can both be raised, in the case of bad
 data or a completely unknown encoding. *)
 val decode_from_input : Pdfio.input -> Pdf.pdfobject -> Pdfio.bytes option
 
+(** {2 Low level functionality} *)
+
 (** Setting this changes globally the FlateDecode compression level. Default 6. *)
 val flate_level : int ref
 
