@@ -24,6 +24,12 @@ is unstable.
 2. If your environment has "ocamlfind", "make install" will install the
    library. Otherwise, use the built outputs as you will.
 
+Alternatively, you can install the latest version with
+
+```
+opam install camlpdf
+```
+
 Documentation
 ---
 
