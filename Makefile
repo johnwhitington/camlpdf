@@ -21,7 +21,7 @@ LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
   dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
   $(foreach x,$(PDFMODS),$x.cmt) $(foreach x,$(PDFMODS),$x.cmi)
 
-ifneq ($(shell which ocamlopt),)
+ifneq ($(shell ocamlopt -version),)
   TARGETS += native-code-library
   LIBINSTALL_FILES += camlpdf.a camlpdf.cmxa $(foreach x,$(PDFMODS),$x.cmx)
 endif
