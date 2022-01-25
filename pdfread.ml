@@ -1196,7 +1196,7 @@ let read_xref_stream i =
           begin try
             if !read_debug then
               (Printf.eprintf "About to start read_xref_stream\n%!"; tt' ());
-            while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
+            while Pdfio.peek_byte i' <> Pdfio.no_more do xrefs =| read_xref_line_stream i' w1 w2 w3 done
 
           with
             _ ->
