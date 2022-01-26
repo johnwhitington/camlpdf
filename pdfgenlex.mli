@@ -1,6 +1,6 @@
 (** A very fast lexer for very basic tokens *)
 
-(* *To avoid too much storage allocation (and hence garbage collection), we use
+(** To avoid too much storage allocation (and hence garbage collection), we use
 the same data type for this very basic lexing module as for the main lexing in
 [Pdfread]. Eventually, we may unify this with the parsing type too. *)
 type t =
