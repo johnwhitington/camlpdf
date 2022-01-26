@@ -300,9 +300,9 @@ let i32succ = Int32.succ
 
 let i32pred = Int32.pred
 
-let i32max = Pervasives.max
+let i32max = Stdlib.max
 
-let i32min = Pervasives.min
+let i32min = Stdlib.min
 
 let i64ofi = Int64.of_int
 
@@ -334,9 +334,9 @@ let i64succ = Int64.succ
 
 let i64pred = Int64.pred
 
-let i64max = Pervasives.max
+let i64max = Stdlib.max
 
-let i64min = Pervasives.min
+let i64min = Stdlib.min
 
 let i32ofi64 = Int64.to_int32
 
@@ -1090,7 +1090,7 @@ let option_map2 f a b =
   losenones (map2 f a b)
 
 (* Integer-specialised minimum and maximum functions for speed, overriding
-\emph{Pervasives.min} and \emph{Pervasives.max}. *)
+Stdlib.min and Stdlib.max. *)
 let min (a : int) b = if a < b then a else b
 let max (a : int) b = if a > b then a else b
 
@@ -1239,7 +1239,7 @@ let rec roman n =
 
 let roman_upper = roman
 
-let roman_lower n = String.lowercase (roman n)
+let roman_lower n = String.lowercase_ascii (roman n)
 
 let memoize f =
   let result = ref None in

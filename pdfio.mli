@@ -99,10 +99,10 @@ val peek_byte : input -> int
 (** Read the previous character (if there is one), moving the pointer back one. *)
 val read_char_back : input -> char option
 
-(** Read a line from an input in the manner of [Pervasives.read_line]. *)
+(** Read a line from an input in the manner of [Stdlib.read_line]. *)
 val read_line : input -> string
 
-(** Read all the lines in an input, in the manner of [Pervasives.read_line]. *)
+(** Read all the lines in an input, in the manner of [Stdlib.read_line]. *)
 val read_lines : input -> string list
 
 (** {2 Bytes } *)

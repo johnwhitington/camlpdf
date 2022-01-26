@@ -422,7 +422,7 @@ let bytes_to_output_channel ch data =
     output_byte ch (bget_unsafe data (x - 1))
   done
 
-(* Like Pervasives.read_line *) 
+(* Like Stdlib.read_line *) 
 let b = Buffer.create 256
 
 let read_line i =

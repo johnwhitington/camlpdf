@@ -115,7 +115,7 @@ let string_of_pagenumber n = function
   | UppercaseRoman -> roman_upper n
   | LowercaseRoman -> roman_lower n
   | UppercaseLetters -> letter_string n
-  | LowercaseLetters -> String.lowercase (letter_string n)
+  | LowercaseLetters -> String.lowercase_ascii (letter_string n)
 
 let pagelabeltext_of_single n l =
   let realnumber =

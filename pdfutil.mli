@@ -73,7 +73,7 @@ val fold_right : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
 val length : ('a list -> int)
 val sort : (('a -> 'a -> int) -> 'a list -> 'a list)
 (** Tail-recursive versions of list functions (and some simple variations). See
-[Pervasives] for documentation. *)
+[Stdlib] for documentation. *)
 
 (** Cumulative sum of a list given an initial value. For example, [cumulative_sum 1 [2; 3; 4]] is [[3; 6; 10]] *)
 val cumulative_sum : int -> int list -> int list
@@ -486,17 +486,17 @@ val log2of : int -> int
 (** [pow x y] is y to the power x *)
 val pow : int -> int -> int
 
-(** Monomorphic integer version of [Pervasives.compare] *)
+(** Monomorphic integer version of [Stdlib.compare] *)
 val compare_i : int -> int -> int
 
 val min : int -> int -> int
 val max : int -> int -> int
-(** Monomorphic integer versions of [Pervasives] functions. *)
+(** Monomorphic integer versions of [Stdlib] functions. *)
 
 val fmin : float -> float -> float
 val fmax : float -> float -> float
 val fabs : float -> float
-(** Monomorphic floating-point versions of [Pervasives] functions *)
+(** Monomorphic floating-point versions of [Stdlib] functions *)
 
 val even : int -> bool
 val odd : (int -> bool)
@@ -518,7 +518,7 @@ val sign_extend : int -> int -> int
 (** A character is a decimal digit. *)
 val isdigit : char -> bool
 
-(** Same as [Pervasives.int_of_float] *)
+(** Same as [Stdlib.int_of_float] *)
 val toint : float -> int
 
 (** Make sure a floating point number is no degenarate, by making it zero if it is. *)
@@ -616,7 +616,7 @@ val eq : ('a -> 'a -> bool)
 (** Inequality. *)
 val neq : ('a -> 'a -> bool)
 
-(** Like [Pervasives.compare], but the other way around. *)
+(** Like [Stdlib.compare], but the other way around. *)
 val rev_compare : 'a -> 'a -> int
 
 (** {2 Logic} *)

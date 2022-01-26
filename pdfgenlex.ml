@@ -50,13 +50,17 @@ let is_whitespace_or_delimiter = function
   | '(' | ')' | '<' | '>' | '[' | ']' | '{' | '}' | '%' | '/' -> true
   | _ -> false
 
+(* Because String.copy has been removed from OCaml. *)
+let string_copy s =
+  Bytes.unsafe_to_string (Bytes.copy (Bytes.unsafe_of_string s))
+
 let lex_item s =
   let len = String.length s in
     if len = 0 then LexNull else
       try
         match String.unsafe_get s 0 with
         | 'a'..'z' | 'A'..'Z' ->
-            LexName (String.copy s)
+            LexName (string_copy s)
         | '\"' when len >= 2 ->
             LexString (String.sub s 1 (len - 2))
         | _ ->
@@ -73,7 +77,7 @@ let lex_item s =
                   end
                 else LexReal (float_of_string s)
       with
-        _ -> LexName (String.copy s)
+        _ -> LexName (string_copy s)
 
 (* Return the string between and including the current position and before the
 next character satisfying a given predicate, leaving the position at the
