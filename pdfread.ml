@@ -1098,6 +1098,8 @@ let read_xref i =
 the lengths in bytes of each of the three fields. *)
 let read_xref_line_stream i w1 w2 w3 =
   assert (w1 >= 0 && w2 >= 0 && w3 >= 0);
+  if (w1 = 0 && w2 = 0 && w3 = 0) then
+    raise (Pdf.PDFError (Pdf.input_pdferror i "Bad Xref stream"));
   try
     let read_field bytes =
       let rec read_field bytes mul =
@@ -1196,7 +1198,7 @@ let read_xref_stream i =
           begin try
             if !read_debug then
               (Printf.eprintf "About to start read_xref_stream\n%!"; tt' ());
-            while Pdfio.peek_byte i' <> Pdfio.no_more do xrefs =| read_xref_line_stream i' w1 w2 w3 done
+            while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
 
           with
             _ ->
