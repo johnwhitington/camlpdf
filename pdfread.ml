@@ -1097,7 +1097,6 @@ let read_xref i =
 (* PDF 1.5 cross-reference stream support. [i] is the input. The tuple describes
 the lengths in bytes of each of the three fields. *)
 let read_xref_line_stream i w1 w2 w3 =
-  assert (w1 >= 0 && w2 >= 0 && w3 >= 0);
   try
     let read_field bytes =
       let rec read_field bytes mul =
@@ -1185,8 +1184,8 @@ let read_xref_stream i =
         Pdfcodec.decode_pdfstream (Pdf.empty ()) stream;
         let w1, w2, w3 =
           match Pdf.lookup_direct (Pdf.empty ()) "/W" stream with
-          | Some (Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3]) ->
-              w1, w2, w3
+          | Some (Pdf.Array [Pdf.Integer w1; Pdf.Integer w2; Pdf.Integer w3])
+              when w1 >= 0 && w2 >= 0 && w3 >= 0 && w1 + w2 + w3 > 0 -> w1, w2, w3
           | _ -> raise err
         in let i' =
           match stream with
@@ -1197,7 +1196,6 @@ let read_xref_stream i =
             if !read_debug then
               (Printf.eprintf "About to start read_xref_stream\n%!"; tt' ());
             while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
-
           with
             _ ->
               if !read_debug then
