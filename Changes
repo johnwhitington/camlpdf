@@ -1,3 +1,7 @@
+2.6 (Next version)
+
+o Replace Stream/Genlex and other deprecations for OCaml 5
+
 2.5 (January 2022)
 
 o Build byte code top level camlpdf.top by default
