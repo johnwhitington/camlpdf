@@ -1,38 +1,20 @@
 (* Parse Adobe Font Metrics files *)
 open Pdfutil
 
-let print_lexeme = function
-  | Genlex.Kwd s -> Printf.printf "KEYWORD: %s\n" s
-  | Genlex.Ident s -> Printf.printf "IDENT: %s\n" s
-  | Genlex.Int i -> Printf.printf "INT: %i\n" i
-  | Genlex.Float f -> Printf.printf "FLOAT: %f\n" f
-  | Genlex.String s -> Printf.printf "STRING: %s\n" s
-  | Genlex.Char c -> Printf.printf "CHAR: %c\n" c
-
-let read_char_metrics_lexer = Genlex.make_lexer ["C"; ";"; "WX"; "N"]
-
 let read_char_metrics_line l =
-  match
-    Stream.npeek 8 (read_char_metrics_lexer (Stream.of_string l))
-  with
-  | Genlex.Kwd "C"::Genlex.Int charnum::Genlex.Kwd ";"::
-    Genlex.Kwd "WX"::Genlex.Int width::Genlex.Kwd ";"::
-    Genlex.Kwd "N"::(Genlex.Ident name | Genlex.Kwd name)::_ ->
-      (name, (charnum, width))
-  | x -> iter print_lexeme x; failwith "badline"
+  match String.split_on_char ' ' l with
+  | "C"::charnum::";"::"WX"::width::";"::"N"::name::_ ->
+      (name, (int_of_string charnum, int_of_string width))
+  | _ -> failwith "badline in read_char_metrics_line"
 
 let lookup_charnum table name =
   match Hashtbl.find table name with (c', _) -> c'
 
-let read_kern_line_lexer = Genlex.make_lexer ["KPX"]
-
 let read_kern_line l =
-  match
-    Stream.npeek 4 (read_kern_line_lexer (Stream.of_string l))
-  with
-    | Genlex.Kwd "KPX"::Genlex.Ident n::Genlex.Ident n'::Genlex.Int i::_ ->
-        n, n', i
-    | x -> iter print_lexeme x; failwith "badline2"
+  match String.split_on_char ' ' l with
+  | "KPX"::n::n'::i::_ ->
+      n, n', int_of_string (implode (option_map (function '\r' | '\n' -> None | c -> Some c) (explode i)))
+  | _ -> failwith "badline in read_kern_line"
 
 let string_starts_with sub s =
   let sublength = String.length sub in
