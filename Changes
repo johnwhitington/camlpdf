@@ -1,6 +1,7 @@
 2.6 (Next version)
 
 o Replace Stream/Genlex and other deprecations for OCaml 5
+o Allows malformed numbers --1 etc.
 
 2.5 (January 2022)
 
