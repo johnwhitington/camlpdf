@@ -72,19 +72,27 @@ let lex_item s =
             in
               if isint s (len - 1)
                 then
-                    begin try LexInt (int_of_string s) with
-                      _ ->
-                        begin try
-                          (* Detect malformed numbers "--2" etc. which can appear in some PDFs. *)
-                          if len > 1 && String.unsafe_get s 0 = '-' && String.unsafe_get s 1 = '-' then
-                            LexInt (int_of_string (String.sub s 1 (len - 1)))
-                          else
-                            raise Exit
-                        with
-                          _ -> LexReal (float_of_string s) (* Integer > 2^30 on 32 bit system, int_of_string would fail. *)
-                        end
-                    end
-                else LexReal (float_of_string s)
+                  begin try LexInt (int_of_string s) with
+                    _ ->
+                      begin try
+                        (* Detect malformed numbers "--2" etc. which can appear in some PDFs. *)
+                        if len > 1 && String.unsafe_get s 0 = '-' && String.unsafe_get s 1 = '-' then
+                          LexInt (int_of_string (String.sub s 1 (len - 1)))
+                        else
+                          raise Exit (* nothing we can salvage *)
+                      with
+                        _ -> LexReal (float_of_string s) (* Integer > 2^30 on 32 bit system, int_of_string would fail. *)
+                      end
+                  end
+                else
+                  begin try LexReal (float_of_string s) with
+                    _ ->
+                      (* Detect malformed numbers "--2.5" etc. which can appear in some PDFs. *)
+                      if len > 1 && String.unsafe_get s 0 = '-' && String.unsafe_get s 1 = '-' then
+                        LexReal (float_of_string (String.sub s 1 (len - 1)))
+                      else
+                        raise Exit (* nothing we can salvage *)
+                  end
       with
         _ -> LexName (string_copy s)
 
