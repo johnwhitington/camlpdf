@@ -11,8 +11,8 @@ SOURCES = flatestubs.c rijndael-alg-fst.c stubs-aes.c sha2.c stubs-sha2.c \
 RESULT = camlpdf
 
 OCAMLFLAGS = -bin-annot
-OCAMLNCFLAGS = -g -safe-string -w -3
-OCAMLBCFLAGS = -g -safe-string -w -3
+OCAMLNCFLAGS = -g -safe-string
+OCAMLBCFLAGS = -g -safe-string
 OCAMLLDFLAGS = -g
 
 TARGETS := byte-code-library top htdoc
