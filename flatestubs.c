@@ -29,6 +29,12 @@
 
 #define ZStream_val(v) ((mz_stream *) (v))
 
+// So that the code links ok when using js_of_ocaml
+char* camlpdf_caml_zlib_decompress(char *s)
+{
+  return s;
+}
+
 static const value * camlpdf_camlzip_error_exn = NULL;
 
 static void camlpdf_camlzip_error(char * fn, value vzs)
