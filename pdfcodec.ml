@@ -281,8 +281,18 @@ let decode_flate_input i =
       Pdfflate.uncompress input output;
       bytes_of_strings_rev !strings
 
+(* js_of_ocaml only *)
+external camlpdf_caml_zlib_compress : string -> string = "camlpdf_caml_zlib_compress"
+external camlpdf_caml_zlib_decompress : string -> string = "camlpdf_caml_zlib_decompress"
+
+let is_js =
+  match Sys.backend_type with Sys.Other "js_of_ocaml" -> true | _ -> false
+
 let encode_flate stream =
-  flate_process (Pdfflate.compress ~level:!flate_level) stream
+  if is_js then
+    Pdfio.bytes_of_string (camlpdf_caml_zlib_compress (Pdfio.string_of_bytes stream))
+  else
+    flate_process (Pdfflate.compress ~level:!flate_level) stream
 
 let debug_stream_serial = ref 0
 
@@ -303,7 +313,12 @@ let debug_stream s =
 
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
-    try flate_process Pdfflate.uncompress stream with
+    try
+      if is_js then
+        Pdfio.bytes_of_string (camlpdf_caml_zlib_decompress (Pdfio.string_of_bytes stream))
+      else
+        flate_process Pdfflate.uncompress stream
+    with
       Pdfflate.Error (a, b) ->
         if !debug then debug_stream stream;
         raise (Couldn'tDecodeStream ("Flate" ^ " " ^ a ^ " " ^ b ^ " length " ^ string_of_int (bytes_size stream)))
