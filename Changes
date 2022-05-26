@@ -3,6 +3,8 @@
 o Replace Stream/Genlex and other deprecations for OCaml 5
 o Allows malformed numbers --1, --2.5 etc.
 o Support for alternative stubs for js_of_ocaml
+o Push mk_id down to pdf_to_output so it works when writing to
+  non-file destinations
 
 2.5 (January 2022)
 
