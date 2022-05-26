@@ -590,7 +590,7 @@ let dummy_encryption =
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
   ?(preserve_objstm = false) ?(generate_objstm = false)
-  ?(compress_objstm = true) ?(recrypt = None) linearize encrypt pdf o
+  ?(compress_objstm = true) ?(recrypt = None) linearize encrypt mk_id pdf o
 =
   if !write_debug then
     begin Printf.eprintf "****pdf_to_output\n"; tt' (); (*debug_whole_pdf pdf*) end;
@@ -601,6 +601,7 @@ let pdf_to_output
     raise
       (Pdf.PDFError
         "Linearization not supported since v1.8. Use an external linearizer.");
+  if mk_id then Pdf.change_id pdf (string_of_float (Random.float 1.));
   let renumbered_objects_for_streams, preserve_objstm =
     if generate_objstm then
       generate_object_stream_hints
@@ -735,10 +736,9 @@ let pdf_to_channel
   ?(compress_objstm = true) ?(recrypt = None)
   linearize encrypt mk_id pdf ch
 =
-  if mk_id then Pdf.change_id pdf "";
   pdf_to_output
     ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-    linearize encrypt pdf (output_of_channel ch)
+    linearize encrypt mk_id pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
 trailer dictionary is updated using the current date and time and the filename.

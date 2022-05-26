@@ -40,7 +40,7 @@ val pdf_to_output :
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
   ?recrypt:string option ->
-  bool -> encryption option -> Pdf.t -> Pdfio.output -> unit
+  bool -> encryption option -> bool -> Pdf.t -> Pdfio.output -> unit
 
 (** As [pdf_to_output] but to an OCaml channel. If the second boolean is set, build a new
 /ID (don't set this for encrypted documents). *)
