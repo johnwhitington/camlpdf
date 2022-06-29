@@ -108,7 +108,8 @@ val read_lines : input -> string list
 (** {2 Bytes } *)
 
 (**/**)
-type rawbytes
+type rawbytes = 
+  (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t (* JS forces us to expose this *)
 
 val raw_of_bytes : bytes -> rawbytes
 
