@@ -112,8 +112,8 @@ val input_pdferror : Pdfio.input -> string -> string
 [Stream pdfobject]. *)
 val getstream : pdfobject -> unit
 
-(** Return a float from either a [Real] or an [Int] *)
-val getnum : pdfobject -> float
+(** Return a float from a [Real], an [Int] or an [Indirect] *)
+val getnum : t -> pdfobject -> float
 
 (** Lookup an object in a document, parsing it if required. Raises [Not_found]
 if the object does not exist. *)
@@ -164,7 +164,7 @@ val addobj_given_num : t -> (int * pdfobject) -> unit
 (** {2 Compound structures} *)
 
 (** Parse a PDF rectangle structure into min x, min y, max x, max y. *) 
-val parse_rectangle : pdfobject -> float * float * float * float
+val parse_rectangle : t -> pdfobject -> float * float * float * float
 
 (** Calling [parse_matrix pdf name dict] parses a PDF matrix found under
 key [name] in dictionary [dict] into a [Transform.transform_matrix]. If there is

@@ -143,7 +143,7 @@ let string_of_font = function
 let read_type3_data pdf font =
   {fontbbox =
      (let obj = Pdf.lookup_fail "No fontbbox" pdf "/FontBBox" font in
-       Pdf.parse_rectangle obj);
+       Pdf.parse_rectangle pdf obj);
    fontmatrix =
      Pdf.parse_matrix pdf "/FontMatrix" font;
    charprocs = 
@@ -190,23 +190,23 @@ let read_fontdescriptor pdf font =
   | Some fontdescriptor ->
       let ascent =
         match Pdf.lookup_direct pdf "/Ascent" fontdescriptor with
-        | Some x -> Pdf.getnum x
+        | Some x -> Pdf.getnum pdf x
         | None -> 0.
       in let descent =
         match Pdf.lookup_direct pdf "/Descent" fontdescriptor with
-        | Some x -> Pdf.getnum x
+        | Some x -> Pdf.getnum pdf x
         | None -> 0.
       in let leading =
         match Pdf.lookup_direct pdf "/Leading" fontdescriptor with
-        | Some x -> Pdf.getnum x
+        | Some x -> Pdf.getnum pdf x
         | None -> 0.
       in let avgwidth =
         match Pdf.lookup_direct pdf "/AvgWidth" fontdescriptor with
-        | Some x -> Pdf.getnum x
+        | Some x -> Pdf.getnum pdf x
         | None -> 0.
       in let maxwidth =
         match Pdf.lookup_direct pdf "/MaxWidth" fontdescriptor with
-        | Some x -> Pdf.getnum x
+        | Some x -> Pdf.getnum pdf x
         | None -> 0.
       in let fontfile =
         match Pdf.find_indirect "/FontFile" fontdescriptor with

@@ -477,7 +477,7 @@ let rec read_transparency_group pdf g =
       in
         graphic_of_page pdf fakepage
     and a, b, c, d =
-      Pdf.parse_rectangle (Pdf.lookup_fail "no bbox" pdf "/BBox" g)
+      Pdf.parse_rectangle pdf (Pdf.lookup_fail "no bbox" pdf "/BBox" g)
     in
       {tr_group_colourspace = colourspace;
        isolated = isolated;
@@ -499,7 +499,7 @@ and read_soft_mask pdf mask =
         | None -> raise (Pdf.PDFError "Pdfgraphics.transparency group not found in soft mask")
       and backdrop =
         match Pdf.lookup_direct pdf "/BC" mask with
-        | Some (Pdf.Array nums) -> Some (map Pdf.getnum nums)
+        | Some (Pdf.Array nums) -> Some (map (Pdf.getnum pdf) nums)
         | _ -> None
       and transfer =
         match Pdf.lookup_direct pdf "/TR" mask with
@@ -601,7 +601,7 @@ and read_tiling_pattern _ =
 and read_function_shading pdf shading =
   let domain =
     match Pdf.lookup_direct pdf "/Domain" shading with
-    | Some (Pdf.Array [a; b; c; d]) -> Pdf.getnum a, Pdf.getnum b, Pdf.getnum c, Pdf.getnum d
+    | Some (Pdf.Array [a; b; c; d]) -> Pdf.getnum pdf a, Pdf.getnum pdf b, Pdf.getnum pdf c, Pdf.getnum pdf d
     | _ -> 0., 1., 0., 1.
   and matrix =
     Pdf.parse_matrix pdf "/Matrix" shading
@@ -617,11 +617,11 @@ and read_radial_shading pdf shading =
   let coords =
     match Pdf.lookup_direct pdf "/Coords" shading with
     | Some (Pdf.Array [a; b; c; d; e; f]) ->
-        Pdf.getnum a, Pdf.getnum b, Pdf.getnum c, Pdf.getnum d, Pdf.getnum e, Pdf.getnum f
+        Pdf.getnum pdf a, Pdf.getnum pdf b, Pdf.getnum pdf c, Pdf.getnum pdf d, Pdf.getnum pdf e, Pdf.getnum pdf f
     | _ -> raise (Pdf.PDFError "Pdfgraphics.read_radial_shading: no coords in radial shading")
   and domain =
     match Pdf.lookup_direct pdf "/Domain" shading with
-    | Some (Pdf.Array [a; b]) -> Pdf.getnum a, Pdf.getnum b
+    | Some (Pdf.Array [a; b]) -> Pdf.getnum pdf a, Pdf.getnum pdf b
     | _ -> 0., 1.
   and func =
     match Pdf.lookup_direct pdf "/Function" shading with
@@ -643,11 +643,11 @@ and read_axial_shading pdf shading =
   let coords =
     match Pdf.lookup_direct pdf "/Coords" shading with
     | Some (Pdf.Array [a; b; c; d]) ->
-        Pdf.getnum a, Pdf.getnum b, Pdf.getnum c, Pdf.getnum d
+        Pdf.getnum pdf a, Pdf.getnum pdf b, Pdf.getnum pdf c, Pdf.getnum pdf d
     | _ -> raise (Pdf.PDFError "Pdfgraphics.read_axial_shading: no coords in radial shading")
   and domain =
     match Pdf.lookup_direct pdf "/Domain" shading with
-    | Some (Pdf.Array [a; b]) -> Pdf.getnum a, Pdf.getnum b
+    | Some (Pdf.Array [a; b]) -> Pdf.getnum pdf a, Pdf.getnum pdf b
     | _ -> 0., 1.
   and func =
     match Pdf.lookup_direct pdf "/Function" shading with

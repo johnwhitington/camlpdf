@@ -85,13 +85,13 @@ let rec read_annotation pdf annot =
     | Some (Pdf.String s) -> Some s
     | _ -> None
   in let rectangle =
-    Pdf.parse_rectangle (Pdf.lookup_fail "No /rect in annot" pdf "/Rect" annot)
+    Pdf.parse_rectangle pdf (Pdf.lookup_fail "No /rect in annot" pdf "/Rect" annot)
   in let border =
     match Pdf.lookup_direct pdf "/BS" annot with
     | Some bsdict ->
         let width =
           match Pdf.lookup_direct pdf "/W" bsdict with
-          | Some x -> Pdf.getnum x
+          | Some x -> Pdf.getnum pdf x
           | _ -> 1.
         in let style =
           match Pdf.lookup_direct pdf "/S" bsdict with
@@ -105,7 +105,7 @@ let rec read_annotation pdf annot =
           match Pdf.lookup_direct pdf "/D" bsdict with
           | Some (Pdf.Array dash) ->
               Array.of_list
-                (map int_of_float (map Pdf.getnum (map (Pdf.direct pdf) dash)))
+                (map int_of_float (map (Pdf.getnum pdf) (map (Pdf.direct pdf) dash)))
           | _ -> [||]
         in
           {width = width;
@@ -116,21 +116,21 @@ let rec read_annotation pdf annot =
     | None ->
         match Pdf.lookup_direct pdf "/Border" annot with
         | Some (Pdf.Array [h; v; w]) ->
-            {width = Pdf.getnum (Pdf.direct pdf w);
-             vradius = Pdf.getnum (Pdf.direct pdf v);
-             hradius = Pdf.getnum (Pdf.direct pdf h);
+            {width = Pdf.getnum pdf (Pdf.direct pdf w);
+             vradius = Pdf.getnum pdf (Pdf.direct pdf v);
+             hradius = Pdf.getnum pdf (Pdf.direct pdf h);
              style = NoStyle;
              dasharray = [||]}
         | Some (Pdf.Array [h; v; w; Pdf.Array dash]) ->
-            {width = Pdf.getnum (Pdf.direct pdf w);
-             vradius = Pdf.getnum (Pdf.direct pdf v);
-             hradius = Pdf.getnum (Pdf.direct pdf h);
+            {width = Pdf.getnum pdf (Pdf.direct pdf w);
+             vradius = Pdf.getnum pdf (Pdf.direct pdf v);
+             hradius = Pdf.getnum pdf (Pdf.direct pdf h);
              style = NoStyle;
              dasharray =
                Array.of_list
                  (map
                    int_of_float
-                   (map Pdf.getnum (map (Pdf.direct pdf) dash)))}
+                   (map (Pdf.getnum pdf) (map (Pdf.direct pdf) dash)))}
         | _ ->
             {width = 1.;
              vradius = 0.;
@@ -140,9 +140,9 @@ let rec read_annotation pdf annot =
   in let colour =
     match Pdf.lookup_direct pdf "/C" annot with
     | Some (Pdf.Array [r; g; b]) ->
-        Some (int_of_float (Pdf.getnum (Pdf.direct pdf r)),
-              int_of_float (Pdf.getnum (Pdf.direct pdf g)),
-              int_of_float (Pdf.getnum (Pdf.direct pdf b)))
+        Some (int_of_float (Pdf.getnum pdf (Pdf.direct pdf r)),
+              int_of_float (Pdf.getnum pdf (Pdf.direct pdf g)),
+              int_of_float (Pdf.getnum pdf (Pdf.direct pdf b)))
     | _ -> None
   in let annotrest =
     match Pdf.direct pdf annot with

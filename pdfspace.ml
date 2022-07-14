@@ -53,7 +53,7 @@ let name_of_colourspace = function
 let read_point pdf d n =
   match Pdf.lookup_direct pdf n d with
   | Some (Pdf.Array [a; b; c]) ->
-      Pdf.getnum a, Pdf.getnum b, Pdf.getnum c
+      Pdf.getnum pdf a, Pdf.getnum pdf b, Pdf.getnum pdf c
   | _ ->
       0., 0., 0.
 
@@ -92,7 +92,7 @@ let rec read_colourspace_inner pdf resources = function
       in let blackpoint = read_point pdf dict "/BlackPoint"
       in let gamma =
         match Pdf.lookup_direct pdf "/Gamma" dict with
-        | Some n -> Pdf.getnum n
+        | Some n -> Pdf.getnum pdf n
         | None -> 1.
       in
         CalGray (whitepoint, blackpoint, gamma)
@@ -102,15 +102,15 @@ let rec read_colourspace_inner pdf resources = function
       in let gamma =
         match Pdf.lookup_direct pdf "/Gamma" dict with
         | Some (Pdf.Array [a; b; c]) ->
-            [|Pdf.getnum a; Pdf.getnum b; Pdf.getnum c|]
+            [|Pdf.getnum pdf a; Pdf.getnum pdf b; Pdf.getnum pdf c|]
         | _ ->
             [|1.; 1.; 1.|]
       in let matrix =
         match Pdf.lookup_direct pdf "/Matrix" dict with
         | Some (Pdf.Array [a; b; c; d; e; f; g; h; i]) ->
-            [|Pdf.getnum a; Pdf.getnum b; Pdf.getnum c;
-              Pdf.getnum d; Pdf.getnum e; Pdf.getnum f;
-              Pdf.getnum g; Pdf.getnum h; Pdf.getnum i|]
+            [|Pdf.getnum pdf a; Pdf.getnum pdf b; Pdf.getnum pdf c;
+              Pdf.getnum pdf d; Pdf.getnum pdf e; Pdf.getnum pdf f;
+              Pdf.getnum pdf g; Pdf.getnum pdf h; Pdf.getnum pdf i|]
         | _ ->
             [|1.; 0.; 0.; 0.; 1.; 0.; 0.; 0.; 1.|]
       in
@@ -121,7 +121,7 @@ let rec read_colourspace_inner pdf resources = function
       in let range =
         match Pdf.lookup_direct pdf "/Range" dict with
         | Some (Pdf.Array [a; b; c; d]) ->
-            [|Pdf.getnum a; Pdf.getnum b; Pdf.getnum c; Pdf.getnum d|]
+            [|Pdf.getnum pdf a; Pdf.getnum pdf b; Pdf.getnum pdf c; Pdf.getnum pdf d|]
         | _ ->
             [|-.100.; 100.; -.100.; 100.|]
       in
@@ -147,7 +147,7 @@ let rec read_colourspace_inner pdf resources = function
             in let range =
               match Pdf.lookup_direct pdf "/Range" dict with
               | Some (Pdf.Array elts) when length elts = 2 * n ->
-                 Array.of_list (map Pdf.getnum elts)
+                 Array.of_list (map (Pdf.getnum pdf) elts)
               | _ ->
                  Array.of_list (flatten (many [0.; 1.] n))
             in let metadata =

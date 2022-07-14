@@ -283,24 +283,6 @@ let rec recurse_dict_inner f prev = function
 let recurse_dict (f : pdfobject -> pdfobject) elts =
   Dictionary (recurse_dict_inner f [] elts)
 
-(* Return a float from a PDF number. *)
-let getnum = function
-  | Real a -> a
-  | Integer a -> float a
-  | _ -> raise (PDFError "Pdf.getnum: not a number")
-
-(* Parse a PDF rectangle data structure. Returns min x, min y, max x, max y. *)
-let parse_rectangle = function
-  | Array [a; b; c; d] ->
-      begin try
-        let x, y, x', y' =
-          getnum a, getnum b, getnum c, getnum d
-        in
-          fmin x x', fmin y y', fmax x x', fmax y y'
-      with
-        PDFError _ -> raise (PDFError "Pdf.parse_rectangle: bad rectangle")
-      end
-  | _ -> raise (PDFError "Pdf.parse_rectangle: not a rectangle")
 
 let change_obj doc i obj =
   fst (pdfobjmap_find i doc.objects.pdfobjects) := Parsed obj
@@ -363,6 +345,26 @@ let resolve_all_delayed_object_streams pdf =
   iter
     (function (n, _) -> ignore (lookup_obj pdf n))
     (pdfobjmap_bindings pdf.objects.pdfobjects)
+
+(* Return a float from a PDF number. *)
+let rec getnum pdf = function
+  | Real a -> a
+  | Integer a -> float a
+  | Indirect i -> getnum pdf (lookup_obj pdf i)
+  | _ -> raise (PDFError "Pdf.getnum: not a number")
+
+(* Parse a PDF rectangle data structure. Returns min x, min y, max x, max y. *)
+let parse_rectangle pdf = function
+  | Array [a; b; c; d] ->
+      begin try
+        let x, y, x', y' =
+          getnum pdf a, getnum pdf b, getnum pdf c, getnum pdf d
+        in
+          fmin x x', fmin y y', fmax x x', fmax y y'
+      with
+        PDFError _ -> raise (PDFError "Pdf.parse_rectangle: bad rectangle")
+      end
+  | _ -> raise (PDFError "Pdf.parse_rectangle: not a rectangle")
 
 let catalog_of_pdf pdf =
   try lookup_obj pdf pdf.root with
@@ -458,8 +460,8 @@ let parse_matrix pdf name dict =
   match lookup_direct pdf name dict with
   | None -> Pdftransform.i_matrix
   | Some (Array [a; b; c; d; e; f]) ->
-      let a = getnum a in let b = getnum b in let c = getnum c
-      in let d = getnum d in let e = getnum e in let f = getnum f in
+      let a = getnum pdf a in let b = getnum pdf b in let c = getnum pdf c
+      in let d = getnum pdf d in let e = getnum pdf e in let f = getnum pdf f in
         {Pdftransform.a = a; Pdftransform.b = b; Pdftransform.c = c;
          Pdftransform.d = d; Pdftransform.e = e; Pdftransform.f = f}
   | _ -> raise (PDFError "Malformed matrix")

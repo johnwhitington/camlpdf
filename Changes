@@ -5,6 +5,7 @@ o Allows malformed numbers --1, --2.5 etc.
 o Support for alternative stubs for js_of_ocaml
 o Push mk_id down to pdf_to_output so it works when writing to
   non-file destinations
+o Fix Pdf.getnum and Pdf.parse_rectangle to cope with indirects
 
 2.5 (January 2022)
 

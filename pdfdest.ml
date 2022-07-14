@@ -33,7 +33,7 @@ let read_destination_error n s =
 let rec read_destination pdf pdfobject =
   let option_getnum = function
   | Pdf.Null -> None
-  | x -> Some (Pdf.getnum x)
+  | x -> Some (Pdf.getnum pdf x)
   in
     match Pdf.direct pdf pdfobject with
     | Pdf.Dictionary d ->
@@ -62,8 +62,8 @@ let rec read_destination pdf pdfobject =
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p;
                   Pdf.Name "/FitR"; l; b; r; t] ->
         FitR
-          (read_targetpage p, Pdf.getnum l, Pdf.getnum b,
-           Pdf.getnum r, Pdf.getnum t)
+          (read_targetpage p, Pdf.getnum pdf l, Pdf.getnum pdf b,
+           Pdf.getnum pdf r, Pdf.getnum pdf t)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitB"] ->
         FitB (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBH"; t] ->

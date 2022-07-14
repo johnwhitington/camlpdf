@@ -539,7 +539,7 @@ let get_image_24bpp pdf resources stream =
                   x)) decode_entry); i*)
                     let floats =
                       match decode_entry with
-                      | Some (Pdf.Array elts) -> Array.of_list (map Pdf.getnum elts)
+                      | Some (Pdf.Array elts) -> Array.of_list (map (Pdf.getnum pdf) elts)
                       | None -> [||]
                       | _ -> raise (Pdf.PDFError "Bad /Decode")
                     in

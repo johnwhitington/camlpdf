@@ -178,7 +178,7 @@ let parse_calculator s =
 (* Parsing functions *)
 let rec parse_function pdf f =
   let f = Pdf.direct pdf f in
-    let getnum_direct o = Pdf.getnum (Pdf.direct pdf o) in
+    let getnum_direct o = Pdf.getnum pdf o in
       let domain =
         match Pdf.lookup_fail "No /Domain" pdf "/Domain" f with
         | Pdf.Array ns -> map getnum_direct ns
@@ -208,14 +208,14 @@ let rec parse_function pdf f =
               in let encode =
                 match Pdf.lookup_direct pdf "/Encode" f with
                 | Some (Pdf.Array ns) when length ns = 2 * length size ->
-                    map Pdf.getnum ns
+                    map getnum_direct ns
                 | _ ->
                     interleave_lists
                       (many 0. (length size))
                       (map (fun x -> float (x - 1)) size)
               in let decode =
                 match Pdf.lookup_direct pdf "/Decode" f with
-                | Some (Pdf.Array ns) -> map Pdf.getnum ns
+                | Some (Pdf.Array ns) -> map getnum_direct ns
                 | _ ->
                     match range with
                     | Some r -> r
@@ -262,7 +262,7 @@ let rec parse_function pdf f =
               | Some (Pdf.Array ns) -> map getnum_direct ns
               | _ -> [1.]
             in let n =
-              Pdf.getnum (Pdf.lookup_fail "No /N in Type 2 fun" pdf "/N" f)
+              getnum_direct (Pdf.lookup_fail "No /N in Type 2 fun" pdf "/N" f)
             in
               Interpolation {c0 = c0; c1 = c1; n = n}
         | Pdf.Integer 3 ->
