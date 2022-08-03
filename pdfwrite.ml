@@ -46,6 +46,13 @@ let make_pdf_string s =
   Buffer.add_char b ')';
   Buffer.contents b
 
+let make_hex_pdf_string s =
+  Buffer.clear b;
+  Buffer.add_char b '<';
+  String.iter (fun c -> Buffer.add_string b (Printf.sprintf "%02x" (int_of_char c))) s;
+  Buffer.add_char b '>';
+  Buffer.contents b
+
 (* We have two kinds of flat data to write: Strings and streams (we cannot
 represent streams as strings, since there is a langauge limit on the length of
 strings. *)
@@ -133,11 +140,11 @@ let make_pdf_name n =
 
 (* Calculate a strings and streams representing the given pdf datatype instance,
 assuming it has no unresolved indirect references. *)
-let rec strings_of_array f changetable = function
+let rec strings_of_array ?(hex=false) f changetable = function
   | [] -> ()
-  | [x] -> strings_of_pdf f changetable x
+  | [x] -> strings_of_pdf ~hex f changetable x
   | h::(h'::_ as tail) ->
-      strings_of_pdf f changetable h;
+      strings_of_pdf ~hex f changetable h;
       begin match h' with
         Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
       | _ ->
@@ -145,9 +152,9 @@ let rec strings_of_array f changetable = function
             Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
           | _ -> f (WString " ")
       end;
-      strings_of_array f changetable tail
+      strings_of_array ~hex f changetable tail
 
-and strings_of_dictionary f changetable = function
+and strings_of_dictionary ?(hex=false) f changetable = function
   | [] -> ()
   | [(k, v)] ->
       f (WString (make_pdf_name k));
@@ -155,33 +162,36 @@ and strings_of_dictionary f changetable = function
         Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
       | _ -> f (WString " ")
       end;
-      strings_of_pdf f changetable v
+      strings_of_pdf ~hex:(hex && k = "/ID") f changetable v
   | (k, v)::t ->
       f (WString (make_pdf_name k));
       begin match v with
         Pdf.Name _ | Pdf.String _ | Pdf.Array _ | Pdf.Dictionary _ -> ()
       | _ -> f (WString " ")
       end;
-      strings_of_pdf f changetable v;
-      strings_of_dictionary f changetable t
+      strings_of_pdf ~hex:(hex && k = "/ID") f changetable v;
+      strings_of_dictionary ~hex f changetable t
 
-and strings_of_pdf f changetable = function
+and strings_of_pdf ?(hex=false) f changetable = function
   | Pdf.Null ->  f (WString "null")
   | Pdf.Boolean b -> f (WString (string_of_bool b))
   | Pdf.Integer n ->  f (WString (string_of_int n))
   | Pdf.Real r -> f (WString (format_real r))
-  | Pdf.String s -> f (WString (make_pdf_string s))
+  | Pdf.String s ->
+      if hex
+        then f (WString (make_hex_pdf_string s))
+        else f (WString (make_pdf_string s))
   | Pdf.Name n -> f (WString (make_pdf_name n))
   | Pdf.Array elts ->
       f (WString "[");
-      strings_of_array f changetable elts;
+      strings_of_array ~hex f changetable elts;
       f (WString "]");
   | Pdf.Dictionary entries ->
       f (WString "<<");
-      strings_of_dictionary f changetable entries;
+      strings_of_dictionary ~hex f changetable entries;
       f (WString ">>");
   | Pdf.Stream {contents = (dict, data)} ->
-      strings_of_pdf f changetable dict;
+      strings_of_pdf ~hex f changetable dict;
       f (WString "\010stream\010");
       f (WStream data);
       f (WString "\010endstream");
@@ -700,7 +710,7 @@ let pdf_to_output
                 in
                   o.output_string (string_of_int thisnum);
                   o.output_string " 0 obj\n";
-                  strings_of_pdf (flatten_W o) changetable xrefstream;
+                  strings_of_pdf ~hex:true (flatten_W o) changetable xrefstream;
                   o.output_string "\nendobj\n";
                   o.output_string "startxref\n";
                   o.output_string (string_of_int xrefstart);
@@ -723,7 +733,7 @@ let pdf_to_output
                       (Pdf.PDFError
                          "Pdf.pdf_to_output: Bad trailer dictionary")
               in
-                strings_of_pdf (flatten_W o) changetable trailerdict';
+                strings_of_pdf ~hex:true (flatten_W o) changetable trailerdict';
                 if !write_debug then Printf.eprintf "all done...\n";
                 o.output_string "\nstartxref\n";
                 o.output_string (string_of_int xrefstart);

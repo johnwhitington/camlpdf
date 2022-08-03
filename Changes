@@ -1,5 +1,6 @@
 2.6 (Next version)
 
+o Write IDs as Hexadecimal strings
 o Replace Stream/Genlex and other deprecations for OCaml 5
 o Allows malformed numbers --1, --2.5 etc.
 o Support for alternative stubs for js_of_ocaml
