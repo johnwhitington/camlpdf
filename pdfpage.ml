@@ -72,9 +72,11 @@ the page tree. *)
 
 (* Some files erroneously miss out a mediabox, expecting the reader to inherit
 it not from the page tree node above, but from the previous page. Most PDF
-readers can do this, and GhostScript can too. So we adopt this behaviour in
-the case of a missing mediabox. *)
-let last_mediabox_seen = ref None
+readers can do this, and GhostScript can too. So we adopt this behaviour in the
+case of a missing mediabox. These readers also use US Letter Portrait as the
+default in case of no mediabox being present at all. *)
+let last_mediabox_seen =
+  ref (Pdf.Array [Pdf.Integer 0; Pdf.Integer 0; Pdf.Integer 612; Pdf.Integer 792])
 
 let rec find_pages pages pdf resources mediabox rotate =
   match Pdf.lookup_direct pdf "/Type" pages with
@@ -170,12 +172,10 @@ let rec find_pages pages pdf resources mediabox rotate =
                 end);
           mediabox =
             (match mediabox with
-            | Some m -> last_mediabox_seen := Some m; m
+            | Some m -> last_mediabox_seen := m; m
             | None ->
-                begin match !last_mediabox_seen with
-                | Some m -> Printf.eprintf "Warning: missing mediabox. Using most recently seen.\n%!"; m
-                | None -> raise (Pdf.PDFError "Bad /MediaBox")
-                end);
+                Printf.eprintf "Warning: missing mediabox. Using most recently seen.\n%!";
+                !last_mediabox_seen);
           rotate = rotate;
           rest =
             (match pages with
