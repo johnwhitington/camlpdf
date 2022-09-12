@@ -1248,25 +1248,28 @@ let memoize f =
       | Some thing -> thing
       | None -> result := Some (f ()); unopt !result
 
+let contents_of_file filename =
+  let ch = open_in_bin filename in
+    try
+      let s = really_input_string ch (in_channel_length ch) in
+        close_in ch;
+        s
+    with
+      e -> close_in ch; raise e
+
 (* A clock for debugging huge files without needing the Unix module.
 Does not work on Windows. Needs GNU version of POSIX date command (gdate
 with homebrew on MacOS). *)
 let clock () =
-  let contents_of_file filename =
-    let ch = open_in_bin filename in
-      let s = really_input_string ch (in_channel_length ch) in
-        close_in ch;
-        s
-  in
-    let tempfile = Filename.temp_file "cpdf" "strftime" in
-    let command = Filename.quote_command "gdate" ~stdout:tempfile ["+%S-%M-%H-%3N"] in
-    let outcode = Sys.command command in
-      if outcode > 0 then raise (Failure "Date command returned non-zero exit code") else
-        let r = contents_of_file tempfile in
-          Sys.remove tempfile;
-          let get_int o l = int_of_string (String.sub r o l) in
-              float_of_int (get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2)
-           +. float_of_int (get_int 9 3) /. 1000.
+  let tempfile = Filename.temp_file "cpdf" "strftime" in
+  let command = Filename.quote_command "gdate" ~stdout:tempfile ["+%S-%M-%H-%3N"] in
+  let outcode = Sys.command command in
+    if outcode > 0 then raise (Failure "Date command returned non-zero exit code") else
+      let r = contents_of_file tempfile in
+        Sys.remove tempfile;
+        let get_int o l = int_of_string (String.sub r o l) in
+            float_of_int (get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2)
+         +. float_of_int (get_int 9 3) /. 1000.
 
 let time = ref 0. (*ref (clock ())*)
 

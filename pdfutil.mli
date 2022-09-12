@@ -652,10 +652,13 @@ val box_overlap_float :
   float -> float -> float -> float -> float -> float -> float -> float ->
   (float * float * float * float) option
 
-(** {2 Filenames} *)
+(** {2 Filenames and files} *)
 
 (** Return a list of leafnames for the given folder in the current folder *)
 val leafnames_of_dir : string -> string list
+
+(** Return the contents of a (binary) file as a string *)
+val contents_of_file : string -> string
 
 (** {2 Roman numerals} *)
 
