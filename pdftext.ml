@@ -29,9 +29,14 @@ type fontfile =
 type fontdescriptor =
   {ascent : float;
    descent : float;
-   leading : float;
    avgwidth : float;
    maxwidth : float;
+   flags : int;
+   fontbbox: float * float * float * float;
+   italicangle : float;
+   capheight : float;
+   xheight : float;
+   stemv : float;
    fontfile : fontfile option;
    charset : string list option;
    tounicode : (int, string) Hashtbl.t option} (* Hack. Hide tounicode in fontdescriptor, because no space at top level *)
@@ -50,8 +55,11 @@ type encoding =
 type simple_font =
   {fonttype : simple_fonttype;
    basefont : string;
-   fontmetrics : fontmetrics option;
+   firstchar : int;
+   lastchar : int;
+   widths : int array;
    fontdescriptor : fontdescriptor option;
+   fontmetrics : fontmetrics option;
    encoding : encoding}
 
 type standard_font =
@@ -196,10 +204,6 @@ let read_fontdescriptor pdf font =
         match Pdf.lookup_direct pdf "/Descent" fontdescriptor with
         | Some x -> Pdf.getnum pdf x
         | None -> 0.
-      in let leading =
-        match Pdf.lookup_direct pdf "/Leading" fontdescriptor with
-        | Some x -> Pdf.getnum pdf x
-        | None -> 0.
       in let avgwidth =
         match Pdf.lookup_direct pdf "/AvgWidth" fontdescriptor with
         | Some x -> Pdf.getnum pdf x
@@ -226,12 +230,17 @@ let read_fontdescriptor pdf font =
         Some
           {ascent = ascent;
            descent = descent;
-           leading = leading;
            avgwidth = avgwidth;
            maxwidth = maxwidth;
            fontfile = fontfile;
            charset = charset;
-           tounicode = None} (* hack. do it later *)
+           flags = 0;
+           fontbbox = (0., 0., 0., 0.);
+           italicangle = 0.;
+           capheight = 0.;
+           xheight = 0.;
+           stemv = 0.;
+           tounicode = None}
 
 (* Read the widths from a font. Normally in the font descriptor, but in Type3
 fonts at the top level. *)
@@ -415,10 +424,14 @@ let read_simple_font pdf font =
       begin match simple_fonttype_of_string pdf font n with
       | Some fonttype ->
           let fontdescriptor = read_fontdescriptor pdf font in
+          let fontmetrics = read_metrics pdf font in
             SimpleFont
               {fonttype = fonttype;
                basefont = read_basefont pdf font;
-               fontmetrics = read_metrics pdf font;
+               fontmetrics;
+               firstchar = 0;
+               lastchar = 0;
+               widths = [||]; 
                fontdescriptor = fontdescriptor;
                encoding = read_encoding pdf font}
       | None -> raise (Pdf.PDFError "Not a simple font")
@@ -735,11 +748,17 @@ let add_tounicode pdf font fontdict =
         SimpleFont {r with fontdescriptor = (* fabricate one. ok? fix somehow in future... *)
                       Some {ascent = 0.;
                             descent = 0.;
-                            leading = 0.;
                             avgwidth = 0.;
                             maxwidth = 0.;
                             fontfile = None;
-                            charset = None; tounicode}}
+                            charset = None;
+                            flags = 0;
+                            fontbbox = (0., 0., 0., 0.);
+                            italicangle = 0. ;
+                            capheight = 0.;
+                            xheight = 0.;
+                            stemv = 0.;
+                            tounicode}}
     | CIDKeyedFont (a, ({cid_fontdescriptor} as r), c) ->
         CIDKeyedFont (a, {r with cid_fontdescriptor = {r.cid_fontdescriptor with tounicode}}, c) 
     | x -> x 
@@ -811,9 +830,16 @@ let write_font pdf = function
                ("/Widths", Pdf.Array [Pdf.Real 0.])] @ encoding_entry)
           in
             Pdf.addobj pdf dict
+  | SimpleFont (* This case is for TrueType fonts embedded by cpdf *)
+      {fonttype = Truetype;
+       basefont;
+       fontmetrics = Some fm;
+       fontdescriptor = Some {ascent; descent; avgwidth; maxwidth; fontfile = Some (FontFile2 ttf)};
+       encoding} ->
+      raise (Pdf.PDFError "ready to output truetype font")
   | StandardFont (standard_font, WinAnsiEncoding) ->
       Pdf.addobj pdf (make_font (string_of_standard_font standard_font))
-  | _ -> raise (Pdf.PDFError "write_font only supports type 3 fonts")
+  | _ -> raise (Pdf.PDFError "Pdftext.write_font does not support this font")
 
 (* Extracting of Text *)
 

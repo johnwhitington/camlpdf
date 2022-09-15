@@ -14,8 +14,6 @@ type simple_fonttype =
   | Type3 of type3_glpyhs
   | Truetype
 
-type fontmetrics = float array
-
 type fontfile =
   | FontFile of int
   | FontFile2 of int
@@ -24,9 +22,14 @@ type fontfile =
 type fontdescriptor =
   {ascent : float;
    descent : float;
-   leading : float;
    avgwidth : float;
    maxwidth : float;
+   flags : int;
+   fontbbox: float * float * float * float;
+   italicangle : float;
+   capheight : float;
+   xheight : float;
+   stemv : float;
    fontfile : fontfile option;
    charset : string list option;
    tounicode : (int, string) Hashtbl.t option}
@@ -42,11 +45,16 @@ type encoding =
   | CustomEncoding of encoding * differences
   | FillUndefinedWithStandard of encoding
 
+type fontmetrics = float array (*r widths of glyphs 0..255 *)
+
 type simple_font =
   {fonttype : simple_fonttype;
    basefont : string;
-   fontmetrics : fontmetrics option;
+   firstchar : int;
+   lastchar : int;
+   widths : int array;
    fontdescriptor : fontdescriptor option;
+   fontmetrics : fontmetrics option;
    encoding : encoding}
 
 type standard_font =
