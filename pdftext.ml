@@ -833,10 +833,40 @@ let write_font pdf = function
   | SimpleFont (* This case is for TrueType fonts embedded by cpdf *)
       {fonttype = Truetype;
        basefont;
-       fontmetrics = Some fm;
-       fontdescriptor = Some {ascent; descent; avgwidth; maxwidth; fontfile = Some (FontFile2 ttf)};
+       firstchar;
+       lastchar;
+       widths;
+       fontdescriptor =
+         Some {ascent; descent; avgwidth; maxwidth; flags;
+               fontbbox = (minx, miny, maxx, maxy);
+               italicangle; capheight; xheight; stemv; fontfile = Some (FontFile2 ttf)};
        encoding} ->
-      raise (Pdf.PDFError "ready to output truetype font")
+      let fontdescriptor =
+        Pdfread.parse_single_object
+          (Printf.sprintf
+             "<</Type/FontDescriptor/FontName%s/Flags %i/FontBBox[%i %i %i %i] \
+                /ItalicAngle %i/Ascent %i/Descent %i/CapHeight %i/StemV %i/XHeight \
+                %i/AvgWidth %i/MaxWidth %i/FontFile2 %i 0 R>>"
+             basefont flags (int_of_float minx) (int_of_float miny)
+             (int_of_float maxx) (int_of_float maxy)
+             (int_of_float italicangle) (int_of_float ascent)
+             (int_of_float descent) (int_of_float capheight)
+             (int_of_float stemv) (int_of_float xheight)
+             (int_of_float avgwidth) (int_of_float maxwidth) ttf)
+      in
+      let fontdesc_num = Pdf.addobj pdf fontdescriptor in
+      let font =
+        Pdf.add_dict_entry
+          (Pdfread.parse_single_object
+            (Printf.sprintf
+               "<</Type/Font/Subtype/TrueType/BaseFont%s/FontDescriptor %i 0 R\
+                  /Encoding /%s/FirstChar %i/LastChar %i>>"
+               basefont fontdesc_num (string_of_encoding encoding)
+               firstchar lastchar))
+          "/Widths"
+          (Pdf.Array (map (fun i -> Pdf.Integer i) (Array.to_list widths)))
+      in
+        Pdf.addobj pdf font
   | StandardFont (standard_font, WinAnsiEncoding) ->
       Pdf.addobj pdf (make_font (string_of_standard_font standard_font))
   | _ -> raise (Pdf.PDFError "Pdftext.write_font does not support this font")
