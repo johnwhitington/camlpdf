@@ -867,7 +867,7 @@ let write_font pdf = function
            ("/Subtype", Pdf.Name "/TrueType");
            ("/BaseFont", Pdf.Name basefont);
            ("/FontDescriptor", Pdf.Indirect fontdesc_num);
-           ("/Encoding", Pdf.String (string_of_encoding encoding));
+           ("/Encoding", Pdf.Name ("/" ^ string_of_encoding encoding));
            ("/FirstChar", Pdf.Integer firstchar);
            ("/LastChar", Pdf.Integer lastchar);
            ("/Widths", Pdf.Array (map (fun i -> Pdf.Integer i) (Array.to_list widths)))]
