@@ -802,7 +802,7 @@ let write_encoding pdf = function
           Pdf.addobj pdf encodingdict
   | _ -> raise (Pdf.PDFError "write_encoding: not supported")
  
-let write_font pdf = function
+let write_font ?objnum pdf = function
   | SimpleFont
       {fonttype = Type3
          {fontbbox = fontbbox;
@@ -869,7 +869,10 @@ let write_font pdf = function
            ("/LastChar", Pdf.Integer lastchar);
            ("/Widths", Pdf.Array (map (fun i -> Pdf.Integer i) (Array.to_list widths)))]
       in
-        Pdf.addobj pdf font
+        begin match objnum with
+        | None -> Pdf.addobj pdf font
+        | Some o -> Pdf.addobj_given_num pdf (o, font); o
+        end
   | StandardFont (standard_font, encoding) ->
       Pdf.addobj pdf (make_font (string_of_standard_font standard_font) encoding)
   | _ -> raise (Pdf.PDFError "Pdftext.write_font does not support this font")

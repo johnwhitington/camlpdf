@@ -114,7 +114,7 @@ val read_font : Pdf.t -> Pdf.pdfobject -> font
 
 (** Write a font to a given document, returning the object number for the main
 font dictionary *)
-val write_font : Pdf.t -> font -> int
+val write_font : ?objnum:int -> Pdf.t -> font -> int
 
 (** {2 Utility functions} *)
 
