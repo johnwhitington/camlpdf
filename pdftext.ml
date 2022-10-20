@@ -829,7 +829,7 @@ end\n"
 let tounicode_map s us =
   let b = Buffer.create 1024 in
   let s = ref s in
-  Buffer.add_string b (tounicode_preamble (length us));
+  Buffer.add_string b (tounicode_preamble (length us - 1));
   Buffer.add_string b (Printf.sprintf "%i beginbfrange\n" (length us));
   iter
     (fun u -> Buffer.add_string b (Printf.sprintf "<%02x><%02x><%04x>\n" !s !s u);
