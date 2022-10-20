@@ -127,6 +127,12 @@ val codepoints_of_utf8 : string -> int list
 (** A UTF8 string for a list of unicode codepoints *)
 val utf8_of_codepoints : int list -> string
 
+(** A list of unicode codepoints for a UTF16BE string *)
+val codepoints_of_utf16be : string -> int list
+
+(** A UTF16BE string for a list of unicode codepoints (with BOM) *)
+val utf16be_of_codepoints : int list -> string
+
 (** {2 Text from strings outside page content} *)
 
 (** Take a pdf string (which will be either pdfdocencoding or UTF16BE) and

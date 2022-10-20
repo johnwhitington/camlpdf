@@ -802,8 +802,7 @@ let write_encoding pdf = function
           Pdf.addobj pdf encodingdict
   | _ -> raise (Pdf.PDFError "write_encoding: not supported")
 
-let tounicode_preamble len =
-Printf.sprintf
+let tounicode_preamble =
 "/CIDInit /ProcSet findresource begin\n\
 12 dict begin\n\
 begincmap\n\
@@ -815,9 +814,8 @@ begincmap\n\
 /CMapName /Adobe-Identity-UCS def\n\
 /CMapType 2 def\n\
 1 begincodespacerange\n\
-<00><%02X>\n\
+<00><FF>\n\
 endcodespacerange\n"
-len
 
 let tounicode_postamble =
 "endbfrange\n\
@@ -826,13 +824,18 @@ CMapName currentdict /CMap defineresource pop\n\
 end\n\
 end\n"
 
+let hex u =
+  let b = Buffer.create 32 in
+  String.iter (fun x -> Buffer.add_string b (Printf.sprintf "%02X" (int_of_char x))) u;
+  Buffer.contents b
+
 let tounicode_map s us =
   let b = Buffer.create 1024 in
   let s = ref s in
-  Buffer.add_string b (tounicode_preamble (length us - 1));
+  Buffer.add_string b tounicode_preamble;
   Buffer.add_string b (Printf.sprintf "%i beginbfrange\n" (length us));
   iter
-    (fun u -> Buffer.add_string b (Printf.sprintf "<%02x><%02x><%04x>\n" !s !s u);
+    (fun u -> Buffer.add_string b (Printf.sprintf "<%02x><%02x><%s>\n" !s !s (hex u));
      s := !s + 1)
     us;
   Buffer.add_string b tounicode_postamble;
@@ -840,7 +843,7 @@ let tounicode_map s us =
 
 (* Just for the kind produced by the font subsetter for now. *)
 let write_tounicode pdf u =
-  let bytes = tounicode_map 0 (map (fun (u, s) -> int_of_char s.[0]) (sort compare ((list_of_hashtbl u)))) in
+  let bytes = tounicode_map 0 (map (fun (_, s) -> s) (sort compare ((list_of_hashtbl u)))) in
     Pdf.addobj pdf (Pdf.Stream {contents = (Pdf.Dictionary [("/Length", Pdf.Integer (bytes_size bytes))], Pdf.Got bytes)})
 
 let write_font ?objnum pdf = function
@@ -906,11 +909,12 @@ let write_font ?objnum pdf = function
            ("/Subtype", Pdf.Name "/TrueType");
            ("/BaseFont", Pdf.Name basefont);
            ("/FontDescriptor", Pdf.Indirect fontdesc_num);
-           ("/Encoding", Pdf.Name ("/" ^ string_of_encoding encoding));
            ("/FirstChar", Pdf.Integer firstchar);
            ("/LastChar", Pdf.Integer lastchar);
            ("/Widths", Pdf.Array (map (fun i -> Pdf.Integer i) (Array.to_list widths)))]
-          @ (match tounicode with None -> [] | Some u -> [("/Tounicode", Pdf.Indirect (write_tounicode pdf u))]))
+          @ (match tounicode with
+             | None -> [("/Encoding", Pdf.Name ("/" ^ string_of_encoding encoding))]
+             | Some u -> [("/ToUnicode", Pdf.Indirect (write_tounicode pdf u))]))
       in
         begin match objnum with
         | None -> Pdf.addobj pdf font
