@@ -802,7 +802,8 @@ let write_encoding pdf = function
           Pdf.addobj pdf encodingdict
   | _ -> raise (Pdf.PDFError "write_encoding: not supported")
 
-let tounicode_preamble =
+let tounicode_preamble len =
+Printf.sprintf
 "/CIDInit /ProcSet findresource begin\n\
 12 dict begin\n\
 begincmap\n\
@@ -814,8 +815,9 @@ begincmap\n\
 /CMapName /Adobe-Identity-UCS def\n\
 /CMapType 2 def\n\
 1 begincodespacerange\n\
-<00><FF>\n\
+<00><%02X>\n\
 endcodespacerange\n"
+len
 
 let tounicode_postamble =
 "endbfrange\n\
@@ -827,10 +829,10 @@ end\n"
 let tounicode_map s us =
   let b = Buffer.create 1024 in
   let s = ref s in
-  Buffer.add_string b tounicode_preamble;
+  Buffer.add_string b (tounicode_preamble (length us));
   Buffer.add_string b (Printf.sprintf "%i beginbfrange\n" (length us));
   iter
-    (fun u -> Buffer.add_string b (Printf.sprintf "<%02x><%02x><%04x>" !s !s u);
+    (fun u -> Buffer.add_string b (Printf.sprintf "<%02x><%02x><%04x>\n" !s !s u);
      s := !s + 1)
     us;
   Buffer.add_string b tounicode_postamble;
@@ -838,12 +840,8 @@ let tounicode_map s us =
 
 (* Just for the kind produced by the font subsetter for now. *)
 let write_tounicode pdf u =
-  let bytes =
-    tounicode_map
-      0
-      (map (fun (_, s) -> Printf.printf "%S" s; 0) (sort compare ((list_of_hashtbl u))))
-  in
-    Pdf.addobj pdf (Pdf.Stream {contents = (Pdf.Dictionary [], Pdf.Got bytes)})
+  let bytes = tounicode_map 0 (map (fun (u, s) -> int_of_char s.[0]) (sort compare ((list_of_hashtbl u)))) in
+    Pdf.addobj pdf (Pdf.Stream {contents = (Pdf.Dictionary [("/Length", Pdf.Integer (bytes_size bytes))], Pdf.Got bytes)})
 
 let write_font ?objnum pdf = function
   | SimpleFont
