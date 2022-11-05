@@ -18,7 +18,10 @@ let to_type3 pdf = function
            Pdftext.fontmetrics =
              Some (widths_of_cidwidths cidfont.Pdftext.cid_widths cidfont.Pdftext.cid_default_width);
            Pdftext.fontdescriptor = Some cidfont.Pdftext.cid_fontdescriptor;
-           Pdftext.encoding = Pdftext.ImplicitInFontFile}
+           Pdftext.encoding = Pdftext.ImplicitInFontFile;
+           Pdftext.firstchar = 0;
+           Pdftext.lastchar = 0;
+           Pdftext.widths = [||]}
       in
         Pdfcff.to_type3 pdf font
   | _ -> raise (Pdf.PDFError "Pdftype0.to_type3 : not supported")
