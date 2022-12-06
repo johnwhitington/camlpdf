@@ -396,6 +396,10 @@ let merge_acroforms pdf pdfs =
     in
       Some (Pdf.addobj pdf new_dict)
 
+(* Merge structure heirarchy / tagged PDF *)
+let merge_structure_hierarchy pdf pdfs =
+  None
+
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
   let pdfs = merge_pdfs_rename_name_trees names pdfs in
@@ -437,6 +441,11 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
               match merge_acroforms pdf pdfs with
               | None -> extra_catalog_entries
               | Some acroformnum -> add "/AcroForm" (Pdf.Indirect acroformnum) extra_catalog_entries
+            in
+            let extra_catalog_entries =
+              match merge_structure_hierarchy pdf pdfs with
+              | None -> extra_catalog_entries
+              | Some structheirnum -> add "/StructureTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
