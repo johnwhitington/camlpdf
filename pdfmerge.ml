@@ -396,9 +396,57 @@ let merge_acroforms pdf pdfs =
     in
       Some (Pdf.addobj pdf new_dict)
 
-(* Merge structure heirarchy / tagged PDF *)
+(* Merge structure heirarchy / tagged PDF.
+
+/IDTree                 name tree     merge trees
+/ParentTree             number tree   merge with regard to changed page object numbers
+/ParentTreeNextKey      integer       delete for now, since optional and needs updating
+/RoleMap                dict          merge
+/ClassMap               dict          merge
+/NameSpaces             array         merge
+/PronunciationLexicon   array         merge
+/AF                     array         merge
+/K                      dict/array    merge
+*)
 let merge_structure_hierarchy pdf pdfs =
-  None
+  let struct_tree_roots =
+    option_map
+      (fun pdf -> Pdf.lookup_direct pdf "/StructTreeRoot" (Pdf.catalog_of_pdf pdf))
+      pdfs
+  in
+    if struct_tree_roots = [] then None else
+      let merged_idtree =
+        Pdf.Null
+      in
+      let merged_rolemap =
+        Pdf.Null
+      in
+      let merged_classmap =
+        Pdf.Null
+      in
+      let merged_namespaces =
+        Pdf.Null
+      in
+      let merged_pronunciation_lexicon =
+        Pdf.Null
+      in
+      let merged_af =
+        Pdf.Null
+      in
+      let merged_k =
+        Pdf.Null
+      in
+        let new_dict =
+          Pdf.Dictionary
+            [("/IDTree", merged_idtree);
+             ("/RoleMap", merged_rolemap);
+             ("/ClassMap", merged_classmap);
+             ("/NameSpaces", merged_namespaces);
+             ("/PronunciationLexion", merged_pronunciation_lexicon);
+             ("/AF", merged_af);
+             ("/K", merged_k)]
+        in
+          Some (Pdf.addobj pdf new_dict)
 
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
@@ -444,8 +492,8 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
             in
             let extra_catalog_entries =
               match merge_structure_hierarchy pdf pdfs with
-              | None -> extra_catalog_entries
-              | Some structheirnum -> add "/StructureTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
+              | None -> flprint "no structtrees found\n"; extra_catalog_entries
+              | Some structheirnum -> flprint "merged struct trees\n"; add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
