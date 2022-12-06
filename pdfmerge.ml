@@ -492,8 +492,8 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
             in
             let extra_catalog_entries =
               match merge_structure_hierarchy pdf pdfs with
-              | None -> flprint "no structtrees found\n"; extra_catalog_entries
-              | Some structheirnum -> flprint "merged struct trees\n"; add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
+              | None -> extra_catalog_entries
+              | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
