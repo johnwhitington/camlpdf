@@ -155,10 +155,10 @@ let merge_pdfs_renumber names pdfs =
         let table = combine first_names (Pdf.renumber_pdfs first_pdfs) in
           map (function k -> lookup_failnull k table) names
       
-(* Reading a name tree, flattened. *)
+(* Reading a name tree, flattened. FIXME: This appears to be somewhat duplicated in Pdf.ml. Fix. *)
 let rec read_name_tree pdf tree =
   let names =
-    match Pdf.lookup_direct pdf "/Names" tree with
+    match Pdf.lookup_direct_orelse pdf "/Names" "/Nums" tree with
     | Some (Pdf.Array elts) ->
         if odd (length elts)
           then
@@ -198,31 +198,41 @@ let rec build_nt_tree l =
     then Lf (left l, l, right l)
     else Br (left l, map build_nt_tree (splitinto (length l / maxsize) l), right l)
 
-let rec name_tree_of_nt isroot pdf = function
+let rec name_tree_of_nt isnum isroot pdf = function
   Lf (llimit, items, rlimit) ->
-    Pdf.Dictionary
-      ([("/Names", Pdf.Array (flatten (map (fun (k, v) -> [Pdf.String k; v]) items)))] @
-       if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
+    let entry =
+      if isnum then [] (*FIXME *)
+      else
+        [("/Names", Pdf.Array (flatten (map (fun (k, v) -> [Pdf.String k; v]) items)))] 
+    in
+      Pdf.Dictionary
+        (entry @
+         if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
 | Br (llimit, nts, rlimit) ->
     let indirects =
-      let kids = map (name_tree_of_nt false pdf) nts in
+      let kids = map (name_tree_of_nt isnum false pdf) nts in
         map (Pdf.addobj pdf) kids
     in
       Pdf.Dictionary
        [("/Kids", Pdf.Array (map (fun x -> Pdf.Indirect x) indirects));
         ("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])]
 
-let build_name_tree pdf = function
-  | [] -> Pdf.Dictionary [("/Names", Pdf.Array [])]
+let build_name_tree isnum pdf = function
+  | [] ->
+      if isnum then
+        Pdf.Dictionary [("/Nums", Pdf.Array [])]
+      else
+        Pdf.Dictionary [("/Names", Pdf.Array [])]
   | ls ->
       let nt = build_nt_tree (sort compare ls) in
-        name_tree_of_nt true pdf nt
-
-
+        name_tree_of_nt isnum true pdf nt
 
 (* Once we know there are no clashes *)
 let merge_name_trees_no_clash pdf trees =
-  build_name_tree pdf (flatten (map (read_name_tree pdf) trees))
+  build_name_tree false pdf (flatten (map (read_name_tree pdf) trees))
+
+let merge_number_trees_no_clash pdf trees =
+  build_name_tree true pdf (flatten (map (read_name_tree pdf) trees))
 
 (* Merging entries in the Name Dictionary. [pdf] here is the new merged pdf, [pdfs] the original ones. *)
 let merge_namedicts pdf pdfs =
@@ -429,7 +439,12 @@ let merge_structure_hierarchy pdf pdfs =
         (option_map
           (function
            | Pdf.Array a -> Some a
-           | _ -> Printf.eprintf "merge_array: not an array"; None)))
+           | _ -> Printf.eprintf "merge_array: not an array"; None) arrays))
+  in
+  let mkarray = function
+    | Pdf.Array a -> Pdf.Array a
+    | x -> Pdf.Array [x]
+  in
   let struct_tree_roots =
     option_map
       (fun pdf -> Pdf.lookup_direct pdf "/StructTreeRoot" (Pdf.catalog_of_pdf pdf))
@@ -437,10 +452,10 @@ let merge_structure_hierarchy pdf pdfs =
   in
     if struct_tree_roots = [] then None else
       let merged_idtree =
-        merge_name_trees_no_clash
+        merge_name_trees_no_clash pdf (get_all struct_tree_roots pdf "/IDTree")
       in
       let merged_parenttree =
-        merge_numbertree
+        merge_number_trees_no_clash pdf (get_all struct_tree_roots pdf "/ParentTree")
       in
       let merged_rolemap =
         merge_dicts (get_all struct_tree_roots pdf "/RoleMap") in
@@ -452,14 +467,13 @@ let merge_structure_hierarchy pdf pdfs =
         merge_arrays (get_all struct_tree_roots pdf "/PronunciationLexicon") in
       let merged_af =
         merge_arrays (get_all struct_tree_roots pdf "/AF") in
-      in
       let merged_k =
-        (* Either a dictionary or an array of dictionaries. So collect them all, as arrays, then merge *)
-        merge_arrays (mkarray (get_all struct_tree_roots pdf "/K"))
+        merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K"))
       in
         let new_dict =
           Pdf.Dictionary
             [("/IDTree", merged_idtree);
+             ("/ParentTree", merged_parenttree);
              ("/RoleMap", merged_rolemap);
              ("/ClassMap", merged_classmap);
              ("/NameSpaces", merged_namespaces);
