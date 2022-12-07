@@ -155,7 +155,8 @@ let merge_pdfs_renumber names pdfs =
         let table = combine first_names (Pdf.renumber_pdfs first_pdfs) in
           map (function k -> lookup_failnull k table) names
       
-(* Reading a name tree, flattened. FIXME: This appears to be somewhat duplicated in Pdf.ml. Fix. *)
+(* Reading a name tree, flattened. FIXME: This appears to be somewhat duplicated in Pdf.ml.
+   Move name / number tree stuff to pdftree.ml *)
 let rec read_name_tree pdf tree =
   let names =
     match Pdf.lookup_direct_orelse pdf "/Names" "/Nums" tree with
@@ -174,13 +175,22 @@ let rec read_name_tree pdf tree =
         names @ flatten (map (read_name_tree pdf) kids)
     | _ -> names
 
+let read_number_tree pdf tree =
+  let r = read_name_tree pdf tree in
+    try
+      map (function (Pdf.Integer i, x) -> (string_of_int i, x) | _ -> raise Exit) r
+    with
+      Exit ->
+        Printf.eprintf "Pdfmerge.read_number_tree: skipping malformed name tree\n%!";
+        []
+
 let read_name_tree pdf tree =
   let r = read_name_tree pdf tree in
     try
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with
       Exit ->
-        Printf.eprintf "Pdfmerge.read_names tree: skipping malformed name tree\n%!";
+        Printf.eprintf "Pdfmerge.read_name_tree: skipping malformed name tree\n%!";
         []
 
 let maxsize = 10 (* Must be at least two *)
@@ -201,21 +211,30 @@ let rec build_nt_tree l =
 let rec name_tree_of_nt isnum isroot pdf = function
   Lf (llimit, items, rlimit) ->
     let entry =
-      if isnum then [] (*FIXME *)
-      else
-        [("/Names", Pdf.Array (flatten (map (fun (k, v) -> [Pdf.String k; v]) items)))] 
+      [((if isnum then "/Nums" else "/Names"),
+        Pdf.Array (flatten (map (fun (k, v) -> [(if isnum then Pdf.Integer (int_of_string k) else Pdf.String k); v]) items)))] 
+    in
+    let ll, rl =
+      if isnum
+        then Pdf.Integer (int_of_string llimit), Pdf.Integer (int_of_string rlimit)
+        else Pdf.String llimit, Pdf.String rlimit
     in
       Pdf.Dictionary
         (entry @
-         if isroot then [] else [("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])])
+         if isroot then [] else [("/Limits", Pdf.Array [ll; rl])])
 | Br (llimit, nts, rlimit) ->
     let indirects =
       let kids = map (name_tree_of_nt isnum false pdf) nts in
         map (Pdf.addobj pdf) kids
     in
+    let ll, rl =
+      if isnum
+        then Pdf.Integer (int_of_string llimit), Pdf.Integer (int_of_string rlimit)
+        else Pdf.String llimit, Pdf.String rlimit
+    in
       Pdf.Dictionary
        [("/Kids", Pdf.Array (map (fun x -> Pdf.Indirect x) indirects));
-        ("/Limits", Pdf.Array [Pdf.String llimit; Pdf.String rlimit])]
+        ("/Limits", Pdf.Array [ll; rl])]
 
 let build_name_tree isnum pdf = function
   | [] ->
@@ -232,7 +251,7 @@ let merge_name_trees_no_clash pdf trees =
   build_name_tree false pdf (flatten (map (read_name_tree pdf) trees))
 
 let merge_number_trees_no_clash pdf trees =
-  build_name_tree true pdf (flatten (map (read_name_tree pdf) trees))
+  build_name_tree true pdf (flatten (map (read_number_tree pdf) trees))
 
 (* Merging entries in the Name Dictionary. [pdf] here is the new merged pdf, [pdfs] the original ones. *)
 let merge_namedicts pdf pdfs =
@@ -470,16 +489,22 @@ let merge_structure_hierarchy pdf pdfs =
       let merged_k =
         merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K"))
       in
+        let optional n = function
+        | Pdf.Dictionary [] -> []
+        | Pdf.Array [] -> []
+        | x -> [(n, Pdf.Indirect (Pdf.addobj pdf x))]
+        in
         let new_dict =
           Pdf.Dictionary
-            [("/IDTree", merged_idtree);
-             ("/ParentTree", merged_parenttree);
-             ("/RoleMap", merged_rolemap);
-             ("/ClassMap", merged_classmap);
-             ("/NameSpaces", merged_namespaces);
-             ("/PronunciationLexion", merged_pronunciation_lexicon);
-             ("/AF", merged_af);
-             ("/K", merged_k)]
+            (["/Type", Pdf.Name "/StructTreeRoot"]
+             @ optional "/IDTree" merged_idtree
+             @ optional "/ParentTree" merged_parenttree
+             @ optional "/RoleMap" merged_rolemap
+             @ optional "/ClassMap" merged_classmap
+             @ optional "/NameSpaces" merged_namespaces
+             @ optional "/PronunciationLexion" merged_pronunciation_lexicon
+             @ optional "/AF" merged_af
+             @ optional "/K" merged_k)
         in
           Some (Pdf.addobj pdf new_dict)
 
