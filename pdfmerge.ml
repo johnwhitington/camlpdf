@@ -427,15 +427,15 @@ let merge_acroforms pdf pdfs =
 
 (* Merge structure heirarchy / tagged PDF.
 
-/IDTree                 name tree     merge trees
-/ParentTree             number tree   merge with regard to changed page object numbers
+/IDTree                 name tree     merge
+/ParentTree             number tree   merge
 /ParentTreeNextKey      integer       delete for now, since optional and needs updating
-/RoleMap                dict          merge (may need to be clever here, mutual conflict possible?)
-/ClassMap               dict          merge (may need to be clever here, clashing names)
-/NameSpaces             array         merge (unknown if complications) 
-/PronunciationLexicon   array         merge (unknown if complications)
-/AF                     array         merge (unknown if complications)
-/K                      dict/array    merge (should be simple) 
+/RoleMap                dict          merge
+/ClassMap               dict          merge
+/NameSpaces             array         merge
+/PronunciationLexicon   array         merge
+/AF                     array         merge
+/K                      dict/array    merge
 *)
 let merge_structure_hierarchy pdf pdfs =
   let get_all struct_tree_roots pdf name =
@@ -464,12 +464,27 @@ let merge_structure_hierarchy pdf pdfs =
     | Pdf.Array a -> Pdf.Array a
     | x -> Pdf.Array [x]
   in
-  let struct_tree_roots =
-    option_map
-      (fun pdf -> Pdf.lookup_direct pdf "/StructTreeRoot" (Pdf.catalog_of_pdf pdf))
-      pdfs
+  let struct_tree_roots, struct_tree_objnums =
+    split
+      (option_map
+        (fun pdf ->
+          let catalog = Pdf.catalog_of_pdf pdf in
+             match Pdf.lookup_direct pdf "/StructTreeRoot" catalog with
+             | None -> None
+             | Some str ->
+                Some
+                  (str,
+                   match catalog with
+                   | Pdf.Dictionary d ->
+                       begin match lookup "/StructTreeRoot" d with Some (Pdf.Indirect i) -> i | _ -> 0 end
+                   | _ -> raise (Pdf.PDFError "merge_structure_hierarchy: bad catalog")))
+        pdfs)
   in
-    if struct_tree_roots = [] then None else
+    match struct_tree_roots with
+    | [] -> None
+    | [x] ->
+       Some (hd struct_tree_objnums) (* if only one, don't interfere, just preserve it. *)
+    | _ ->
       let merged_idtree =
         merge_name_trees_no_clash pdf (get_all struct_tree_roots pdf "/IDTree")
       in
@@ -486,8 +501,12 @@ let merge_structure_hierarchy pdf pdfs =
         merge_arrays (get_all struct_tree_roots pdf "/PronunciationLexicon") in
       let merged_af =
         merge_arrays (get_all struct_tree_roots pdf "/AF") in
+      let struct_tree_objnum = Pdf.addobj pdf Pdf.Null in
       let merged_k =
-        merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K"))
+        match merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K")) with
+        | Pdf.Array l ->
+            Pdf.Array (map (fun d -> Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)) l)
+        | _ -> assert false
       in
         let optional n = function
         | Pdf.Dictionary [] -> []
@@ -506,7 +525,8 @@ let merge_structure_hierarchy pdf pdfs =
              @ optional "/AF" merged_af
              @ optional "/K" merged_k)
         in
-          Some (Pdf.addobj pdf new_dict)
+          Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
+          Some struct_tree_objnum
 
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
