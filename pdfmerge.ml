@@ -564,15 +564,24 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
               match merge_optional_content_groups pdf pdfs with
                 None -> extra_catalog_entries
               | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
+              | exception e ->
+                  Printf.eprintf "Warning: failed to merge OCGs (%s)\n" (Printexc.to_string e);
+                  extra_catalog_entries
             in
             let extra_catalog_entries =
               match merge_acroforms pdf pdfs with
               | None -> extra_catalog_entries
               | Some acroformnum -> add "/AcroForm" (Pdf.Indirect acroformnum) extra_catalog_entries
+              | exception e ->
+                  Printf.eprintf "Warning: failed to merge Acroforms (%s)\n" (Printexc.to_string e);
+                  extra_catalog_entries
             in
             let extra_catalog_entries =
               match merge_structure_hierarchy pdf pdfs with
               | None -> extra_catalog_entries
+              | exception e ->
+                  Printf.eprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e);
+                  extra_catalog_entries
               | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
