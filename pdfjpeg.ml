@@ -43,7 +43,7 @@ let jpeg_dimensions bs =
               if !i > bytes_size bs then raise (Pdf.PDFError "jpeg_dimensions: too short") else
               if get !i <> 0xFF then raise (Pdf.PDFError "jpeg_dimensions: not a valid block") else
               if get (!i + 1) = 0xC0 then
-                raise (Answer ((get (!i + 5) * 256 + get (!i + 6), get (!i + 7) * 256 + get (!i + 8))))
+                raise (Answer (get (!i + 7) * 256 + get (!i + 8), (get (!i + 5) * 256 + get (!i + 6))))
               else
                 begin
                   i += 2;
