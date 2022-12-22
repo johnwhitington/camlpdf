@@ -33,28 +33,28 @@ let jpeg_dimensions bs =
       begin
         i += 4;
         if
-           get (!i + 2) = int_of_char 'J' && get (!i + 3) = int_of_char 'F'
-        && get (!i + 4) = int_of_char 'I' && get (!i + 5) = int_of_char 'F'
-        && get (!i + 6) = 0
+             get (!i + 2) = int_of_char 'J' && get (!i + 3) = int_of_char 'F'
+          && get (!i + 4) = int_of_char 'I' && get (!i + 5) = int_of_char 'F'
+          && get (!i + 6) = 0
         then
           let block_length = ref (get !i * 256 + get (!i + 1)) in
-          while !i < bytes_size bs do
-            i := !i + !block_length;
-            if !i > bytes_size bs then raise (Pdf.PDFError "jpeg_dimensions: too short") else
-            if get !i <> 0xFF then raise (Pdf.PDFError "jpeg_dimensions: not a valid block") else
-            if get (!i + 1) = 0xC0 then
-              raise (Answer ((get (!i + 5) * 256 + get (!i + 6), get (!i + 7) * 256 + get (!i + 8))))
-            else
-             begin
-               i += 2;
-               block_length := get !i * 256 + get (!i + 1)
-             end
-          done
+            while !i < bytes_size bs do
+              i := !i + !block_length;
+              if !i > bytes_size bs then raise (Pdf.PDFError "jpeg_dimensions: too short") else
+              if get !i <> 0xFF then raise (Pdf.PDFError "jpeg_dimensions: not a valid block") else
+              if get (!i + 1) = 0xC0 then
+                raise (Answer ((get (!i + 5) * 256 + get (!i + 6), get (!i + 7) * 256 + get (!i + 8))))
+              else
+                begin
+                  i += 2;
+                  block_length := get !i * 256 + get (!i + 1)
+                end
+            done
         else
           raise (Pdf.PDFError "jpeg_dimensions: Not a valid JFIF string")
       end
     else
       raise (Pdf.PDFError "jpeg_dimensions: Not a valid SOI header");
-    (0, 0)
+    assert false
  with
    Answer (w, h) -> (w, h)
