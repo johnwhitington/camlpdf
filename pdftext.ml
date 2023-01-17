@@ -1177,6 +1177,7 @@ let codepoints_of_pdfdocstring s =
     option_map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
 
 let utf8_of_pdfdocstring s =
+  (*Printf.printf "utf8_of_pdfdocstring: Pdf string is %S\n%!" s;*)
   try utf8_of_codepoints (codepoints_of_pdfdocstring s) with
     e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n%!" (Printexc.to_string e); ""
 
@@ -1225,6 +1226,7 @@ let pdfdocstring_of_codepoints codepoints =
     Exit -> utf16be_of_codepoints codepoints
 
 let pdfdocstring_of_utf8 s =
+  (*Printf.printf "utf8_of_pdfdocstring: JSON string is %S\n%!" s;*)
   pdfdocstring_of_codepoints (codepoints_of_utf8 s)
 
 (* PDF strings (except /ID in the trailer dictionary and inside page content
