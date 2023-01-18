@@ -1145,10 +1145,10 @@ let codepoint_of_pdfdocencoding_character i =
         Hashtbl.find (Pdfglyphlist.glyph_hashes ())
           (Hashtbl.find Pdfglyphlist.reverse_name_to_pdf_hashes i)
       with
-      | [codepoint] -> Some codepoint
-      | _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i; None
+      | [codepoint] -> codepoint
+      | _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i))
     with
-      _ -> Printf.eprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i; None
+      _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string 2 (char %i)\n%!" i))
 
 (* Build a UTF-8 string from a list of unicode codepoints. *)
 let get_utf8_chars c =
@@ -1174,12 +1174,11 @@ let codepoints_of_pdfdocstring s =
   if is_unicode s then
     codepoints_of_utf16be (String.sub s 2 (String.length s - 2))
   else
-    option_map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
+    map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
 
 let utf8_of_pdfdocstring s =
   (*Printf.printf "utf8_of_pdfdocstring: Pdf string is %S\n%!" s;*)
-  try utf8_of_codepoints (codepoints_of_pdfdocstring s) with
-    e -> Printf.eprintf "utf8_of_pdfdocstring : %s\n%!" (Printexc.to_string e); ""
+  utf8_of_codepoints (codepoints_of_pdfdocstring s)
 
 (* Build a PDFDocEncoding or UTF16BE string from a UTF8 encoded string *)
 let rec codepoints_of_utf8 = function
@@ -1203,7 +1202,7 @@ let rec codepoints_of_utf8 = function
         lor ((c3 land 0b00_11_11_11) lsl 6)
         lor (c4 land 0b00_11_11_11)::codepoints_of_utf8 cs
   | _ ->
-      Printf.eprintf "Bad UTF8 in codepoints_of_utf8\n%!"; []
+      raise (Pdf.PDFError "Bad UTF8 in codepoints_of_utf8\n%!")
 
 let codepoints_of_utf8 s = codepoints_of_utf8 (map int_of_char (explode s))
 
