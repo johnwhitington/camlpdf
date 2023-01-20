@@ -307,12 +307,37 @@ let merge_namedicts pdf pdfs =
    We can return the OCaml name tree structure safe in the knowledge that it
    can be written to the eventual merged PDF and the object numbers will be
    correct. *)
-let merge_pdfs_rename_name_trees (names : string list) pdfs = pdfs
+let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   (* Find unique PDFs, based on names arg. *)
-  (* Find the /Dests nametree in each file *)
-  (* Calculate the changes *)
-  (* Apply the changes to the name tree, in place *)
-  (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place *)
+  let cmp (a, _) (b, _) = compare a b in
+  let pdfs = map snd (map hd (collate cmp (sort cmp (combine names pdfs)))) in
+  Printf.printf "merge_pdfs_rename_name_trees %i pdfs\n" (length pdfs);
+  (* Find the /Dests nametree in each file. /Root -> /Names -> /Dests. *)
+  let pdfs_and_nametrees =
+    map
+      (function pdf ->
+        let catalog = Pdf.catalog_of_pdf pdf in
+          match Pdf.lookup_direct pdf "/Names" catalog with
+          | Some d -> 
+              begin match Pdf.lookup_direct pdf "/Dests" d with
+              | Some (Pdf.Dictionary d) -> (pdf, Some (Pdf.Dictionary d))
+              | _ -> (pdf, None)
+              end
+          | _ -> (pdf, None))
+      pdfs
+  in
+  (* Read the list of names *)
+  let names =
+    map
+      (function
+       | (pdf, Some nametree) -> (pdf, read_name_tree pdf nametree)
+       | (pdf, None) -> (pdf, []))
+      pdfs_and_nametrees
+  in
+  iter (fun (_, ns) -> iter (fun (n, _) -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names
+  (* Calculate the changes e.g (1, "/A", "/A.1") for changing /A to /A.1 in PDF number 1. *)
+  (* Apply the changes to the name tree in each file, in place (we make sure not to alter ordering so tree property retained *)
+  (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
 
 (* Merge catalog items from the PDFs, taking an abitrary instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
@@ -522,7 +547,7 @@ let merge_structure_hierarchy pdf pdfs =
 
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
-  let pdfs = merge_pdfs_rename_name_trees names pdfs in
+    merge_pdfs_rename_name_trees names pdfs;
     let minor' = fold_left max 0 (map (fun p -> p.Pdf.minor) pdfs) in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
