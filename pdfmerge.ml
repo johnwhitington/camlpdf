@@ -298,29 +298,21 @@ let merge_namedicts pdf pdfs =
             (* Return the new pdf, and the new dictionary. *)
             Pdf.addobj pdf newdict
 
-(* Merge name trees This needs to return some changes to be made to Annots when
- * names in the trees might clash. e.g if the name /A appears in two trrees, we
- * might return (6, "/A", "/A-6") to indicate all uses of "/A" in PDF number 6
- * must be rewritten to "/A-6" *)
-(* For now, only operates on /Dests, because for now we only know how to find all
- * the uses of these dest names. To merge any of the others properly, we need
- * to find out how to find every instance of their use in the file. We can't
- * just assume any string object is a name tree key *)
-(* This runs after merge_pdfs_renumber, so there can be no clashing of values.
- * We can return the OCaml name tree structure safe in the knowledge that it
- * can be written to the eventual merged PDF and the object numbers will be
- * correct. *)
-let merge_pdfs_rename_name_trees names pdfs = pdfs
+(* This is a pre-processing step to deduplicate name trees. It presently only
+   runs on destination name trees, because that's the only kind where we know
+   how to find all uses of these names (can't just assume any identical string
+   in a PDF is a name).
+
+   This runs after merge_pdfs_renumber, so there can be no clashing of values.
+   We can return the OCaml name tree structure safe in the knowledge that it
+   can be written to the eventual merged PDF and the object numbers will be
+   correct. *)
+let merge_pdfs_rename_name_trees (names : string list) pdfs = pdfs
+  (* Find unique PDFs, based on names arg. *)
   (* Find the /Dests nametree in each file *)
   (* Calculate the changes *)
-  (* Apply the changes to the name tree *)
-  (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used. *)
-  (* Build our name tree OCaml structure for the merged tree and return. *)
-
-(* FIXME: The problem here is that we may need to break the non-copy of a file
- * multiply included in a merge, since we need to alter its destination
- * objects. It's hard to see a way around this without removing that
- * functionality. See comments in cpdf-source github issue 79. *)
+  (* Apply the changes to the name tree, in place *)
+  (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place *)
 
 (* Merge catalog items from the PDFs, taking an abitrary instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
