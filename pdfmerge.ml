@@ -330,30 +330,35 @@ let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   let names =
     map
       (function
-       | (pdf, Some nametree) -> (pdf, read_name_tree pdf nametree)
+       | (pdf, Some nametree) -> (pdf, map fst (read_name_tree pdf nametree))
        | (pdf, None) -> (pdf, []))
       pdfs_and_nametrees
   in
-  iter (fun (_, ns) -> iter (fun (n, _) -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
-  (* Calculate the changes e.g (1, "section", "section.1") for changing /A to /A.1 in PDF number 1. *)
+  iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
+  (* Calculate the changes e.g (pdf, "section", "section.f1") *)
   let num = ref ~-1 in
   let worked l =
-    let ns = map (fun (_, _, _, nnew) -> nnew) (flatten l) in
+    let ns = flatten (map (fun (pdf, ns) -> map snd ns) l) in
       length (setify ns) = length ns
   in
-  let names = ref (map (fun (pdf, ns) -> map (fun (n, pdfobj) -> (pdf, pdfobj, n, n)) ns) names) in
+  let names = ref (map (fun (pdf, ns) -> (pdf, map (fun n -> (n, n)) ns)) names) in
   while not (worked !names) do
     num += 1;
     names :=
       map2
-        (fun ns i ->
-           map (fun (pdf, pdfobj, n, _) -> if i = 0 then (pdf, pdfobj, n, n) else (pdf, pdfobj, n, n ^ ".f" ^ string_of_int i)) ns)
+        (fun (pdf, ns) i ->
+           (pdf, map (fun (n, _) -> if i = 0 then (n, n) else (n, n ^ ".f" ^ string_of_int i)) ns))
         !names
         (ilist !num (!num + length !names - 1))
   done;
   Printf.printf "\nAfter changes\n";
-  iter (fun (_, _, nold, nnew) -> Printf.printf "%s %s \n" nold nnew) (flatten !names)
-  (* Apply the changes to the name tree in each file, in place (we make sure not to alter ordering so tree property retained *)
+  iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
+  (* 2. Remove any names which don't change. *)
+  let tochange =
+    option_map (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some ns') !names
+  in
+    Printf.printf "%i pdfs to fix up\n" (length tochange)
+  (* Apply the changes to the name tree in each file, in place *)
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
 
 (* Merge catalog items from the PDFs, taking an abitrary instance of any one we
