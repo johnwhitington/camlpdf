@@ -359,7 +359,9 @@ let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
   (* 2. Remove any names which don't change. *)
   let tochange =
-    option_map (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns')) !names
+    option_map
+      (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns'))
+      !names
   in
   Printf.printf "%i pdfs to fix up\n" (length tochange);
   (* Apply the changes to the destination name tree in each file, in place *)
