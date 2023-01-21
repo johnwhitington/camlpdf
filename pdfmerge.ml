@@ -309,6 +309,10 @@ let merge_namedicts pdf pdfs =
    correct. *)
 let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
+  let rewrite_string s =
+    try let r = Hashtbl.find changes s in Printf.printf "%s -> %s\n" s r; r with
+      Not_found -> Printf.eprintf "apply_namechanges_to_destination_nametree: no entry found\n"; s
+  in
   let rec rewrite_kids d =
     match Pdf.lookup_direct pdf "/Kids" d with
     | Some (Pdf.Array is) ->
@@ -316,8 +320,26 @@ let apply_namechanges_to_destination_nametree pdf changes =
     | _ -> ()
   and rewrite dict =
     (* 1. Update the names per the change, if a change is found. *)
-    rewrite_kids dict;
-    dict
+    let dict =
+      match Pdf.lookup_direct pdf "/Names" dict with
+      | Some (Pdf.Array a) ->
+          begin try
+            let pairs = map (function (Pdf.String x, o) -> (Pdf.String (rewrite_string x), o) | x -> x) (pairs_of_list a) in
+            let a' = flatten (map (fun (a, b) -> [a; b]) pairs) in
+              Pdf.add_dict_entry dict "/Names" (Pdf.Array a')
+          with
+            Invalid_argument _ -> Printf.eprintf "Warning: malformed /Names"; dict
+          end
+      | _ -> dict
+    in
+    let dict = 
+      match Pdf.lookup_direct pdf "/Limits" dict with
+      | Some (Pdf.Array [Pdf.String a; Pdf.String b]) ->
+          Pdf.Array [Pdf.String (rewrite_string a); Pdf.String (rewrite_string b)]
+      | _ -> dict
+    in
+      rewrite_kids dict;
+      dict
   in
   (* Find dest name tree root /Root -> /Names -> /Dests. *)
   let catalog = Pdf.catalog_of_pdf pdf in
