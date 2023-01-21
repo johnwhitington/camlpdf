@@ -336,22 +336,23 @@ let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   in
   iter (fun (_, ns) -> iter (fun (n, _) -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
   (* Calculate the changes e.g (1, "section", "section.1") for changing /A to /A.1 in PDF number 1. *)
-  let num = ref 0 in
+  let num = ref ~-1 in
   let worked l =
-    let ns = map (fun (_, _, _, nnew) -> nnew) l in
+    let ns = map (fun (_, _, _, nnew) -> nnew) (flatten l) in
       length (setify ns) = length ns
   in
-  let names = ref (flatten (map (fun (pdf, ns) -> map (fun (n, pdfobj) -> (pdf, pdfobj, n, n)) ns) names)) in
+  let names = ref (map (fun (pdf, ns) -> map (fun (n, pdfobj) -> (pdf, pdfobj, n, n)) ns) names) in
   while not (worked !names) do
     num += 1;
     names :=
       map2
-        (fun (pdf, pdfobj, n, _) i -> (pdf, pdfobj, n, n ^ "." ^ string_of_int i))
+        (fun ns i ->
+           map (fun (pdf, pdfobj, n, _) -> if i = 0 then (pdf, pdfobj, n, n) else (pdf, pdfobj, n, n ^ ".f" ^ string_of_int i)) ns)
         !names
         (ilist !num (!num + length !names - 1))
   done;
   Printf.printf "\nAfter changes\n";
-  iter (fun (_, _, nold, nnew) -> Printf.printf "%s %s \n" nold nnew) !names
+  iter (fun (_, _, nold, nnew) -> Printf.printf "%s %s \n" nold nnew) (flatten !names)
   (* Apply the changes to the name tree in each file, in place (we make sure not to alter ordering so tree property retained *)
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
 
