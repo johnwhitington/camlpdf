@@ -301,17 +301,45 @@ let merge_namedicts pdf pdfs =
 (* This is a pre-processing step to deduplicate name trees. It presently only
    runs on destination name trees, because that's the only kind where we know
    how to find all uses of these names (can't just assume any identical string
-   in a PDF is a name).
+   in a PDF is a name). In future, it will be expanded to the other name trees.
 
    This runs after merge_pdfs_renumber, so there can be no clashing of values.
    We can return the OCaml name tree structure safe in the knowledge that it
    can be written to the eventual merged PDF and the object numbers will be
    correct. *)
-let apply_namechanges_to_destination_nametree pdf changes = ()
+let apply_namechanges_to_destination_nametree pdf changes =
+  let changes = hashtable_of_dictionary changes in
+  let rec rewrite_kids d =
+    match Pdf.lookup_direct pdf "/Kids" d with
+    | Some (Pdf.Array is) ->
+        iter (function Pdf.Indirect i -> Pdf.addobj_given_num pdf (i, rewrite (Pdf.direct pdf (Pdf.Indirect i))) | _ -> ()) is;
+    | _ -> ()
+  and rewrite dict =
+    (* 1. Update the names per the change, if a change is found. *)
+    rewrite_kids dict;
+    dict
+  in
+  (* Find dest name tree root /Root -> /Names -> /Dests. *)
+  let catalog = Pdf.catalog_of_pdf pdf in
+    match Pdf.lookup_direct pdf "/Names" catalog with
+    | Some (Pdf.Dictionary d) -> 
+        begin match lookup "/Dests" d with
+        | Some (Pdf.Dictionary d) ->
+            (* If direct, update it in place, and rewrite the kids *)
+            rewrite_kids (Pdf.Dictionary d);
+            let newdest = rewrite (Pdf.Dictionary d) in
+            let newcatalog = Pdf.add_dict_entry catalog "/Dests" newdest in
+            Pdf.addobj_given_num pdf (pdf.Pdf.root, newcatalog)
+        | Some (Pdf.Indirect i) ->
+            (* If indirect, just begin *)
+            Pdf.addobj_given_num pdf (i, rewrite (Pdf.direct pdf (Pdf.Indirect i)))
+        | _ -> ()
+        end
+    | _ -> ()
 
 let apply_namechanges_at_destination_callsites pdf changes = ()
 
-let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
+let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
   let cmp (a, _) (b, _) = compare a b in
   let pdfs = map snd (map hd (collate cmp (sort cmp (combine names pdfs)))) in
