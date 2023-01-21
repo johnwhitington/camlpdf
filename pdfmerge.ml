@@ -307,6 +307,10 @@ let merge_namedicts pdf pdfs =
    We can return the OCaml name tree structure safe in the knowledge that it
    can be written to the eventual merged PDF and the object numbers will be
    correct. *)
+let apply_namechanges_to_destination_nametree pdf changes = ()
+
+let apply_namechanges_at_destination_callsites pdf changes = ()
+
 let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   (* Find unique PDFs, based on names arg. *)
   let cmp (a, _) (b, _) = compare a b in
@@ -355,11 +359,13 @@ let merge_pdfs_rename_name_trees (names : string list) (pdfs : Pdf.t list) =
   iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
   (* 2. Remove any names which don't change. *)
   let tochange =
-    option_map (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some ns') !names
+    option_map (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns')) !names
   in
-    Printf.printf "%i pdfs to fix up\n" (length tochange)
-  (* Apply the changes to the name tree in each file, in place *)
+  Printf.printf "%i pdfs to fix up\n" (length tochange);
+  (* Apply the changes to the destination name tree in each file, in place *)
+  iter (fun (pdf, changes) -> apply_namechanges_to_destination_nametree pdf changes) tochange;
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
+  iter (fun (pdf, changes) -> apply_namechanges_at_destination_callsites pdf changes) tochange
 
 (* Merge catalog items from the PDFs, taking an abitrary instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
