@@ -310,15 +310,17 @@ let merge_namedicts pdf pdfs =
 let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
-    try let r = Hashtbl.find changes s in Printf.printf "%s -> %s\n" s r; r with
+    try (*let r = *) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
       Not_found -> Printf.eprintf "apply_namechanges_to_destination_nametree: no entry found\n"; s
   in
   let rec rewrite_kids d =
+    (*Printf.printf "rewrite_kids on dict %s\n" (Pdfwrite.string_of_pdf d);*)
     match Pdf.lookup_direct pdf "/Kids" d with
     | Some (Pdf.Array is) ->
         iter (function Pdf.Indirect i -> Pdf.addobj_given_num pdf (i, rewrite (Pdf.direct pdf (Pdf.Indirect i))) | _ -> ()) is;
     | _ -> ()
   and rewrite dict =
+    (*Printf.printf "rewrite_dict on %s\n" (Pdfwrite.string_of_pdf dict);*)
     (* 1. Update the names per the change, if a change is found. *)
     let dict =
       match Pdf.lookup_direct pdf "/Names" dict with
@@ -335,7 +337,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
     let dict = 
       match Pdf.lookup_direct pdf "/Limits" dict with
       | Some (Pdf.Array [Pdf.String a; Pdf.String b]) ->
-          Pdf.Array [Pdf.String (rewrite_string a); Pdf.String (rewrite_string b)]
+          Pdf.add_dict_entry dict "/Limits" (Pdf.Array [Pdf.String (rewrite_string a); Pdf.String (rewrite_string b)])
       | _ -> dict
     in
       rewrite_kids dict;
