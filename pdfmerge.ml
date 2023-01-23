@@ -364,12 +364,29 @@ let apply_namechanges_to_destination_nametree pdf changes =
 let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
-    try Hashtbl.find changes s with
-      Not_found -> Printf.eprintf "apply_namechanges_to_destination_nametree: no entry found\n"; s
+    try let r = Hashtbl.find changes s in Printf.printf "%s -> %s\n" s r; r with
+      Not_found -> Printf.eprintf "apply_namechanges_at_destination_callsite: no entry found\n"; s
   in
     (* Find any dictionary in any object with /S /GoTo, and rewrite its /D.
        Include trailerdict for /OpenAction *)
-    ()
+    let rec f = function
+    | Pdf.Dictionary d ->
+        let d = Pdf.recurse_dict f d in
+          begin match Pdf.lookup_direct pdf "/S" d with
+          | Some (Pdf.Name "/GoTo") ->
+              begin match Pdf.lookup_direct pdf "/D" d with
+              | Some (Pdf.String s) ->
+                  Pdf.add_dict_entry d "/D" (Pdf.String (rewrite_string s))
+              | _ -> d
+              end
+          | _ -> d
+          end
+    | Pdf.Array a -> Pdf.recurse_array f a
+    | x -> x
+    in
+    Pdf.objselfmap f pdf;
+    pdf.Pdf.trailerdict <- f pdf.Pdf.trailerdict;
+    Pdfwrite.pdf_to_file pdf "rewritten.pdf"
 
 let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
