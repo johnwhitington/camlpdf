@@ -306,7 +306,13 @@ let merge_namedicts pdf pdfs =
    This runs after merge_pdfs_renumber, so there can be no clashing of values.
    We can return the OCaml name tree structure safe in the knowledge that it
    can be written to the eventual merged PDF and the object numbers will be
-   correct. *)
+   correct.
+
+   FIXME: This is insufficient in one weird case: if a file has some or all
+   pages multiply included, the names will not be disabiguated between the uses:
+   e.g cpdf -merge a.pdf b.pdf a.pdf -o out.pdf
+   links in the second a.pdf here would point to destinations in the first a.pdf
+   *)
 let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
@@ -385,8 +391,8 @@ let apply_namechanges_at_destination_callsites pdf changes =
     | x -> x
     in
     Pdf.objselfmap f pdf;
-    pdf.Pdf.trailerdict <- f pdf.Pdf.trailerdict;
-    Pdfwrite.pdf_to_file pdf "rewritten.pdf"
+    pdf.Pdf.trailerdict <- f pdf.Pdf.trailerdict(*;
+    Pdfwrite.pdf_to_file pdf "rewritten.pdf"*)
 
 let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
