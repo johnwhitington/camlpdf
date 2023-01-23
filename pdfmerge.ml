@@ -361,29 +361,15 @@ let apply_namechanges_to_destination_nametree pdf changes =
         end
     | _ -> ()
 
-(* Rewrite destinations in:
-  a) /Catalog -> /OpenAction     [manually]
-  b) /Catalog -> /Outlines -> *  [using functions from Pdfmarks]
-  c) /Catalog -> /Annot -> *     [manually]
-*)
-let rewrite_openaction changes rewrite_string pdf =
-  ()
-
-let rewrite_outlines changes rewrite_string pdf =
-  ()
-
-let rewrite_annotations changes rewrite_string pdf =
-  ()
-
 let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try Hashtbl.find changes s with
       Not_found -> Printf.eprintf "apply_namechanges_to_destination_nametree: no entry found\n"; s
   in
-    rewrite_openaction changes rewrite_string pdf;
-    rewrite_outlines changes rewrite_string pdf;
-    rewrite_annotations changes rewrite_string pdf
+    (* Find any dictionary in any object with /S /GoTo, and rewrite its /D.
+       Include trailerdict for /OpenAction *)
+    ()
 
 let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
