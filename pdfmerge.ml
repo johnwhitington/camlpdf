@@ -370,7 +370,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
 let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
-    try let r = Hashtbl.find changes s in Printf.printf "%s -> %s\n" s r; r with
+    try (*let r =*) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
       Not_found -> Printf.eprintf "apply_namechanges_at_destination_callsite: no entry found\n"; s
   in
     (* Find any dictionary in any object with /S /GoTo, and rewrite its /D.
@@ -398,7 +398,7 @@ let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
   let cmp (a, _) (b, _) = compare a b in
   let pdfs = map snd (map hd (collate cmp (sort cmp (combine names pdfs)))) in
-  Printf.printf "merge_pdfs_rename_name_trees %i pdfs\n" (length pdfs);
+  (*Printf.printf "merge_pdfs_rename_name_trees %i pdfs\n" (length pdfs);*)
   (* Find the /Dests nametree in each file. /Root -> /Names -> /Dests. *)
   let pdfs_and_nametrees =
     map
@@ -421,7 +421,7 @@ let merge_pdfs_rename_name_trees names pdfs =
        | (pdf, None) -> (pdf, []))
       pdfs_and_nametrees
   in
-  iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
+  (*iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;*)
   (* Calculate the changes e.g (pdf, "section", "section.f1") *)
   let num = ref ~-1 in
   let worked l =
@@ -438,15 +438,15 @@ let merge_pdfs_rename_name_trees names pdfs =
         !names
         (ilist !num (!num + length !names - 1))
   done;
-  Printf.printf "\nAfter changes\n";
-  iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
+  (*Printf.printf "\nAfter changes\n";
+  iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;*)
   (* 2. Remove any names which don't change. *)
   let tochange =
     option_map
       (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns'))
       !names
   in
-  Printf.printf "%i pdfs to fix up\n" (length tochange);
+  (*Printf.printf "%i pdfs to fix up\n" (length tochange);*)
   (* Apply the changes to the destination name tree in each file, in place *)
   iter (fun (pdf, changes) -> apply_namechanges_to_destination_nametree pdf changes) tochange;
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
