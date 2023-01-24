@@ -41,76 +41,6 @@ let remove_duplicate_fonts pdf =
         pdf.Pdf.objects <- !pdfr.Pdf.objects;
         pdf.Pdf.trailerdict <- !pdfr.Pdf.trailerdict
 
-(* Merge the bookmarks in the pdfs and ranges, adding to the new pdf. changes
-is oldpageobjnum, newpageobjnum pairs. *)
-let merge_bookmarks changes pdfs ranges pdf =
-  try
-    let process_mark oldnums changes mark = 
-      let pageobjectnumber_of_target = function
-        | Pdfdest.NullDestination -> 0
-        | Pdfdest.NamedDestinationElsewhere _ -> 0
-        | Pdfdest.Action _ -> 0
-        | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
-        | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
-            match t with
-            | Pdfdest.OtherDocPageNumber _ -> 0
-            | Pdfdest.PageObject i -> i
-      in
-        let objnum = pageobjectnumber_of_target mark.Pdfmarks.target in
-          (*Printf.printf "Considering objnum %i for inclusion...\n" objnum;*)
-          if mem objnum oldnums || mark.Pdfmarks.target = Pdfdest.NullDestination (* If this bookmark is to be included... *)
-            then
-              let change_target_destinationpage target n =
-                let change_targetpage = function
-                  | Pdfdest.OtherDocPageNumber a -> Pdfdest.OtherDocPageNumber a
-                  | Pdfdest.PageObject _ -> Pdfdest.PageObject n 
-                in
-                  match target with
-                  | Pdfdest.Action a -> Pdfdest.Action a
-                  | Pdfdest.NullDestination -> Pdfdest.NullDestination
-                  | Pdfdest.NamedDestinationElsewhere s -> Pdfdest.NamedDestinationElsewhere s
-                  | Pdfdest.XYZ (t, a, b, c) -> Pdfdest.XYZ (change_targetpage t, a, b, c)
-                  | Pdfdest.Fit t -> Pdfdest.Fit (change_targetpage t)
-                  | Pdfdest.FitH (t, a) -> Pdfdest.FitH (change_targetpage t, a)
-                  | Pdfdest.FitV (t, a) -> Pdfdest.FitV (change_targetpage t, a)
-                  | Pdfdest.FitR (t, a, b, c, d) -> Pdfdest.FitR (change_targetpage t, a, b, c, d)
-                  | Pdfdest.FitB t -> Pdfdest.FitB (change_targetpage t)
-                  | Pdfdest.FitBH (t, a) -> Pdfdest.FitBH (change_targetpage t, a)
-                  | Pdfdest.FitBV (t, a) -> Pdfdest.FitBV (change_targetpage t, a)
-              in
-                Some
-                  {mark with Pdfmarks.target =
-                     if mark.Pdfmarks.target = Pdfdest.NullDestination
-                       then Pdfdest.NullDestination
-                       else change_target_destinationpage mark.Pdfmarks.target (lookup_failnull objnum changes)}
-           else
-             None
-      in
-        let bookmarks' =
-          let oldnums = ref (fst (split changes))
-          and changes = ref changes in
-            let call_process_mark marks range =
-              let r =
-                (* Pass just the oldnums / changes in question. This is a fix
-                for when a single file is multiply included without renumbering
-                for efficiency. *)
-                option_map
-                  (process_mark (take !oldnums (length range)) (take !changes (length range)))
-                  marks
-              in
-                (* Remove (length range) things from the beginning of !oldnums
-                / !changes.  This allows the function to work properly when a
-                single file is included unrenumbered multiple times due to
-                being included twice or more in the merge! *)
-                oldnums := drop !oldnums (length range);
-                changes := drop !changes (length range);
-                r
-            in
-              flatten (map2 call_process_mark (map Pdfmarks.read_bookmarks pdfs) ranges)
-        in
-          Pdfmarks.add_bookmarks bookmarks' pdf
-  with
-    e -> Printf.eprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e); pdf
 
 let debug_pagelabels ls =
   iter (Printf.printf "%s\n") (map Pdfpagelabels.string_of_pagelabel ls)
@@ -297,6 +227,121 @@ let merge_namedicts pdf pdfs =
           in
             (* Return the new pdf, and the new dictionary. *)
             Pdf.addobj pdf newdict
+
+(* FIXME: Clarify the use of objnums old and new here - we need to read the old ones from pdfs not pdf? *)
+(* Merge the bookmarks in the pdfs and ranges, adding to the new pdf. changes
+is oldpageobjnum, newpageobjnum pairs. *)
+let merge_bookmarks changes pdfs ranges pdf =
+  try
+    let dest_nametree =
+      let catalog = Pdf.catalog_of_pdf pdf in
+        let oldstyle =
+          match Pdf.lookup_direct pdf "/Dests" catalog with
+          | Some d -> read_name_tree pdf d
+          | _ -> []
+        in
+        let newstyle =
+          match Pdf.lookup_direct pdf "/Names" catalog with
+          | Some d ->
+              begin match Pdf.lookup_direct pdf "/Dests" d with
+              | Some d -> read_name_tree pdf d
+              | _ -> []
+              end
+          | _ -> []
+        in
+          oldstyle @ newstyle
+    in
+    let process_mark oldnums changes mark = 
+      let rec pageobjectnumber_of_target = function
+        | Pdfdest.NullDestination -> 0
+        | Pdfdest.NamedDestinationElsewhere _ -> 0
+        | Pdfdest.Action a ->
+            (* Look for a /GoTo and find the page number. If /S /GoTo then read /D destination string.
+            By the time this is called, we have the new merged PDF name tree done, so this should
+            all be correct. *)
+            begin match Pdf.lookup_direct pdf "/S" a with
+            | Some (Pdf.Name "/GoTo") ->
+                begin match Pdf.lookup_direct pdf "/D" a with
+                | Some (Pdf.String s) ->
+                    Printf.printf "merge_bookmarks: found string %s in action\n" s;
+                    (* Look up in /Dest name tree. Then /D is the destionation. Read it and recurse. *)
+                    begin match lookup s dest_nametree with
+                    | Some dest ->
+                        begin match Pdf.lookup_direct pdf "/D" dest with
+                        | Some dest ->
+                            let r = pageobjectnumber_of_target (Pdfdest.read_destination pdf dest) in
+                              Printf.printf "Is page object number %i\n" r; r
+                        | None -> 0
+                        end
+                    | None -> 0
+                    end
+                | _ -> 0
+                end
+            | _ -> 0
+            end
+        | Pdfdest.XYZ (t, _, _, _) | Pdfdest.Fit t | Pdfdest.FitH (t, _) | Pdfdest.FitV (t, _)
+        | Pdfdest.FitR (t, _, _, _, _) | Pdfdest.FitB t | Pdfdest.FitBH (t, _) | Pdfdest.FitBV (t, _) ->
+            match t with
+            | Pdfdest.OtherDocPageNumber _ -> 0
+            | Pdfdest.PageObject i -> i
+      in
+        let objnum = pageobjectnumber_of_target mark.Pdfmarks.target in
+          (*Printf.printf "Considering objnum %i for inclusion...\n" objnum;*)
+          if mem objnum oldnums || mark.Pdfmarks.target = Pdfdest.NullDestination (* If this bookmark is to be included... *)
+            then
+              let change_target_destinationpage target n =
+                let change_targetpage = function
+                  | Pdfdest.OtherDocPageNumber a -> Pdfdest.OtherDocPageNumber a
+                  | Pdfdest.PageObject _ -> Pdfdest.PageObject n 
+                in
+                  match target with
+                  | Pdfdest.Action a -> 
+                      (* FIXME: change target page here *)
+                      Pdfdest.Action a
+                  | Pdfdest.NullDestination -> Pdfdest.NullDestination
+                  | Pdfdest.NamedDestinationElsewhere s -> Pdfdest.NamedDestinationElsewhere s
+                  | Pdfdest.XYZ (t, a, b, c) -> Pdfdest.XYZ (change_targetpage t, a, b, c)
+                  | Pdfdest.Fit t -> Pdfdest.Fit (change_targetpage t)
+                  | Pdfdest.FitH (t, a) -> Pdfdest.FitH (change_targetpage t, a)
+                  | Pdfdest.FitV (t, a) -> Pdfdest.FitV (change_targetpage t, a)
+                  | Pdfdest.FitR (t, a, b, c, d) -> Pdfdest.FitR (change_targetpage t, a, b, c, d)
+                  | Pdfdest.FitB t -> Pdfdest.FitB (change_targetpage t)
+                  | Pdfdest.FitBH (t, a) -> Pdfdest.FitBH (change_targetpage t, a)
+                  | Pdfdest.FitBV (t, a) -> Pdfdest.FitBV (change_targetpage t, a)
+              in
+                Some
+                  {mark with Pdfmarks.target =
+                     if mark.Pdfmarks.target = Pdfdest.NullDestination
+                       then Pdfdest.NullDestination
+                       else change_target_destinationpage mark.Pdfmarks.target (lookup_failnull objnum changes)}
+           else
+             None
+      in
+        let bookmarks' =
+          let oldnums = ref (fst (split changes))
+          and changes = ref changes in
+            let call_process_mark marks range =
+              let r =
+                (* Pass just the oldnums / changes in question. This is a fix
+                for when a single file is multiply included without renumbering
+                for efficiency. *)
+                option_map
+                  (process_mark (take !oldnums (length range)) (take !changes (length range)))
+                  marks
+              in
+                (* Remove (length range) things from the beginning of !oldnums
+                / !changes.  This allows the function to work properly when a
+                single file is included unrenumbered multiple times due to
+                being included twice or more in the merge! *)
+                oldnums := drop !oldnums (length range);
+                changes := drop !changes (length range);
+                r
+            in
+              flatten (map2 call_process_mark (map Pdfmarks.read_bookmarks pdfs) ranges)
+        in
+          Pdfmarks.add_bookmarks bookmarks' pdf
+  with
+    e -> Printf.eprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e); pdf
 
 (* This is a pre-processing step to deduplicate name trees. It presently only
    runs on destination name trees, because that's the only kind where we know

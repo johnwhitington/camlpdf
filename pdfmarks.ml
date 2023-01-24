@@ -233,9 +233,12 @@ and do_until_no_next_lb indent_lb pdf outline output =
           match Pdf.lookup_direct pdf "/A" outline with
           | None -> Pdfdest.NullDestination
           | Some action ->
-              match Pdf.lookup_direct pdf "/D" action with
-              | None -> Pdfdest.Action (Pdf.direct pdf action)
-              | Some dest -> Pdfdest.read_destination pdf dest
+              (* FIXME 24th Jan 2023 We are excising this as an experiment for merge-preservation. We might
+              need both the old and new behaviours to keep -list-bookmarks / -list-bookmarks-json
+              as expected *)
+              (*match Pdf.lookup_direct pdf "/D" action with
+              | None ->*) Pdfdest.Action (Pdf.direct pdf action)
+              (*| Some dest -> Pdfdest.read_destination pdf dest*)
     in let opn =
       match Pdf.lookup_direct pdf "/Count" outline with
       | Some (Pdf.Integer i) when i > 0 -> true
