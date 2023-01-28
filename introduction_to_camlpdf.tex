@@ -16,7 +16,12 @@
 
 {\sffamily \bfseries \Huge An Introduction to PDF with CamlPDF}
 
-\vspace{4mm}{{\LARGE John Whitington}\\ \today}
+\vspace{4mm}{\LARGE John Whitington}\\ 
+\vspace{3mm}\today
+
+\smallgap
+
+\includegraphics{CamlPDF-BW-Logo.pdf}
 
 \vfill
 
@@ -131,6 +136,8 @@ val pdf : Pdf.t =
 \item \textsf{Pdf.trailerdict} - the trailer dictionary. This is a distinguished PDF object containing a number of commonly used per-file items. \textsf{Pdf.trailerdict} has type \textsf{Pdf.pdfobject}, which represents all possible PDF data.
 \end{itemize}
 
+\clearpage
+
 \section*{Diversion: A Look at hello.pdf}
 Here is the contents of the file \texttt{hello.pdf}, as you might see it in a text editor, annotated with some explanatory comments.
 \begin{framed}
@@ -174,6 +181,9 @@ Here is the contents of the file \texttt{hello.pdf}, as you might see it in a te
 \noindent\small\verb!498! \textit{The trailer}\\
 \noindent\small\verb!%%EOF!\\
 \end{framed}
+
+\clearpage
+
 \section*{Saving the Document}
 The \textsf{Pdf.t} data type is a record of mutable values. Let's change the PDF Version number and write the file.
 \begin{framed}
@@ -203,6 +213,8 @@ The objects in a PDF document are of type \textsf{Pdf.pdfobject}:
 \verb!  | Stream of (pdfobject * stream) ref! \textit{Stream data (see above)}\\
 \verb!  | Indirect of int! \textit{A reference to another object}\\
 \end{framed}
+
+\clearpage
 
 \noindent For instance the PDF object in the file:
 
@@ -241,6 +253,9 @@ Introduce a command to show the current document, using whatever command opens (
 \end{framed}
 
 \noindent The \textsf{Pdfpage} module deals with PDF pages. We can get the list of pages from a document:
+
+\clearpage
+
 \begin{framed}
 \small\begin{verbatim}
 # let pages = Pdfpage.pages_of_pagetree pdf;;
@@ -295,6 +310,7 @@ val pdf : Pdf.t = ...
 \end{framed}
 \section*{Graphics and Text}
 The \textsf{Pdfops} module represents the graphical content of each page, which is formed of PostScript-like operators which draw the page. Let's get the operator list from the page:
+
 \begin{framed}
 \small\begin{verbatim}
 # let ops =
@@ -320,7 +336,37 @@ Let's add operators to underline the text -- \textsf{Op\_m} to move, \textsf{Op\
 # let width =
     Pdfstandard14.textwidth false Pdftext.TimesItalic "Hello, World!";;
 val width : int = 5555
+\end{verbatim}
+\end{framed}
 
+\clearpage
+
+\noindent If an error shows, such as:
+
+\begin{framed}
+\small\begin{verbatim}
+Error: The constructor Pdftext.TimesItalic belongs to the variant type
+          Pdftext.standard_font
+       but a constructor was expected belonging to the variant type
+          Pdftext.encoding
+\end{verbatim}
+\end{framed}
+
+\noindent Try this alternative:
+
+\begin{framed}
+\small\begin{verbatim}
+# let width = 
+    Pdfstandard14.textwidth false Pdftext.StandardEncoding 
+    Pdftext.TimesItalic "Hello, World!";;
+val width : int = 5555
+\end{verbatim}
+\end{framed}
+
+\noindent then continue the process as such:
+
+\begin{framed}
+\small\begin{verbatim}
 # let actual_width = float width *. 36. /. 1000.;;
 val actual_width : float = 199.98
 
@@ -345,7 +391,7 @@ val stream : Pdf.pdfobject =
 \end{verbatim}
 \end{framed}
 
-\noindent and add it to the page, and replace the page in the PDF.
+\noindent and add it to the page, and replace the PDF page:
 
 \begin{framed}
 \small\begin{verbatim}
@@ -356,9 +402,7 @@ val page' : Pdfpage.t = ...
 val pdf : Pdf.t = ...
 \end{verbatim}
 \end{framed}
-
 \noindent and show it:
-
 \begin{framed}
 \small\begin{verbatim}
 # show pdf;;
@@ -366,9 +410,12 @@ val pdf : Pdf.t = ...
 \end{verbatim}
 \end{framed}
 
+\clearpage
+
 \section*{Next Steps}
 
 \noindent CamlPDF is a large piece of software. A good way to get to know it is to study the examples shipped with \textsf{CamlPDF}:
+
 \smallgap
 
 {\centering\small
@@ -382,12 +429,11 @@ val pdf : Pdf.t = ...
 \end{tabular}
 }
 
-
 \smallgap
 
 \noindent Summary of \textsf{CamlPDF} modules:
 
-\smallgap
+\vspace{2mm}
 
 {\centering\small
 \begin{tabular}{lp{10cm}l}
@@ -467,7 +513,8 @@ Merge PDF files, optionally rotating some pages.
  \end{tabular}
 }
 
-\smallgap
+\clearpage
+
 \noindent The HTML documentation for CamlPDF is built in \texttt{doc/html/camlpdf} when \textsf{CamlPDF} is built. You can, of course, eschew the top level and compile projects using the CamlPDF library directly: this gives native speeds and self-contained executables.
 
 \smallgap
@@ -476,12 +523,12 @@ Merge PDF files, optionally rotating some pages.
 The author's book is a suitable introduction to the PDF file format:\\
 \url{http://shop.oreilly.com/product/0636920021483.do}
 
-\vspace{4mm}
+\smallgap
 
 \noindent For any serious work, you will need the PDF Reference Manual\\
 \url{http://www.adobe.com/devnet/acrobat/pdfs/PDF32000_2008.pdf}
 
-\vspace{4mm}
+\smallgap
 
 \noindent For an introduction to OCaml, the author's book is available:\\
 \url{http://ocaml-book.com} or at Amazon.com
