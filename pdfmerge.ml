@@ -41,7 +41,6 @@ let remove_duplicate_fonts pdf =
         pdf.Pdf.objects <- !pdfr.Pdf.objects;
         pdf.Pdf.trailerdict <- !pdfr.Pdf.trailerdict
 
-
 let debug_pagelabels ls =
   iter (Printf.printf "%s\n") (map Pdfpagelabels.string_of_pagelabel ls)
 
@@ -228,10 +227,11 @@ let merge_namedicts pdf pdfs =
             (* Return the new pdf, and the new dictionary. *)
             Pdf.addobj pdf newdict
 
-(* FIXME: Clarify the use of objnums old and new here - we need to read the old ones from pdfs not pdf? *)
 (* Merge the bookmarks in the pdfs and ranges, adding to the new pdf. changes
 is oldpageobjnum, newpageobjnum pairs. *)
 let merge_bookmarks changes pdfs ranges pdf =
+  (*Printf.printf "changes:\n";
+  iter (fun (a, b) -> Printf.printf "%i -> %i\n" a b) changes;*)
   try
     let dest_nametree =
       let catalog = Pdf.catalog_of_pdf pdf in
@@ -263,14 +263,18 @@ let merge_bookmarks changes pdfs ranges pdf =
             | Some (Pdf.Name "/GoTo") ->
                 begin match Pdf.lookup_direct pdf "/D" a with
                 | Some (Pdf.String s) ->
-                    Printf.printf "merge_bookmarks: found string %s in action\n" s;
+                    (*Printf.printf "merge_bookmarks: found string %s in action\n" s;*)
                     (* Look up in /Dest name tree. Then /D is the destionation. Read it and recurse. *)
                     begin match lookup s dest_nametree with
                     | Some dest ->
                         begin match Pdf.lookup_direct pdf "/D" dest with
                         | Some dest ->
                             let r = pageobjectnumber_of_target (Pdfdest.read_destination pdf dest) in
-                              Printf.printf "Is page object number %i\n" r; r
+                              (*Printf.printf "Is new page object number %i\n" r;*)
+                              begin match lookup r (map (fun (x, y) -> (y, x)) changes) with
+                              | Some old -> (*Printf.printf "Which was old page obj number %i\n" old;*) old
+                              | None -> r
+                              end
                         | None -> 0
                         end
                     | None -> 0
@@ -296,7 +300,7 @@ let merge_bookmarks changes pdfs ranges pdf =
                 in
                   match target with
                   | Pdfdest.Action a -> 
-                      (* FIXME: change target page here *)
+                      (* The target page has already been updated. *)
                       Pdfdest.Action a
                   | Pdfdest.NullDestination -> Pdfdest.NullDestination
                   | Pdfdest.NamedDestinationElsewhere s -> Pdfdest.NamedDestinationElsewhere s
@@ -356,7 +360,9 @@ let merge_bookmarks changes pdfs ranges pdf =
    FIXME: This is insufficient in one weird case: if a file has some or all
    pages multiply included, the names will not be disabiguated between the uses:
    e.g cpdf -merge a.pdf b.pdf a.pdf -o out.pdf
-   links in the second a.pdf here would point to destinations in the first a.pdf
+   links in the second a.pdf here would point to destinations in the first a.pdf.
+   The workaround here is to simply rename the file so it appears to be two files
+   before processing.
    *)
 let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in

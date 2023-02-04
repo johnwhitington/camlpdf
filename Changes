@@ -12,6 +12,7 @@ o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
 o Disambiguate destination name trees when merging
 o Preserve /GoTo actions in bookmarks when merging and optionally
   when extracting bookmarks
+o Malformed file reading support extended to PDFs with xref streams
 
 2.5 (January 2022)
 
