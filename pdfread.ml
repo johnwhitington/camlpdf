@@ -1618,7 +1618,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                        ("%PDF-" ^ String.sub s 1 (String.length s - 1)))
                 with
                   e ->
-                    flprint (Printexc.to_string e);
+                    Printf.eprintf "%s\n" (Printexc.to_string e);
                     (pdf.Pdf.major, pdf.Pdf.minor)
               in
                 pdf.Pdf.major <- major;

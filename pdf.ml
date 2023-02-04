@@ -3,7 +3,6 @@ and defines various simple operations on it. *)
 open Pdfutil
 open Pdfio
 
-
 (* Predicate on characters delimiting entities. *)
 let is_delimiter = function
   | '(' | ')' | '<' | '>' | '[' | ']' | '{' | '}' | '%' | '/' -> true
@@ -146,7 +145,6 @@ type pdfobjects =
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t}
 
-
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
 
@@ -163,8 +161,8 @@ type t =
 
 (* The null PDF document. *)
 let empty () =
-  {major = 1;
-   minor = 1;
+  {major = 2;
+   minor = 0;
    root = 0;
    objects =
      {maxobjnum = 0;
