@@ -341,7 +341,7 @@ let merge_bookmarks changes pdfs ranges pdf =
                 changes := drop !changes (length range);
                 r
             in
-              flatten (map2 call_process_mark (map Pdfmarks.read_bookmarks pdfs) ranges)
+              flatten (map2 call_process_mark (map (Pdfmarks.read_bookmarks ~preserve_actions:true) pdfs) ranges)
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
   with

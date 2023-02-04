@@ -213,12 +213,12 @@ let add_bookmarks parsed pdf =
                       pdf.Pdf.trailerdict "/Root" (Pdf.Indirect newcatalognum)}
 
 (* Read bookmarks *)
-let rec traverse_outlines_lb indent_lb pdf outlines output =
+let rec traverse_outlines_lb ~preserve_actions indent_lb pdf outlines output =
   match Pdf.lookup_direct pdf "/First" outlines with
   | None -> ()
-  | Some first -> do_until_no_next_lb indent_lb pdf first output
+  | Some first -> do_until_no_next_lb ~preserve_actions indent_lb pdf first output
 
-and do_until_no_next_lb indent_lb pdf outline output =
+and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
   let title =
     match Pdf.lookup_direct pdf "/Title" outline with
     | Some (Pdf.String s) -> s
@@ -233,12 +233,10 @@ and do_until_no_next_lb indent_lb pdf outline output =
           match Pdf.lookup_direct pdf "/A" outline with
           | None -> Pdfdest.NullDestination
           | Some action ->
-              (* FIXME 24th Jan 2023 We are excising this as an experiment for merge-preservation. We might
-              need both the old and new behaviours to keep -list-bookmarks / -list-bookmarks-json
-              as expected *)
-              (*match Pdf.lookup_direct pdf "/D" action with
-              | None ->*) Pdfdest.Action (Pdf.direct pdf action)
-              (*| Some dest -> Pdfdest.read_destination pdf dest*)
+              if preserve_actions then Pdfdest.Action (Pdf.direct pdf action) else
+                match Pdf.lookup_direct pdf "/D" action with
+                | None -> Pdfdest.Action (Pdf.direct pdf action)
+                | Some dest -> Pdfdest.read_destination pdf dest
     in let opn =
       match Pdf.lookup_direct pdf "/Count" outline with
       | Some (Pdf.Integer i) when i > 0 -> true
@@ -247,14 +245,14 @@ and do_until_no_next_lb indent_lb pdf outline output =
       output {level = !indent_lb; text = title; target = page; isopen = opn}
     end;
     incr indent_lb;
-    traverse_outlines_lb indent_lb pdf outline output;
+    traverse_outlines_lb ~preserve_actions indent_lb pdf outline output;
     if !indent_lb > 0 then decr indent_lb;
     begin match Pdf.lookup_direct pdf "/Next" outline with
     | None -> ()
-    | Some outline -> do_until_no_next_lb indent_lb pdf outline output
+    | Some outline -> do_until_no_next_lb ~preserve_actions indent_lb pdf outline output
     end
 
-let read_bookmarks pdf =
+let read_bookmarks ?(preserve_actions=false) pdf =
   match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
   | None -> raise (Pdf.PDFError "read_bookmarks - Bad PDF: no root")
   | Some catalog ->
@@ -263,7 +261,7 @@ let read_bookmarks pdf =
       | Some outlines ->
           let out = ref [] in
             let output = (function b -> out := b::!out) in
-              traverse_outlines_lb (ref 0) pdf outlines output;
+              traverse_outlines_lb ~preserve_actions (ref 0) pdf outlines output;
               rev !out
 
 let transform_bookmark tr m =

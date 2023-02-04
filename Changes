@@ -9,7 +9,7 @@ o Push mk_id down to pdf_to_output so it works when writing to
   non-file destinations
 o Fix Pdf.getnum and Pdf.parse_rectangle to cope with indirects
 o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
-o Disambiguate destination name trees when merging (*)
+o Disambiguate destination name trees when merging
 o Preserve /GoTo actions in bookmarks when merging and optionally
   when extracting bookmarks (*)
 o Malformed file reading support extended to PDFs with xref streams (*)
