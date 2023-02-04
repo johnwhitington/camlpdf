@@ -709,10 +709,14 @@ let merge_structure_hierarchy pdf pdfs =
           Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
           Some struct_tree_objnum
 
+let max_version_number pdfs =
+  if pdfs = [] then raise (Invalid_argument "max_version_number") else
+    hd (sort compare (map (fun p -> (p.Pdf.major, p.Pdf.minor)) pdfs))
+
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
     merge_pdfs_rename_name_trees names pdfs;
-    let minor' = fold_left max 0 (map (fun p -> p.Pdf.minor) pdfs) in
+    let minor', major' = max_version_number pdfs in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
         let select_pages range pagelist =
