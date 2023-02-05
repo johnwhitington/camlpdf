@@ -125,9 +125,9 @@ value camlpdf_camlzip_deflateEnd(value vzs)
   return Val_unit;
 }
 
-/* CamlZIP now treats Z_BUF_ERROR as non-fatal. However, this can lead to lack
- * of progress on some malformed streams (at least with miniz.c -- maybe not
- * zlib. So we have this hack. */
+/* CamlZIP now treats Z_BUF_ERROR and Z_DATA_ERROR as non-fatal. However, this
+ * can lead to lack of progress on some malformed streams (at least with
+ * miniz.c -- maybe not zlib. So we have this hack. */
 int camlpdf_buf_error_count;
 
 value camlpdf_camlzip_inflateInit(value expect_header)
@@ -149,14 +149,15 @@ value camlpdf_camlzip_inflate(value vzs, value srcbuf, value srcpos, value srcle
   long used_in, used_out;
   value res;
 
+  /*printf("srclen = %li\n", Long_val(srclen));*/
   zs->next_in = &Byte_u(srcbuf, Long_val(srcpos));
   zs->avail_in = Long_val(srclen);
   zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
   retcode = mz_inflate(zs, camlpdf_camlzip_flush_table[Int_val(vflush)]);
-  if (retcode == MZ_BUF_ERROR) camlpdf_buf_error_count += 1; else camlpdf_buf_error_count = 0;
-  if (retcode < 0 && retcode != MZ_BUF_ERROR ||
-      retcode == MZ_BUF_ERROR && camlpdf_buf_error_count > 1 ||
+  /*printf("retcode = %i\n", retcode);*/
+  if (retcode == MZ_BUF_ERROR || retcode == MZ_DATA_ERROR) camlpdf_buf_error_count += 1; else camlpdf_buf_error_count = 0;
+  if (retcode < 0 && retcode != MZ_BUF_ERROR && retcode != MZ_DATA_ERROR ||
       retcode == MZ_NEED_DICT)
     camlpdf_camlzip_error("Zlib.inflate", vzs);
   used_in = Long_val(srclen) - zs->avail_in;
@@ -164,7 +165,7 @@ value camlpdf_camlzip_inflate(value vzs, value srcbuf, value srcpos, value srcle
   zs->next_in = NULL;           /* not required, but cleaner */
   zs->next_out = NULL;          /* (avoid dangling pointers into Caml heap) */
   res = caml_alloc_small(3, 0);
-  Field(res, 0) = Val_bool(retcode == MZ_STREAM_END);
+  Field(res, 0) = Val_bool(retcode == MZ_STREAM_END || camlpdf_buf_error_count > 1);
   Field(res, 1) = Val_int(used_in);
   Field(res, 2) = Val_int(used_out);
   return res;

@@ -312,6 +312,7 @@ let debug_stream s =
       close_out fh
 
 let decode_flate stream =
+  (*Printf.printf "stream length from ocaml: %i\n%!" (bytes_size stream);*)
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try
       if is_js then

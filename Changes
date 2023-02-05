@@ -12,7 +12,7 @@ o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
 o Disambiguate destination name trees when merging
 o Preserve /GoTo actions in bookmarks when merging
 o Fix merge to keep major PDF version number
-o Malformed file reading support extended to PDFs with xref streams (*)
+o Ignore data check errors in flate decoding
 
 2.5 (January 2022)
 
