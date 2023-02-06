@@ -15,7 +15,7 @@ OCAMLNCFLAGS = -g -safe-string
 OCAMLBCFLAGS = -g -safe-string
 OCAMLLDFLAGS = -g
 
-TARGETS := byte-code-library top htdoc
+TARGETS := byte-code-library htdoc
 
 LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
   dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
