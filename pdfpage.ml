@@ -91,6 +91,7 @@ let rec find_pages pages pdf resources mediabox rotate =
                | Pdf.Indirect k ->
                    (try Pdf.lookup_obj pdf k with
                      Not_found -> raise (Pdf.PDFError "missing kid\n"))
+               | Pdf.Dictionary d -> Pdf.Dictionary d (* malformed but we allow *)
                | _ -> raise (Pdf.PDFError "malformed kid\n"))
               kids
           in
@@ -208,7 +209,8 @@ let rec find_pages_quick pages pdf =
                | Pdf.Indirect k ->
                    (try Pdf.lookup_obj pdf k with
                      Not_found -> raise (Pdf.PDFError "missing kid\n"))
-               | _ -> raise (Pdf.PDFError "malformed kid\n"))
+               | Pdf.Dictionary d -> Pdf.Dictionary d (* malformed, but we allow *)
+               | x -> raise (Pdf.PDFError "malformed kid\n"))
               kids
           in
             fold_left ( + ) 0 (map (fun k -> find_pages_quick k pdf) kids)

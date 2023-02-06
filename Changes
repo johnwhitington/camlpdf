@@ -13,6 +13,7 @@ o Disambiguate destination name trees when merging
 o Preserve /GoTo actions in bookmarks when merging
 o Fix merge to keep major PDF version number
 o Ignore data check errors in flate decoding
+o Revert 'build byte code top level camlpdf.top by default'
 
 2.5 (January 2022)
 
