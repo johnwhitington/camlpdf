@@ -702,7 +702,7 @@ let merge_structure_hierarchy pdf pdfs =
              @ optional "/RoleMap" merged_rolemap
              @ optional "/ClassMap" merged_classmap
              @ optional "/NameSpaces" merged_namespaces
-             @ optional "/PronunciationLexion" merged_pronunciation_lexicon
+             @ optional "/PronunciationLexicon" merged_pronunciation_lexicon
              @ optional "/AF" merged_af
              @ optional "/K" merged_k)
         in
