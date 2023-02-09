@@ -726,7 +726,7 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
                      then file_encryption_key_aesv3_user (r = 6) (make_utf8 user_pw) u ue
                      else if authenticate_owner_password_aesv3 (r = 6) (make_utf8 owner_pw) u o
                        then file_encryption_key_aesv3 (r = 6) (make_utf8 owner_pw) o oe u
-                       else raise (Pdf.PDFError "Encryption: Could not decrypt single stream: Bad AESV3 user or owner password")
+                       else raise (Pdf.PDFError "Encryption: Could not decrypt single stream: Bad or not supplied AESV3 user or owner password")
                  in
                    decrypt_stream
                      crypt_type pdf no_encrypt_metadata false obj gen (int_array_of_bytes file_encryption_key)
@@ -754,7 +754,7 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
                      let key = find_key no_encrypt_metadata user_pw r o p id keylength in
                        decrypt_stream crypt_type pdf no_encrypt_metadata false obj gen key keylength r None stream
                    else
-                     raise (Pdf.PDFError "Encryption: Bad owner password when decrypting single stream")
+                     raise (Pdf.PDFError "Encryption: Bad or not supplied owner password when decrypting single stream")
          else
            (* We're using user password. If none, assume it's blank *)
            let user_pw_string = match user_pw with None -> "" | Some x -> x in
@@ -762,7 +762,7 @@ let decrypt_single_stream user_pw owner_pw pdf obj gen stream =
                let key = find_key no_encrypt_metadata user_pw_string r o p id keylength in
                  decrypt_stream crypt_type pdf no_encrypt_metadata false obj gen key keylength r None stream
              else
-               raise (Pdf.PDFError "Encryption: Bad password when decrypting single stream")
+               raise (Pdf.PDFError "Encryption: Bad or not supplied password when decrypting single stream")
 
 let key_or_user_password_from_owner ?encryption_values owner_pw pdf =
   let padded_owner = pad_password (int_array_of_string owner_pw) in
