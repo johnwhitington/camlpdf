@@ -29,7 +29,7 @@ endif
 all : $(TARGETS)
 
 clean ::
-	rm -rf doc foo foo2 out.pdf out2.pdf *.cmt *.cmti *.zlib
+	rm -rf doc foo foo2 out.pdf out2.pdf *.ps *.cmt *.cmti *.zlib
 
 install : libinstall
 

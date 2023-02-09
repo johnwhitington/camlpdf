@@ -373,7 +373,15 @@ let lex_keyword i =
   | Pdfgenlex.LexName "R" -> LexR
   | Pdfgenlex.LexName "null" -> LexNull
   | Pdfgenlex.LexName "endstream" -> LexEndStream
-  | _ -> LexNone
+  | Pdfgenlex.LexName x ->
+      (* Some malformed files have endobj run together with the next object number *)
+      begin match explode x with
+      | 'e'::'n'::'d'::'o'::'b'::'j'::l -> iter (fun _ -> rewind i) l; LexEndObj
+      | _ -> LexNone
+      end
+  | l ->
+      Printf.eprintf "failed to lex keyword: %s\n" (Pdfgenlex.string_of_token l);
+      LexNone
 
 (* Read some chars from a file. Leaves position as-is, except in the case of
 reaching past the end of a file, in which case an exception is raised. *)
