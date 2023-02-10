@@ -841,6 +841,26 @@ let rec parse_to_tree (sofar : partial_parse_element list) = function
   | h::t -> parse_to_tree (h::sofar) t
   | [] -> rev sofar
 
+let parse_finish_read_stream o d obj s =
+  (* Fix up length, if necessary *)
+  let l =
+    match s with Pdf.Got b -> bytes_size b | Pdf.ToGet t -> Pdf.length_of_toget t
+  and lold =
+    try
+      begin match
+        lookup_failnull "/Length" d with Pdf.Integer l -> l | _ -> -1
+      end
+    with
+      Not_found -> -1 
+  in
+    if lold <> l
+      then
+        (o,
+         Pdf.Stream
+           {contents = Pdf.add_dict_entry obj "/Length" (Pdf.Integer l), s})
+      else
+        (o, Pdf.Stream {contents = obj, s})
+
 let parse_finish ?(failure_is_ok = false) q =
   match q with
   | [Parsed (Pdf.Integer o); Parsed (Pdf.Integer _);
@@ -852,24 +872,12 @@ let parse_finish ?(failure_is_ok = false) q =
     Parsed (Pdf.Dictionary d as obj)::
     Lexeme (LexStream s)::
     Lexeme LexEndStream::_ ->
-      (* Fix up length, if necessary *)
-      let l =
-        match s with Pdf.Got b -> bytes_size b | Pdf.ToGet t -> Pdf.length_of_toget t
-      and lold =
-        try
-          begin match
-            lookup_failnull "/Length" d with Pdf.Integer l -> l | _ -> -1
-          end
-        with
-          Not_found -> -1 
-      in
-        if lold <> l
-          then
-            (o,
-             Pdf.Stream
-               {contents = Pdf.add_dict_entry obj "/Length" (Pdf.Integer l), s})
-          else
-            (o, Pdf.Stream {contents = obj, s})
+      parse_finish_read_stream o d obj s
+  | Parsed (Pdf.Dictionary d as obj)::
+    Lexeme (LexStream s)::
+    Lexeme LexEndStream::_ ->
+      (* Malformed file: stream object in object stream! *)
+      parse_finish_read_stream 0 d obj s
   | Parsed (Pdf.Integer o)::Parsed (Pdf.Integer _)::
     Lexeme LexObj::Parsed obj::_ ->
       o, obj
