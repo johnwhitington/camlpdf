@@ -1119,7 +1119,7 @@ let read_xref_line_stream i w1 w2 w3 =
         if bytes = 0 then 0 else
           match i.input_byte () with
           | x when x = Pdfio.no_more ->
-              raise (Pdf.PDFError (Pdf.input_pdferror i "Bad Xref stream"))
+              raise (Pdf.PDFError (Pdf.input_pdferror i "Bad xref stream"))
           | b -> b * mul + (read_field (bytes - 1) (mul / 256))
       in
         if bytes = 0 then 0 else (* Empty entry *)
@@ -1825,6 +1825,10 @@ let report_read_error i e e' =
              (Printexc.to_string e)
              (Printexc.to_string e'))))
 
+let error_was_xref_stream e = function
+ | Pdf.PDFError s when Pdfutil.starts_with "Bad xref stream" s -> true
+ | _ -> false
+
 let read_pdf revision upw opw opt i =
   if !debug_always_treat_malformed then
     try read_malformed_pdf upw opw i with
@@ -1839,7 +1843,7 @@ let read_pdf revision upw opw opt i =
     | BadRevision ->
         raise (Pdf.PDFError "Revision number too low when reading PDF")
     | e ->
-        if !error_on_malformed then raise e else
+        if !error_on_malformed || error_was_xref_stream e then raise e else
           begin
             Printf.eprintf "Because of error %s, will read as malformed.\n%!" (Printexc.to_string e);
             try read_malformed_pdf upw opw i with e' ->

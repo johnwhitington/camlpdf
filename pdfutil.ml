@@ -1278,3 +1278,12 @@ let tt' () = ()
   let t = clock () in
     Printf.eprintf "Elapsed: %.2f\n%!" (t -. !time);
     time := t*)
+
+let starts_with prefix s =
+  let len_s = String.length s
+  and len_pre = String.length prefix in
+  let rec aux i =
+    if i = len_pre then true
+    else if String.get s i <> String.get prefix i then false
+    else aux (i + 1)
+  in len_s >= len_pre && aux 0

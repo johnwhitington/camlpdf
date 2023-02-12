@@ -673,3 +673,5 @@ val roman_lower : int -> string
 (* This is legitimately not documented because it requires altering the source
    to use. See the .ml *)
 val tt' : unit -> unit
+
+val starts_with : string -> string -> bool
