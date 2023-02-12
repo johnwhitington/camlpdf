@@ -78,8 +78,7 @@ let rec read_header_inner pos i =
       | _ ->
           read_header_inner (pos + 1) i
   with
-    End_of_file | Failure _ (*"int_of_string"*) ->
-      raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read PDF header"))
+    End_of_file | Failure _ (*"int_of_string"*) -> (2, 0)
 
 let read_header =
   read_header_inner 0
@@ -1114,6 +1113,7 @@ let read_xref i =
           End_of_file | Sys_error _
           | Failure _ (*"int_of_string"*) -> fail ()
       end;
+      if length !xrefs = 0 then fail ();
       !xrefs
 
 (* PDF 1.5 cross-reference stream support. [i] is the input. The tuple describes
