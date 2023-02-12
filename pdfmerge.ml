@@ -341,7 +341,9 @@ let merge_bookmarks changes pdfs ranges pdf =
                 changes := drop !changes (length range);
                 r
             in
-              flatten (map2 call_process_mark (map (Pdfmarks.read_bookmarks ~preserve_actions:true) pdfs) ranges)
+              let markss = map (Pdfmarks.read_bookmarks ~preserve_actions:true) pdfs in
+              iter (fun l -> Printf.printf "\n%i marks\n:" (length l); iter (fun m -> Printf.printf "%s\n" (Pdfmarks.string_of_bookmark m)) l) markss; 
+                flatten (map2 call_process_mark markss ranges)
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
   with
@@ -439,14 +441,10 @@ let apply_namechanges_at_destination_callsites pdf changes =
           | _ -> d
           end;
         in
-          (* Rewrite any /Subtype /Link (/Dest) *)
-          begin match Pdf.lookup_direct pdf "/Subtype" d with
-          | Some (Pdf.Name "/Link") ->
-              begin match Pdf.lookup_direct pdf "/Dest" d with
-              | Some (Pdf.String s) ->
-                  Pdf.add_dict_entry d "/Dest" (Pdf.String (rewrite_string s))
-              | _ -> d
-              end
+          (* Rewrite any /Dest *)
+          begin match Pdf.lookup_direct pdf "/Dest" d with
+          | Some (Pdf.String s) ->
+              Pdf.add_dict_entry d "/Dest" (Pdf.String (rewrite_string s))
           | _ -> d
           end
     | Pdf.Array a -> Pdf.recurse_array f a
