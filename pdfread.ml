@@ -93,14 +93,20 @@ let find_eof i =
     let pos = ref (i.in_channel_length - 4) in
       try
         let notfound = ref true
-        in let tries = ref 1024 in
+        in let tries = ref !pos in (* unlike Acrobat, we check whole file *)
           while !notfound do
             pos := !pos - 1;
             i.seek_in !pos;
             if !tries < 0 then fail () else decr tries;
-            let l = input_line i in
-              if String.length l >= 5 && String.sub l 0 5 = "%%EOF" then
-                clear notfound
+            let a = i.input_byte () in
+            let b = i.input_byte () in
+            let c = i.input_byte () in
+            let d = i.input_byte () in
+            let e = i.input_byte () in
+              if a = int_of_char '%' && b = int_of_char '%'
+              && c = int_of_char 'E' && d = int_of_char 'O'
+              && e = int_of_char 'F'
+                then clear notfound
           done;
           i.seek_in !pos;
       with
@@ -1825,7 +1831,7 @@ let report_read_error i e e' =
              (Printexc.to_string e)
              (Printexc.to_string e'))))
 
-let error_was_xref_stream e = function
+let error_was_xref_stream = function
  | Pdf.PDFError s when Pdfutil.starts_with "Bad xref stream" s -> true
  | _ -> false
 
