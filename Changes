@@ -10,11 +10,12 @@ o Push mk_id down to pdf_to_output so it works when writing to
 o Fix Pdf.getnum and Pdf.parse_rectangle to cope with indirects
 o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
 o Disambiguate destination name trees when merging
-o Preserve /GoTo actions in bookmarks when merging
+o Preserve named destionations in bookmarks when merging
 o Fix merge to keep major PDF version number
 o Ignore data check errors in flate decoding
 o Now reads many more files from Stressful PDF Corpus
 o Revert 'build byte code top level camlpdf.top by default'
+o Fix merge /OpenAction behaviour (*)
 
 2.5 (January 2022)
 
