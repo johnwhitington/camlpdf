@@ -15,7 +15,7 @@ o Fix merge to keep major PDF version number
 o Ignore data check errors in flate decoding
 o Now reads many more files from Stressful PDF Corpus
 o Revert 'build byte code top level camlpdf.top by default'
-o Fix merge /OpenAction behaviour (*)
+o Remove /OpenAction on merge
 
 2.5 (January 2022)
 

@@ -788,6 +788,7 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                   extra_catalog_entries
               | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
+   let extra_catalog_entries = remove "/OpenAction" extra_catalog_entries in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
       let old_page_numbers =
@@ -804,7 +805,7 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
           Pdf.objselfmap
           (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
           pdf;
-   let pdf = {pdf with Pdf.major = 1; Pdf.minor = minor'} in
+   let pdf = {pdf with Pdf.major = major'; Pdf.minor = minor'} in
      let pdf = merge_bookmarks changes pdfs ranges pdf in
        Pdfpagelabels.write pdf page_labels;
        if do_remove_duplicate_fonts then remove_duplicate_fonts pdf;
