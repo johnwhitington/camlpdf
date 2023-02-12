@@ -368,7 +368,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try (*let r = *) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
-      Not_found -> Printf.eprintf "apply_namechanges_to_destination_nametree: no entry found\n"; s
+      Not_found -> prerr_endline ("apply_namechanges_to_destination_nametree: destination not found: " ^ s); s
   in
   let rec rewrite_kids d =
     (*Printf.printf "rewrite_kids on dict %s\n" (Pdfwrite.string_of_pdf d);*)
@@ -421,14 +421,14 @@ let apply_namechanges_to_destination_nametree pdf changes =
 let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
-    try (*let r =*) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
-      Not_found -> Printf.eprintf "apply_namechanges_at_destination_callsite: no entry found\n"; s
+    try Hashtbl.find changes s with
+      Not_found -> prerr_endline ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s); s
   in
-    (* Find any dictionary in any object with /S /GoTo, and rewrite its /D.
-       Include trailerdict for /OpenAction *)
     let rec f = function
     | Pdf.Dictionary d ->
         let d = Pdf.recurse_dict f d in
+        (* Rewrite any /S /GoTo (/D) *)
+        let d =
           begin match Pdf.lookup_direct pdf "/S" d with
           | Some (Pdf.Name "/GoTo") ->
               begin match Pdf.lookup_direct pdf "/D" d with
@@ -437,19 +437,32 @@ let apply_namechanges_at_destination_callsites pdf changes =
               | _ -> d
               end
           | _ -> d
+          end;
+        in
+          (* Rewrite any /Subtype /Link (/Dest) *)
+          begin match Pdf.lookup_direct pdf "/Subtype" d with
+          | Some (Pdf.Name "/Link") ->
+              begin match Pdf.lookup_direct pdf "/Dest" d with
+              | Some (Pdf.String s) ->
+                  Pdf.add_dict_entry d "/Dest" (Pdf.String (rewrite_string s))
+              | _ -> d
+              end
+          | _ -> d
           end
     | Pdf.Array a -> Pdf.recurse_array f a
     | x -> x
     in
     Pdf.objselfmap f pdf;
-    pdf.Pdf.trailerdict <- f pdf.Pdf.trailerdict(*;
-    Pdfwrite.pdf_to_file pdf "rewritten.pdf"*)
+    (* Include trailerdict for /OpenAction *)
+    pdf.Pdf.trailerdict <- f pdf.Pdf.trailerdict
+
+let mdebug = ref false
 
 let merge_pdfs_rename_name_trees names pdfs =
   (* Find unique PDFs, based on names arg. *)
   let cmp (a, _) (b, _) = compare a b in
   let pdfs = map snd (map hd (collate cmp (sort cmp (combine names pdfs)))) in
-  (*Printf.printf "merge_pdfs_rename_name_trees %i pdfs\n" (length pdfs);*)
+  if !mdebug then Printf.printf "merge_pdfs_rename_name_trees %i pdfs\n" (length pdfs);
   (* Find the /Dests nametree in each file. /Root -> /Names -> /Dests. *)
   let pdfs_and_nametrees =
     map
@@ -472,7 +485,7 @@ let merge_pdfs_rename_name_trees names pdfs =
        | (pdf, None) -> (pdf, []))
       pdfs_and_nametrees
   in
-  (*iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;*)
+  if !mdebug then iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
   (* Calculate the changes e.g (pdf, "section", "section.f1") *)
   let num = ref ~-1 in
   let worked l =
@@ -489,15 +502,18 @@ let merge_pdfs_rename_name_trees names pdfs =
         !names
         (ilist !num (!num + length !names - 1))
   done;
-  (*Printf.printf "\nAfter changes\n";
-  iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;*)
+  if !mdebug then
+    begin
+      Printf.printf "\nAfter changes\n";
+      iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
+    end;
   (* 2. Remove any names which don't change. *)
   let tochange =
     option_map
       (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns'))
       !names
   in
-  (*Printf.printf "%i pdfs to fix up\n" (length tochange);*)
+  if !mdebug then Printf.printf "%i pdfs to fix up\n" (length tochange);
   (* Apply the changes to the destination name tree in each file, in place *)
   iter (fun (pdf, changes) -> apply_namechanges_to_destination_nametree pdf changes) tochange;
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
