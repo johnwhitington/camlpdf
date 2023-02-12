@@ -252,9 +252,28 @@ let merge_bookmarks changes pdfs ranges pdf =
           oldstyle @ newstyle
     in
     let process_mark oldnums changes mark = 
-      let rec pageobjectnumber_of_target = function
+      let rec pageobjectnumber_of_target t =
+        let pagenumber_of_target_string s =
+          (*Printf.printf "merge_bookmarks: found string %s in action\n" s;*)
+          (* Look up in /Dest name tree. Then /D is the destionation. Read it and recurse. *)
+          begin match lookup s dest_nametree with
+          | Some dest ->
+              begin match Pdf.lookup_direct pdf "/D" dest with
+              | Some dest ->
+                  let r = pageobjectnumber_of_target (Pdfdest.read_destination pdf dest) in
+                    (*Printf.printf "Is new page object number %i\n" r;*)
+                    begin match lookup r (map (fun (x, y) -> (y, x)) changes) with
+                    | Some old -> (*Printf.printf "Which was old page obj number %i\n" old;*) old
+                    | None -> r
+                    end
+              | None -> 0
+              end
+          | None -> 0
+          end
+        in
+        match t with
         | Pdfdest.NullDestination -> 0
-        | Pdfdest.NamedDestinationElsewhere _ -> 0
+        | Pdfdest.NamedDestinationElsewhere s -> pagenumber_of_target_string s 
         | Pdfdest.Action a ->
             (* Look for a /GoTo and find the page number. If /S /GoTo then read /D destination string.
             By the time this is called, we have the new merged PDF name tree done, so this should
@@ -262,23 +281,7 @@ let merge_bookmarks changes pdfs ranges pdf =
             begin match Pdf.lookup_direct pdf "/S" a with
             | Some (Pdf.Name "/GoTo") ->
                 begin match Pdf.lookup_direct pdf "/D" a with
-                | Some (Pdf.String s) ->
-                    (*Printf.printf "merge_bookmarks: found string %s in action\n" s;*)
-                    (* Look up in /Dest name tree. Then /D is the destionation. Read it and recurse. *)
-                    begin match lookup s dest_nametree with
-                    | Some dest ->
-                        begin match Pdf.lookup_direct pdf "/D" dest with
-                        | Some dest ->
-                            let r = pageobjectnumber_of_target (Pdfdest.read_destination pdf dest) in
-                              (*Printf.printf "Is new page object number %i\n" r;*)
-                              begin match lookup r (map (fun (x, y) -> (y, x)) changes) with
-                              | Some old -> (*Printf.printf "Which was old page obj number %i\n" old;*) old
-                              | None -> r
-                              end
-                        | None -> 0
-                        end
-                    | None -> 0
-                    end
+                | Some (Pdf.String s) -> pagenumber_of_target_string s 
                 | _ -> 0
                 end
             | _ -> 0
@@ -342,7 +345,9 @@ let merge_bookmarks changes pdfs ranges pdf =
                 r
             in
               let markss = map (Pdfmarks.read_bookmarks ~preserve_actions:true) pdfs in
-              iter (fun l -> Printf.printf "\n%i marks\n:" (length l); iter (fun m -> Printf.printf "%s\n" (Pdfmarks.string_of_bookmark m)) l) markss; 
+                (*iter
+                  (fun l -> Printf.printf "\n%i marks\n:" (length l); iter (fun m -> Printf.printf "%s\n" (Pdfmarks.string_of_bookmark m)) l)
+                  markss;*) 
                 flatten (map2 call_process_mark markss ranges)
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
