@@ -1843,13 +1843,22 @@ let report_read_error i e e' =
              (Printexc.to_string e)
              (Printexc.to_string e'))))
 
+let endpage = ref (fun _ -> 0)
+
 let read_pdf revision upw opw opt i =
   let r =
     if !debug_always_treat_malformed then
       try read_malformed_pdf upw opw i with
         e -> report_read_error i e e
     else
-      try read_pdf ?revision upw opw opt i with
+      try
+        let r = read_pdf ?revision upw opw opt i in
+          (* Experiment: Try to read pagetree. Triggers malformed file read if can't.
+          Helps with reading lots of files with malformed xref tables.
+          Improvement: detect the malformed tables properly. *)
+          ignore (!endpage r);
+          r
+      with
       | Pdf.PDFError s as e
           when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
           (* If it failed due to encryption not supported or user password not
