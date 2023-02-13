@@ -114,7 +114,7 @@ let rec find_pages pages pdf resources mediabox rotate =
                   kids)
       | _ -> raise (Pdf.PDFError "Malformed /Kids in page tree node")
       end
-  | Some (Pdf.Name "/Page") ->
+  | Some _ ->
       let resources =
         match Pdf.lookup_direct pdf "/Resources" pages with
         | Some x -> Some x
@@ -183,7 +183,6 @@ let rec find_pages pages pdf resources mediabox rotate =
             | Pdf.Dictionary d -> Pdf.Dictionary (remove_dict_entries [] d)
             | _ -> raise (Pdf.PDFError "Bad /Pages"))
         }]
-  | _ -> raise (Pdf.PDFError "find_pages: Not a page tree node or page object")
 
 (* Given a pdf, return a list of (resources, contents, mediabox) triples. *)
 let pages_of_pagetree pdf =
@@ -216,8 +215,7 @@ let rec find_pages_quick pages pdf =
             fold_left ( + ) 0 (map (fun k -> find_pages_quick k pdf) kids)
       | _ -> raise (Pdf.PDFError "Malformed /Kids in page tree node")
       end
-  | Some (Pdf.Name "/Page") -> 1
-  | _ -> raise (Pdf.PDFError "find_pages: Not a page tree node or page object")
+  | Some _ -> 1
 
 let pages_of_pagetree_quick pdf =
   let document_catalog =
