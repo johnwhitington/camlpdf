@@ -79,6 +79,7 @@ let last_mediabox_seen =
   ref (Pdf.Array [Pdf.Integer 0; Pdf.Integer 0; Pdf.Integer 612; Pdf.Integer 792])
 
 let rec find_pages pages pdf resources mediabox rotate =
+  match pages with Pdf.Null -> [] | _ ->
   match Pdf.lookup_direct pdf "/Type" pages with
   | Some (Pdf.Name "/Pages") | None ->
       begin match
@@ -196,6 +197,7 @@ let pages_of_pagetree pdf =
       find_pages pages pdf None None Rotate0
 
 let rec find_pages_quick pages pdf =
+  match pages with Pdf.Null -> 0 | _ ->
   match Pdf.lookup_direct pdf "/Type" pages with
   | Some (Pdf.Name "/Pages") | None ->
       begin match

@@ -443,7 +443,7 @@ let lookup_exception (exp : exn) pdf key dict =
   let dict' =
     match direct pdf dict with
     | Dictionary d | Stream {contents = Dictionary d, _} -> d
-    | _ -> raise (PDFError ("lookup_exception: not a dictionary, key = " ^ key))
+    | _ -> raise exp
   in
     match lookup key dict' with
     | None | Some Null -> raise exp

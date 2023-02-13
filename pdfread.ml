@@ -1844,25 +1844,29 @@ let report_read_error i e e' =
              (Printexc.to_string e'))))
 
 let read_pdf revision upw opw opt i =
-  if !debug_always_treat_malformed then
-    try read_malformed_pdf upw opw i with
-      e -> report_read_error i e e
-  else
-    try read_pdf ?revision upw opw opt i with
-    | Pdf.PDFError s as e
-        when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
-        (* If it failed due to encryption not supported or user password not
-        right, the error should be passed up - it's not a malformed file. *)
-        raise e
-    | BadRevision ->
-        raise (Pdf.PDFError "Revision number too low when reading PDF")
-    | e ->
-        if !error_on_malformed then raise e else
-          begin
-            Printf.eprintf "Because of error %s, will read as malformed.\n%!" (Printexc.to_string e);
-            try read_malformed_pdf upw opw i with e' ->
-              report_read_error i e e'
-           end
+  let r =
+    if !debug_always_treat_malformed then
+      try read_malformed_pdf upw opw i with
+        e -> report_read_error i e e
+    else
+      try read_pdf ?revision upw opw opt i with
+      | Pdf.PDFError s as e
+          when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
+          (* If it failed due to encryption not supported or user password not
+          right, the error should be passed up - it's not a malformed file. *)
+          raise e
+      | BadRevision ->
+          raise (Pdf.PDFError "Revision number too low when reading PDF")
+      | e ->
+          if !error_on_malformed then raise e else
+            begin
+              Printf.eprintf "Because of error %s, will read as malformed.\n%!" (Printexc.to_string e);
+              try read_malformed_pdf upw opw i with e' ->
+                report_read_error i e e'
+             end
+  in
+    if !read_debug then Pdfwrite.debug_whole_pdf r;
+    r
 
 (* Read a PDF into memory, including its streams. *)
 let pdf_of_channel ?revision ?(source = "channel") upw opw ch =
