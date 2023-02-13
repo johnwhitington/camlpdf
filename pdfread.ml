@@ -892,11 +892,11 @@ let parse_finish ?(failure_is_ok = false) q =
      Lexeme LexObj; Lexeme LexEndObj] ->
       o, Pdf.Null
   | l ->
-      Printf.eprintf "list length %i\n%!" (length l);
+      Printf.eprintf "Unable to parse object:\n%!";
         iter
           (function
-              Parsed p -> Printf.eprintf "%s\n%!" (Pdfwrite.string_of_pdf p)
-            | Lexeme l -> Printf.eprintf "%s\n%!" (string_of_lexeme l))
+              Parsed p -> Printf.eprintf "%S\n%!" (Pdfwrite.string_of_pdf p)
+            | Lexeme l -> Printf.eprintf "%S\n%!" (string_of_lexeme l))
           l;
         raise (Pdf.PDFError "Could not extract object")
 
@@ -1725,18 +1725,16 @@ let read_malformed_trailerdict i =
 
 let read_malformed_trailerdicts i =
   i.seek_in 0;
-  let trailerdict = ref [] in
+  let trailerdicts = ref [] in
     while
       try
         let currpos = i.pos_in () in
-          iter
-            (function (k, v) -> trailerdict := add k v !trailerdict)
-            (read_malformed_trailerdict i);
+          trailerdicts := read_malformed_trailerdict i::!trailerdicts;
           i.pos_in () > currpos
       with
         _ -> false
     do () done;
-    !trailerdict
+    !trailerdicts
 
 (* This function is used to skip non-whitespace junk between objects when
 reading malformed files. It looks for the first integer, not actually for the x
@@ -1784,7 +1782,7 @@ let read_malformed_pdf upw opw i =
   Printf.eprintf
     "Attempting to reconstruct the malformed pdf %s...\n%!" i.Pdfio.source;
   if !read_debug then flprint "Beginning of malformed PDF reconstruction\n";
-  let trailerdict = read_malformed_trailerdicts i in
+  let trailerdicts = read_malformed_trailerdicts i in
     if !read_debug then flprint "Finished reading malformed trailer dictionaries\n";
   let major, minor = read_header i in
     if !read_debug then flprint "Finished reading malformed header\n";
@@ -1795,16 +1793,26 @@ let read_malformed_pdf upw opw i =
         (read_malformed_pdf_objects i)
     in
       Printf.eprintf "Read %i objects\n%!" (length objects);
-      let root =
-        if !read_debug then Printf.eprintf "trailerdict is %s\n%!" (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict));
-        match lookup "/Root" trailerdict with
-        | Some (Pdf.Indirect i) -> i
-        | None ->
-            if !read_debug then Printf.eprintf "No /Root entry in malformed file read\n%!";
-            raise (Pdf.PDFError (Pdf.input_pdferror i "No /Root entry"))
-        | _ ->
-            if !read_debug then Printf.eprintf "Malformed /Root entry in malformed file read\n%!";
-            raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"))
+      let trailerdict, root =
+        if !read_debug then
+          iter (fun td -> Printf.eprintf "trailerdict is %s\n%!" (Pdfwrite.string_of_pdf (Pdf.Dictionary td))) trailerdicts;
+        (* Select best trailerdict. Most recent one which has a dictionary as a root. *)
+        let trailerdict = ref [] in
+        let root = ref ~-1 in
+          iter
+            (fun td ->
+              match lookup "/Root" td with
+              | Some (Pdf.Indirect i) ->
+                  begin match lookup i objects with
+                  | Some (({contents = Pdf.Parsed (Pdf.Dictionary _)}, _)) ->
+                      trailerdict := td;
+                      root := i
+                  | _ -> () 
+                  end
+              | _ -> ())
+            (rev trailerdicts);
+          if !root = ~-1 then raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed /Root entry"));
+          (!trailerdict, !root)
       in
         i.Pdfio.seek_in 0;
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
@@ -1812,13 +1820,17 @@ let read_malformed_pdf upw opw i =
         let trailerdict' = sanitize_trailerdict (length objects) trailerdict in
         let was_linearized = is_linearized i in
           Printf.eprintf "Malformed PDF reconstruction succeeded!\n%!";
-          {Pdf.major = major;
-           Pdf.minor = minor;
-           Pdf.root = root;
-           Pdf.objects = Pdf.objects_of_list None objects;
-           Pdf.trailerdict = Pdf.Dictionary trailerdict';
-           Pdf.was_linearized = was_linearized;
-           Pdf.saved_encryption = None}
+          let pdf =
+           {Pdf.major = major;
+            Pdf.minor = minor;
+            Pdf.root = root;
+            Pdf.objects = Pdf.objects_of_list None objects;
+            Pdf.trailerdict = Pdf.Dictionary trailerdict';
+            Pdf.was_linearized = was_linearized;
+            Pdf.saved_encryption = None}
+         in
+           if !read_debug then Pdfwrite.debug_whole_pdf pdf;
+           pdf
 
 let report_read_error i e e' =
   raise
