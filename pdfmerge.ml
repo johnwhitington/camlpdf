@@ -735,7 +735,7 @@ let max_version_number pdfs =
 let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
     merge_pdfs_rename_name_trees names pdfs;
-    let minor', major' = max_version_number pdfs in
+    let major', minor' = max_version_number pdfs in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
         let select_pages range pagelist =
