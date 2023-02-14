@@ -1095,25 +1095,27 @@ let read_xref i =
     raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read x-ref table"))
   in
     let xrefs = ref [] in
+    let entries = ref 0 in
       begin try
-        let finished = ref false
-        in let objnumber = ref 0 in
+        let finished = ref false in
+        let objnumber = ref 0 in
           while not !finished do
             match read_xref_line i with
             | Invalid -> fail ()
             | Valid (offset, gen) ->
+                entries += 1;
                 xrefs =| (!objnumber, XRefPlain (offset, gen));
                 incr objnumber
             | Finished -> set finished
             | Section (s, _) -> objnumber := s
-            | Free _ -> incr objnumber
+            | Free _ -> entries +=1; incr objnumber
             | _ -> () (* Xref stream types won't have been generated. *)
           done
         with
           End_of_file | Sys_error _
           | Failure _ (*"int_of_string"*) -> fail ()
       end;
-      if length !xrefs = 0 then fail ();
+      if !entries = 0 then fail ();
       !xrefs
 
 (* PDF 1.5 cross-reference stream support. [i] is the input. The tuple describes
