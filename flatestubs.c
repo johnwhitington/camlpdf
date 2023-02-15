@@ -1,4 +1,9 @@
-/* Modifed minutely for CamlPDF*/
+/* Modifed for CamlPDF:
+ *
+ * - to prefix names with 'camlpdf' to avoid clashing symbols when zlib
+ *   also linked
+ * - to harden against such malformed flate streams as may commonly
+ *   appear in PDF files */
 
 /***********************************************************************/
 /*                                                                     */
