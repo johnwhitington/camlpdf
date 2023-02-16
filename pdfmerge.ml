@@ -705,7 +705,7 @@ let merge_structure_hierarchy pdf pdfs =
       let merged_k =
         match merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K")) with
         | Pdf.Array l ->
-            Pdf.Array (map (fun d -> Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)) l)
+            Pdf.Array (map (fun d -> Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)) (map (Pdf.direct pdf) l))
         | _ -> assert false
       in
         let optional n = function
