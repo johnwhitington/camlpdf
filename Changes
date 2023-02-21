@@ -1,5 +1,14 @@
 2.6 (Next version) [2.5.3 special opam Ocaml 5 preview]
 
+Merging improvements:
+o Fix merge to keep major PDF version number
+o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
+o Disambiguate destination name trees when merging
+o Preserve named destinations in bookmarks when merging
+o Remove /OpenAction on merge
+o Preserve first XMP metadata seen on merge
+
+Other:
 o Cope with files with no /MediaBox at all
 o Write IDs as Hexadecimal strings
 o Replace Stream/Genlex and other deprecations for OCaml 5
@@ -8,14 +17,10 @@ o Support for alternative stubs for js_of_ocaml
 o Push mk_id down to pdf_to_output so it works when writing to
   non-file destinations
 o Fix Pdf.getnum and Pdf.parse_rectangle to cope with indirects
-o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
-o Disambiguate destination name trees when merging
-o Preserve named destinations in bookmarks when merging
-o Fix merge to keep major PDF version number
 o Ignore data check errors in flate decoding
 o Now reads many more files from Stressful PDF Corpus
 o Revert 'build byte code top level camlpdf.top by default'
-o Remove /OpenAction on merge
+
 
 2.5 (January 2022)
 

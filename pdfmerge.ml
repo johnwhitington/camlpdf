@@ -522,7 +522,7 @@ let merge_pdfs_rename_name_trees names pdfs =
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
   iter (fun (pdf, changes) -> apply_namechanges_at_destination_callsites pdf changes) tochange
 
-(* Merge catalog items from the PDFs, taking an abitrary instance of any one we
+(* Merge catalog items from the PDFs, taking the first instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
  * /Outlines, will be overwritten, so we don't worry about them here. *)
 let catalog_items_from_original_documents pdfs =
@@ -535,7 +535,7 @@ let catalog_items_from_original_documents pdfs =
            | _ -> failwith "catalog_items_from_original_documents")
         pdfs)
   in
-    fold_left (fun d (k, v) -> add k v d) [] catalog_entries
+    fold_right (fun (k, v) d -> add k v d) catalog_entries []
 
 (* Optional Content Groups. We merge the /OCProperties entries like this:
   * a) append /OCGs entries
