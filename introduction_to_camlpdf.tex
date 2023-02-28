@@ -33,7 +33,7 @@
 \noindent For bug reports, feature requests and comments, email\\ \texttt{contact@coherentgraphics.co.uk}
 
 \vspace*{\fill}
-\noindent\copyright 2010-2022 Coherent Graphics Limited. All rights reserved.
+\noindent\copyright\ Coherent Graphics Limited. All rights reserved.
 
 \smallgap 
 \noindent Adobe, Acrobat, Adobe PDF, Adobe Reader and PostScript are
@@ -80,7 +80,8 @@ To build \textsf{CamlPDF}, navigate to the source directory and type
 \begin{framed}
 \begin{verbatim}
 ocaml
-        Objective Caml
+OCaml version 5.0.0
+Enter #help;; for help.
 # #use "topfind";;
 - : unit = ()
 Findlib has been successfully loaded. Additional directives:
@@ -95,12 +96,8 @@ reloaded
 
 - : unit = ()
 # #require "camlpdf";;
-/Users/john/.opam/4.00.1/lib/ocaml/unix.cma: loaded
-/Users/john/.opam/4.00.1/lib/ocaml/bigarray.cma: loaded
-/Users/john/.opam/4.00.1/lib/camlpdf: added to search path
-/Users/john/.opam/4.00.1/lib/camlpdf/camlpdf.cma: loaded
-
-#
+/Users/john/.opam/5.0.0/lib/camlpdf: added to search path
+/Users/john/.opam/5.0.0/lib/camlpdf/camlpdf.cma: loaded
 \end{verbatim}
 \end{framed}
 \noindent The \textsf{Pdfread} module allows us to load PDF files into memory. The raw PDF data is parsed into a structured OCaml value of type \textsf{Pdf.pdfdoc}:
@@ -108,22 +105,24 @@ reloaded
 \begin{verbatim}
 # let pdf = Pdfread.pdf_of_file None None "hello.pdf";;
 val pdf : Pdf.t =
-  {Pdf.major = 1; Pdf.minor = 1; Pdf.root = 2;
-   Pdf.objects =
-    {Pdf.maxobjnum = 4; Pdf.parse = Some <fun>;
-     Pdf.pdfobjects = <abstr>;
-     Pdf.object_stream_ids = <abstr>};
-   Pdf.trailerdict =
+  {Pdf.major = 2; minor = 0; root = 4;
+   objects =
+    {Pdf.maxobjnum = 4; parse = Some <fun>;
+     pdfobjects = <abstr>;
+     object_stream_ids = <abstr>};
+   trailerdict =
     Pdf.Dictionary
      [("/Root", Pdf.Indirect 2);
       ("/ID",
        Pdf.Array
         [Pdf.String "<elided>";
          Pdf.String "<elided>"]);
-      ("/Size", Pdf.Integer 4)]}
+      ("/Size", Pdf.Integer 4)];
+   was_linearized = false;
+   saved_encryption = None}
 \end{verbatim}
 \end{framed}
-\noindent Looking at the parts of the \textsf{Pdf.t} record type:
+\noindent Looking at some of the parts of the \textsf{Pdf.t} record type:
 \begin{itemize}
 \item \textsf{Pdf.major} and \textsf{Pdf.minor} - the parts of the PDF version number. Here, PDF Version 1.1
 \item \textsf{Pdf.root} - the object number of the 'root object' of the PDF (A PDF is a directed graph of objects, indexed by number)
@@ -132,9 +131,9 @@ val pdf : Pdf.t =
 \end{itemize}
 
 \section*{Diversion: A Look at hello.pdf}
-Here is the contents of the file \texttt{hello.pdf}, as you might see it in a text editor, annotated with some explanatory comments.
+Here is the contents of the file \texttt{hello.pdf}, as you might see it in a text editor, annotated with some explanatory comments (object numbers may differ in your version):
 \begin{framed}
-\noindent\small\verb!%PDF-1.1! \textit{Header}\\
+\noindent\small\verb!%PDF-2.0! \textit{Header}\\
 \noindent\small\verb!%%$^@!\\
 \noindent\small\verb!1 0 obj! \textit{Object 1\ldots}\\
 \noindent\small\verb!<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>! \textit{\ldots which is the catalogue of pages}\\
