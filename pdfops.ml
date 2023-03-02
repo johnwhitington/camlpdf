@@ -812,11 +812,14 @@ let concat_bytess ss =
           ss;
         s'
 
-let parse_stream pdf resources streams =
-  let stream = match streams with [s] -> s | _ -> concat_bytess streams in
+let parse_single_stream pdf resources stream =
   let i = input_of_bytes stream in
     let lexemes = lex_stream pdf resources i in
       parse_lexemes (ref 0) lexemes []
+
+let parse_stream pdf resources streams =
+  let stream = match streams with [s] -> s | _ -> concat_bytess streams in
+    parse_single_stream pdf resources stream
 
 (* Parse the operators in a list of streams. *)
 let parse_operators pdf resources streams =

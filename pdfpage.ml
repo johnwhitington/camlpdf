@@ -1254,7 +1254,6 @@ let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
     match i with Pdf.Indirect i ->
-      (*Printf.eprintf "fixing stream %i\n%!" i;*)
       if not (Hashtbl.mem fixed_streams i) then
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
           (*Printf.eprintf "calling prefix_operator on stream %i\n%!" i;*)
@@ -1288,10 +1287,26 @@ let add_prefix pdf prefix =
                        (if resources = None then Pdf.Dictionary [] else unopt resources)
                        (Pdf.Indirect i)
                  | Some (Pdf.Array a) ->
-                     iter
-                       (fix_stream
-                         (if resources = None then Pdf.Dictionary [] else unopt resources))
-                       a
+                     (* May be Non-ISO, and not parse properly individually! If so, detect, and merge *)
+                     begin match
+                       iter
+                         (function c ->
+                           let c = Pdf.direct pdf c in
+                             Pdfcodec.decode_pdfstream pdf c;
+                             let s = Pdf.bigarray_of_stream c in
+                             let resources = match resources with Some r -> r | _ -> Pdf.Dictionary [] in
+                               ignore (Pdfops.parse_single_stream pdf resources s))
+                         a
+                     with
+                     | () ->
+                         iter
+                           (fix_stream
+                             (if resources = None then Pdf.Dictionary [] else unopt resources))
+                           a
+                     | exception _ ->
+                         Printf.eprintf "*****add_prefix: non-ISO PDF detected\n"
+                     end;
+
                  | _ -> ()
                  end;
                  begin match resources' with
@@ -1301,5 +1316,4 @@ let add_prefix pdf prefix =
            | _ -> obj
            end
        | _ -> obj)
-    pdf(*;
-    Printf.eprintf "***add_prefix has concluded\n%!";*)
+    pdf

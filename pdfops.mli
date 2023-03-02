@@ -79,7 +79,12 @@ type t =
   | Op_EX
   | Op_Unknown of string
 
-(** Parse a single byte stream to an operator list given a document and resource
+(** Parse a single byte streams to an operator list given a document and resource
+dictionary. *)
+val parse_single_stream :
+  Pdf.t -> Pdf.pdfobject -> Pdfio.bytes -> t list
+
+(** Parse a list of byte streams to an operator list given a document and resource
 dictionary. *)
 val parse_stream :
   Pdf.t -> Pdf.pdfobject -> Pdfio.bytes list -> t list
