@@ -564,7 +564,7 @@ let lex_next pdf resources i =
             | _ -> lex_hexstring i
             end
         | '%' -> ignore (Pdfread.lex_comment i); LexComment
-        | c -> nudge i; Printf.eprintf "Lexing failure in content stream: char %C, continuing\n" c; LexComment
+        | _ -> raise (Pdf.PDFError "Lexing failure in content stream")
   with
     | Pdf.PDFError r -> 
         raise (Pdf.PDFError ("Pdfpages.lex_next => " ^ r))
