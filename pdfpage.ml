@@ -13,11 +13,11 @@ containing the graphical content stream (see the Pdfops module), mediabox
 the page size, resources the page's resource dictionary, rotate its rotation
 and rest any other entries to reside in the page dictionary. *)
 type t =
-  {content : Pdf.pdfobject list; (*FIXME Change this to int list, to ensure sharing? *)
+  {content : Pdf.pdfobject list;
    mediabox : Pdf.pdfobject;
    resources : Pdf.pdfobject;
    rotate : rotation;
-   rest : Pdf.pdfobject} (* A dictionary of the other records in the page. *)
+   rest : Pdf.pdfobject} (* A dictionary of the other entries in the page dictionary. *)
 
 (* Make a PDF rectangle from a Paper.papersize. *)
 let rectangle_of_paper paper =
@@ -466,7 +466,7 @@ let mkpage getobjnum parent page =
 
 (* Build a list of objnum, pdfobject pairs from the ptree. The pages in the
 ptree are just missing their parent entries, so we add those. *)
-(* FIXME: Now we rewrote this for pdf_of_pages with nicer properties, can we get rid of this one? But consider linearization (see below) *)
+(* FIXME: Now we rewrote this for pdf_of_pages with nicer properties, can we get rid of this one? *)
 let rec objects_of_ptree getobjnum extras = function
   | Lf (pages, parent, this) ->
       let page_objects =
@@ -568,11 +568,6 @@ let add_pagetree pages pdf =
         let ptree = pagetree getobjnum pages 0 in
           let objects = objects_of_ptree getobjnum extras ptree in
             let topnode = match hd objects with (n, _) -> n in
-              (*Printf.printf "There were %i objects_of_ptree\n" (List.length objects);
-              List.iter (fun (i, x) -> Printf.printf "%i: %s\n" i (Pdfwrite.string_of_pdf x)) objects;
-              Printf.printf "There were %i extras\n" (List.length !extras);
-              List.iter (fun (i, x) -> Printf.printf "%i: %s\n" i
-              (Pdfwrite.string_of_pdf x)) !extras;*)
               iter (fun x -> ignore (Pdf.addobj_given_num pdf x)) (objects @ !extras);
               pdf, topnode
 
