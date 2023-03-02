@@ -20,6 +20,7 @@ o Fix Pdf.getnum and Pdf.parse_rectangle to cope with indirects
 o Ignore data check errors in flate decoding
 o Now reads many more files from Stressful PDF Corpus
 o Revert 'build byte code top level camlpdf.top by default'
+o Pdfpage.add_prefix now detects and fixes non-ISO PDFs
 
 
 2.5 (January 2022)
