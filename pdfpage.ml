@@ -1242,14 +1242,9 @@ let change_resources pdf prefix resources =
 (* For each object in the PDF with /Type /Page or /Type /Pages:
   a) Add the prefix to any name in /Resources
   b) Add the prefix to any name used in any content streams, keeping track of
-  the streams we have processed to preserve sharing
-  
-FIXME: If a non-ISO PDF with content streams which don't end on lexical boundaries
-is provided, the parse will fail, and this function will raise an exception.
+  the streams we have processed to preserve sharing *)
+let merge_content_streams pdf = ()
 
-The long-term solution to this is to explode the PDF with an
--unshare-content-streams option, and then fix squeeze to re-share subcontent
-streams *)
 let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
@@ -1287,7 +1282,7 @@ let add_prefix pdf prefix =
                        (if resources = None then Pdf.Dictionary [] else unopt resources)
                        (Pdf.Indirect i)
                  | Some (Pdf.Array a) ->
-                     (* May be Non-ISO, and not parse properly individually! If so, detect, and merge *)
+                     (* May be Non-ISO, and not parse properly individually! If so, detect, and Exit *)
                      begin match
                        iter
                          (function c ->
@@ -1304,9 +1299,9 @@ let add_prefix pdf prefix =
                              (if resources = None then Pdf.Dictionary [] else unopt resources))
                            a
                      | exception _ ->
-                         Printf.eprintf "*****add_prefix: non-ISO PDF detected\n"
+                         Printf.eprintf "*****add_prefix: non-ISO PDF detected\n";
+                         raise Exit
                      end;
-
                  | _ -> ()
                  end;
                  begin match resources' with
@@ -1317,3 +1312,11 @@ let add_prefix pdf prefix =
            end
        | _ -> obj)
     pdf
+
+(* If a non-ISO PDF with content streams which don't end on lexical boundaries
+is provided, we must merge them. But we don't want to unless we have to,
+because it destroys sharing. *)
+let add_prefix pdf prefix =
+  try add_prefix pdf prefix with Exit ->
+    merge_content_streams pdf;
+    add_prefix pdf prefix
