@@ -89,6 +89,8 @@ dictionary. *)
 val parse_stream :
   Pdf.t -> Pdf.pdfobject -> Pdfio.bytes list -> t list
 
+val concat_bytess : Pdfio.bytes list -> Pdfio.bytes
+
 (** Given a pdf document, resource dictionary and list of streams representing
 the graphics content (PDF allows a single page's graphics content to be split
 over several streams), return a list of operators. Raises PDFError on bad

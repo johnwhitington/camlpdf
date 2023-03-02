@@ -1238,15 +1238,12 @@ let change_resources pdf prefix resources =
   a) Add the prefix to any name in /Resources
   b) Add the prefix to any name used in any content streams, keeping track of
   the streams we have processed to preserve sharing *)
-let merge_content_streams pdf = ()
-
 let add_prefix pdf prefix =
   let fixed_streams = Hashtbl.create 100 in
   let fix_stream resources i =
     match i with Pdf.Indirect i ->
       if not (Hashtbl.mem fixed_streams i) then
         let operators = Pdfops.parse_operators pdf resources [Pdf.Indirect i] in
-          (*Printf.eprintf "calling prefix_operator on stream %i\n%!" i;*)
           let operators' = map (prefix_operator pdf prefix) operators in
             begin match Pdf.lookup_obj pdf i with
               Pdf.Stream ({contents = (dict, stream)} as s) ->
@@ -1279,14 +1276,15 @@ let add_prefix pdf prefix =
                  | Some (Pdf.Array a) ->
                      (* May be Non-ISO, and not parse properly individually! If so, detect, and Exit *)
                      begin match
-                       iter
-                         (function c ->
-                           let c = Pdf.direct pdf c in
-                             Pdfcodec.decode_pdfstream pdf c;
-                             let s = Pdf.bigarray_of_stream c in
-                             let resources = match resources with Some r -> r | _ -> Pdf.Dictionary [] in
-                               ignore (Pdfops.parse_single_stream pdf resources s))
-                         a
+                       if length a > 1 then (* Can't be broken when just a single entry *)
+                         iter
+                           (function c ->
+                             let c = Pdf.direct pdf c in
+                               Pdfcodec.decode_pdfstream pdf c;
+                               let s = Pdf.bigarray_of_stream c in
+                               let resources = match resources with Some r -> r | _ -> Pdf.Dictionary [] in
+                                 ignore (Pdfops.parse_single_stream pdf resources s))
+                           a
                      with
                      | () ->
                          iter
@@ -1294,7 +1292,7 @@ let add_prefix pdf prefix =
                              (if resources = None then Pdf.Dictionary [] else unopt resources))
                            a
                      | exception _ ->
-                         Printf.eprintf "*****add_prefix: non-ISO PDF detected\n";
+                         Printf.eprintf "add_prefix: non-ISO PDF detected streams detected. Fixing...\n";
                          raise Exit
                      end;
                  | _ -> ()
@@ -1307,6 +1305,35 @@ let add_prefix pdf prefix =
            end
        | _ -> obj)
     pdf
+
+let merge_content_streams pdf = 
+  Pdf.objselfmap
+    (fun obj ->
+       match obj with
+         Pdf.Dictionary dict as d ->
+           begin match Pdf.lookup_direct pdf "/Type" d with
+             Some (Pdf.Name ("/Page" | "/Pages")) ->
+               begin match lookup "/Contents" dict with
+               | Some (Pdf.Indirect _ | Pdf.Array [_]) -> obj
+               | Some (Pdf.Array a) ->
+                   let a = map (Pdf.direct pdf) a in
+                     iter (Pdfcodec.decode_pdfstream pdf) a;
+                     let bigarrays = map Pdf.bigarray_of_stream a in
+                     let merged = Pdfops.concat_bytess bigarrays in
+                     let stream =
+                       Pdf.Stream
+                         {contents =
+                            (Pdf.Dictionary ["/Length", Pdf.Integer (Pdfio.bytes_size merged)],
+                             Pdf.Got merged)}
+                     in
+                     let i = Pdf.addobj pdf stream in
+                       Pdf.add_dict_entry d "/Contents" (Pdf.Indirect i)
+               | _ -> obj
+               end
+           | _ -> obj
+           end
+       | _ -> obj)
+   pdf
 
 (* If a non-ISO PDF with content streams which don't end on lexical boundaries
 is provided, we must merge them. But we don't want to unless we have to,
