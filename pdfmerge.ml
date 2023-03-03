@@ -789,6 +789,13 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
               | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let extra_catalog_entries = remove "/OpenAction" extra_catalog_entries in
+   let infodict = Pdf.lookup_direct (hd pdfs) "/Info" (hd pdfs).Pdf.trailerdict in
+   let pdf =
+     match infodict with
+     | None -> pdf
+     | Some infodict ->
+       {pdf with Pdf.trailerdict = Pdf.Dictionary ["/Info", Pdf.Indirect (Pdf.addobj pdf infodict)]}
+   in
    let pdf = Pdfpage.add_root pagetree_num extra_catalog_entries pdf in
       (* To sort out annotations etc. *)
       let old_page_numbers =

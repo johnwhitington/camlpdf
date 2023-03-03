@@ -6,7 +6,7 @@ o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
 o Disambiguate destination name trees when merging
 o Preserve named destinations in bookmarks when merging
 o Remove /OpenAction on merge
-o Preserve first XMP metadata seen on merge
+o Preserve first metadata seen on merge
 
 Other:
 o Cope with files with no /MediaBox at all
