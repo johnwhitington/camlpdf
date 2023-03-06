@@ -210,8 +210,7 @@ let strings_of_pdf_return obj =
       obj;
     rev !strings
 
-(* Produce a single string from a PDF object. Only use for things which will
-always fall under the string size limit. *)
+(* Produce a single string from a PDF object. *)
 let b = Buffer.create 100
 
 let string_of_pdf s =

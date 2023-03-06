@@ -64,9 +64,7 @@ val pdf_to_file : Pdf.t -> string -> unit
 
 (** {2 String of a PDF object} *)
 
-(** Calculate a string of a pdf object. Due to OCaml's modest limit
-on string length, this should be used only when the length of the output is
-known to be limited (for example for debug purposes). *)
+(** Calculate a string of a pdf object. *)
 val string_of_pdf : Pdf.pdfobject -> string
 
 (** For debug, print out the PDFs objects to standard output. *)
