@@ -214,7 +214,7 @@ let rec find_pages_quick pages pdf =
                | x -> raise (Pdf.PDFError "malformed kid\n"))
               kids
           in
-            fold_left ( + ) 0 (map (fun k -> find_pages_quick k pdf) kids)
+            sum (map (fun k -> find_pages_quick k pdf) kids)
       | _ -> raise (Pdf.PDFError "Malformed /Kids in page tree node")
       end
   | Some _ -> 1

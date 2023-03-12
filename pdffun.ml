@@ -344,7 +344,7 @@ let eval_function_sampled f s clamped_inputs =
               in
                 (*i Printf.printf "%i inputs and %i multipliers" (length inputs)
                 (length multipliers); i*)
-                fold_left ( + ) 0 (map2 ( * ) inputs multipliers) * vals_to_read
+                sum (map2 ( * ) inputs multipliers) * vals_to_read
             in
               Array.to_list (Array.sub s.samples pos vals_to_read)
         in

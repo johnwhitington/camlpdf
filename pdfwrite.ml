@@ -404,7 +404,7 @@ let reinstate_object_streams compress we_will_be_encrypting pdf =
   objects_for_streams and nonstream_objects *)
   let n = length objects_for_streams in
   if !write_debug then (Printf.eprintf "n = %i\n" n; tt'());
-  let m = n + fold_left ( + ) 0 (map length (map snd objects_for_streams)) in
+  let m = n + sum (map length (map snd objects_for_streams)) in
   if !write_debug then (Printf.eprintf "m = %i\n" m; tt'());
   let changetable = null_hash () in
   (* Add all the objects_for_streams *)

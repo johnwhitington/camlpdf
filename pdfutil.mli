@@ -75,6 +75,10 @@ val sort : (('a -> 'a -> int) -> 'a list -> 'a list)
 (** Tail-recursive versions of list functions (and some simple variations). See
 [Stdlib] for documentation. *)
 
+val sum : int list -> int
+
+val fsum : float list -> float
+
 (** Cumulative sum of a list given an initial value. For example, [cumulative_sum 1 [2; 3; 4]] is [[3; 6; 10]] *)
 val cumulative_sum : int -> int list -> int list
 

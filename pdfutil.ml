@@ -199,6 +199,10 @@ let rev_map5 f a b c d e =
 let map5 f a b c d e =
   rev (rev_map5 f a b c d e)
 
+let sum = fold_left ( + ) 0
+
+let fsum = fold_left ( +. ) 0.
+
 (* Calculate the cumulative sum of a list given a base e.g [cumulative_sum 5
 [1;2;3] = [6; 8; 11]] *)
 let cumulative_sum b l = 

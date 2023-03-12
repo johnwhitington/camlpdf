@@ -126,7 +126,7 @@ let bytes_of_charlist cs =
         s
 
 let bytes_of_arraylist l =
-  let totalsize = fold_left ( + ) 0 (map Array.length l) in
+  let totalsize = sum (map Array.length l) in
     let output = mkbytes totalsize
     in let pos = ref 0 in
       iter
@@ -173,7 +173,7 @@ let int_array_of_string s =
   Array.init (String.length s) (fun i -> int_of_char (String.unsafe_get s i))
 
 let string_of_int_arrays arrays =
-  let len = fold_left ( + ) 0 (map Array.length arrays) in
+  let len = sum (map Array.length arrays) in
     let buf = Buffer.create len in
       iter (Array.iter (fun v -> Buffer.add_char buf (Char.unsafe_chr v))) arrays;
       Buffer.contents buf

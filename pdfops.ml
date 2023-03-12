@@ -798,7 +798,7 @@ split over several streams, which must be concatenated at the lexeme level. *)
 
 (* Concatenate bytess, padding with whitespace *)
 let concat_bytess ss =
-  let total_length = fold_left ( + ) 0 (map bytes_size ss) in
+  let total_length = sum (map bytes_size ss) in
     let s' = mkbytes (total_length + length ss) in
       let p = ref 0 in
         iter
