@@ -288,6 +288,8 @@ let i32mul = Int32.mul
 
 let i32div = Int32.div
 
+let sr32 = Int32.shift_right
+
 let lsr32 = Int32.shift_right_logical
 
 let lsl32 = Int32.shift_left
@@ -321,6 +323,8 @@ let i64sub = Int64.sub
 let i64mul = Int64.mul
 
 let i64div = Int64.div
+
+let sr64 = Int64.shift_right
 
 let lsr64 = Int64.shift_right_logical
 
