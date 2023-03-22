@@ -39,3 +39,7 @@ byte values prior to any decoding, i.e in the raw input image data before /Decod
 /Index lookups and so on. Returns array of components as bytes. *)
 val get_image_unprocessed_pixel : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject
 -> (int -> int array) option
+
+val colspace : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> Pdfspace.t
+
+val bpc : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject option

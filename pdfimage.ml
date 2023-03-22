@@ -429,39 +429,41 @@ let rec read_raw_image size colspace bpc pdf resources width height dict data =
      flush stdout; i*)
      raise (Pdf.PDFError "No image\n")
 
+let colspace pdf dict resources =
+  (* If an image mask, it's /DeviceGray, effectively *)
+  match Pdf.lookup_direct_orelse pdf "/ImageMask" "/IM" dict with
+  | Some (Pdf.Boolean true) -> Pdfspace.DeviceGray
+  | _ ->
+    let colspace =
+      Pdf.lookup_direct_orelse pdf "/ColorSpace" "/CS" dict
+    in
+      let space =
+        match Pdf.lookup_direct pdf "/ColorSpace" resources, colspace with
+        | Some (Pdf.Dictionary _ as d), Some (Pdf.Name c) ->
+            begin match Pdf.lookup_direct pdf c d with
+            | Some colspace -> colspace
+            | _ -> (Pdf.Name c)
+            end
+        | _ ->
+            match colspace with
+            | Some c -> c
+            | _ -> raise (Pdf.PDFError "Pdf image: no colourspace")
+      in
+        Pdfspace.read_colourspace pdf resources space
+
+let bpc pdf dict =
+  match Pdf.lookup_direct_orelse pdf "/BitsPerComponent" "/BPC" dict with
+  | Some bpc -> Some bpc
+  | None ->
+      match Pdf.lookup_direct pdf "/ImageMask" dict with
+      | Some (Pdf.Boolean true) -> Some (Pdf.Integer 1)
+      | _ -> None
+
 let get_raw_image pdf resources width height dict data =
   try
-  let size =
-    bytes_size data
-  in let colspace =
-    (* If an image mask, it's /DeviceGray, effectively *)
-    match Pdf.lookup_direct_orelse pdf "/ImageMask" "/IM" dict with
-    | Some (Pdf.Boolean true) -> Pdfspace.DeviceGray
-    | _ ->
-      let colspace =
-        Pdf.lookup_direct_orelse pdf "/ColorSpace" "/CS" dict
-      in
-        let space =
-          match Pdf.lookup_direct pdf "/ColorSpace" resources, colspace with
-          | Some (Pdf.Dictionary _ as d), Some (Pdf.Name c) ->
-              begin match Pdf.lookup_direct pdf c d with
-              | Some colspace -> colspace
-              | _ -> (Pdf.Name c)
-              end
-          | _ ->
-              match colspace with
-              | Some c -> c
-              | _ -> raise (Pdf.PDFError "PDf image: no colourspace")
-        in
-          Pdfspace.read_colourspace pdf resources space
-  in let bpc =
-    match Pdf.lookup_direct_orelse pdf "/BitsPerComponent" "/BPC" dict with
-    | Some bpc -> Some bpc
-    | None ->
-        match Pdf.lookup_direct pdf "/ImageMask" dict with
-        | Some (Pdf.Boolean true) -> Some (Pdf.Integer 1)
-        | _ -> None
-  in
+  let size = bytes_size data in
+  let colspace = colspace pdf dict resources in
+  let bpc = bpc pdf dict in
     (*i flprint ("IMAGE SPACE:\n" ^ Pdfspace.string_of_colourspace colspace ^
      * "\n"); i*)
     read_raw_image size colspace bpc pdf resources width height dict data
