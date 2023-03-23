@@ -65,3 +65,5 @@ val make : ?content:string ->
   ?rectangle:float * float * float * float ->
   ?colour:int * int * int -> ?subject:string -> subtype -> t
 (** Make an annotation of a given [subtype]. *)
+
+val transform_annotations : Pdf.t -> Pdftransform.transform_matrix -> Pdf.pdfobject -> unit

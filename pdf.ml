@@ -993,3 +993,39 @@ let change_id pdf f =
       pdf.trailerdict <-
         Dictionary (add "/ID" (generate_id pdf f (fun () -> Random.float 1.)) d)
   | _ -> raise (PDFError "Bad trailer dictionary")
+
+let transform_rect pdf transform rect =
+  let minx, miny, maxx, maxy = parse_rectangle pdf rect in
+    let (x0, y0) = Pdftransform.transform_matrix transform (minx, miny) in
+    let (x1, y1) = Pdftransform.transform_matrix transform (maxx, maxy) in
+    let (x2, y2) = Pdftransform.transform_matrix transform (minx, maxy) in
+    let (x3, y3) = Pdftransform.transform_matrix transform (maxx, miny) in
+      let minx = fmin (fmin x0 x1) (fmin x2 x3) in
+      let miny = fmin (fmin y0 y1) (fmin y2 y3) in
+      let maxx = fmax (fmax x0 x1) (fmax x2 x3) in
+      let maxy = fmax (fmax y0 y1) (fmax y2 y3) in
+        Array [Real minx; Real miny; Real maxx; Real maxy]
+
+let transform_quadpoint_single pdf transform = function
+  | [x1; y1; x2; y2; x3; y3; x4; y4] ->
+      let x1, y1, x2, y2, x3, y3, x4, y4 =
+        getnum pdf x1, getnum pdf y1,
+        getnum pdf x2, getnum pdf y2,
+        getnum pdf x3, getnum pdf y3,
+        getnum pdf x4, getnum pdf y4
+      in
+        let (x1, y1) = Pdftransform.transform_matrix transform (x1, y1) in
+        let (x2, y2) = Pdftransform.transform_matrix transform (x2, y2) in
+        let (x3, y3) = Pdftransform.transform_matrix transform (x3, y3) in
+        let (x4, y4) = Pdftransform.transform_matrix transform (x4, y4) in
+          map (fun x -> Real x) [x1; y1; x2; y2; x3; y3; x4; y4]
+  | qp ->
+     Printf.eprintf "Malformed /QuadPoints format: must be a multiple of 8 entries\n";
+     qp
+
+let transform_quadpoints pdf transform = function
+| Array qps ->
+    Array (flatten (map (transform_quadpoint_single pdf transform) (splitinto 8 qps)))
+| qp ->
+    Printf.eprintf "Unknown or malformed /QuadPoints format %s\n" (!string_of_pdf qp);
+    qp

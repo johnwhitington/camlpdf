@@ -297,3 +297,7 @@ val toget : ?crypt:toget_crypt -> Pdfio.input -> int -> int -> toget
 
 (* For inter-module recursion within CamlPDF, hence undocumented. *)
 val string_of_pdf : (pdfobject -> string) ref
+
+val transform_rect : t -> Pdftransform.transform_matrix -> pdfobject -> pdfobject
+
+val transform_quadpoints : t -> Pdftransform.transform_matrix -> pdfobject -> pdfobject

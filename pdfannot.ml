@@ -245,3 +245,45 @@ let add_annotation pdf page anno =
   | None ->
       {page with
          Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest "/Annots" (Pdf.Array [obj])}
+
+(* Apply transformations to any annotations in /Annots (i.e their /Rect and
+/QuadPoints entries). Also as a best-effort service, altering other
+coordinates, like the endpoints /L in a line annotation. *)
+let transform_annotations pdf transform rest =
+  match Pdf.lookup_direct pdf "/Annots" rest with
+  | Some (Pdf.Array annots) ->
+      (* Always indirect references, so alter in place *)
+      iter
+        (function
+         | Pdf.Indirect i ->
+             let annot = Pdf.lookup_obj pdf i in
+             let rect' =
+               match Pdf.lookup_direct pdf "/Rect" annot with
+               | Some rect -> Pdf.transform_rect pdf transform rect
+               | None -> raise (Pdf.PDFError "transform_annotations: no rect")
+               in
+             let quadpoints' =
+               match Pdf.lookup_direct pdf "/QuadPoints" annot with
+               | Some qp -> Some (Pdf.transform_quadpoints pdf transform qp)
+               | None -> None
+               in
+             let line' =
+               match Pdf.lookup_direct pdf "/L" annot with
+               | Some rect -> Some (Pdf.transform_rect pdf transform rect)
+               | _ -> None
+             in
+             let annot = Pdf.add_dict_entry annot "/Rect" rect' in
+             let annot =
+               match quadpoints' with
+               | Some qp -> Pdf.add_dict_entry annot "/QuadPoints" qp 
+               | None -> annot
+             in
+             let annot =
+               match line' with
+               | Some l -> Pdf.add_dict_entry annot "/L" l
+               | None -> annot
+             in
+               Pdf.addobj_given_num pdf (i, annot)
+         | _ -> Printf.eprintf "transform_annotations: not indirect\n%!")
+        annots
+   | _ -> ()
