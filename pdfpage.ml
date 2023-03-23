@@ -1342,3 +1342,78 @@ let add_prefix pdf prefix =
   try add_prefix pdf prefix with Exit ->
     merge_content_streams pdf;
     add_prefix pdf prefix
+
+(* For uses of process_pages which don't need to deal with matrices, this
+function transforms into one which returns the identity matrix *)
+let ppstub f n p = (f n p, n, Pdftransform.i_matrix)
+
+let process_xobject f pdf resources i =
+  let xobj = Pdf.lookup_obj pdf i in
+    match Pdf.lookup_direct pdf "/Subtype" xobj with
+    | None -> raise (Pdf.PDFError "No /Subtype in Xobject") 
+    | Some (Pdf.Name "/Form") ->
+        Pdf.getstream xobj;
+        begin match xobj with
+        | Pdf.Stream ({contents = Pdf.Dictionary dict, Pdf.Got bytes} as rf) ->
+            begin match f pdf resources [Pdf.Stream rf] with
+            | [Pdf.Stream {contents = (Pdf.Dictionary dict', data)}] ->
+                let dict' =
+                  Pdf.remove_dict_entry
+                    (Pdf.Dictionary (mergedict dict dict'))
+                    "/Filter"
+                in
+                  rf := (dict', data)
+            | _ -> assert false
+            end
+        | _ -> assert false (* getstream would have complained already *)
+        end
+    | Some _ -> ()
+
+let process_xobjects pdf page f =
+  match Pdf.lookup_direct pdf "/XObject" page.resources with
+  | Some (Pdf.Dictionary elts) ->
+      iter
+        (fun (k, v) ->
+          match v with
+          | Pdf.Indirect i -> process_xobject f pdf page.resources i
+          | _ -> raise (Pdf.PDFError "process_xobject"))
+        elts
+  | _ -> ()
+
+(* Union two resource dictionaries from the same PDF. *)
+let combine_pdf_resources pdf a b =
+  let a_entries =
+    match a with
+    | Pdf.Dictionary entries -> entries
+    | _ -> []
+  in let b_entries =
+    match b with
+    | Pdf.Dictionary entries -> entries
+    | _ -> []
+  in
+    let resource_keys =
+      ["/Font"; "/ExtGState"; "/ColorSpace"; "/Pattern";
+       "/Shading"; "/XObject"; "/Properties"]
+    in
+      let combine_entries key =
+        let a_entries =
+          match Pdf.lookup_direct pdf key a with
+          | Some (Pdf.Dictionary d) -> d
+          | _ -> []
+        in let b_entries =
+          match Pdf.lookup_direct pdf key b with
+          | Some (Pdf.Dictionary d) -> d
+          | _ -> []
+        in
+          if a_entries = [] && b_entries = [] then
+            None
+          else
+            Some (key, Pdf.Dictionary (a_entries @ b_entries))
+      in
+        let unknown_keys_a = lose (fun (k, _) -> mem k resource_keys) a_entries in
+        let unknown_keys_b = lose (fun (k, _) -> mem k resource_keys) b_entries in
+        let combined_known_entries = option_map combine_entries resource_keys in
+          fold_left
+            (fun dict (k, v) -> Pdf.add_dict_entry dict k v)
+            (Pdf.Dictionary [])
+            (unknown_keys_a @ unknown_keys_b @ combined_known_entries)
