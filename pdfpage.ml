@@ -142,7 +142,7 @@ let rec find_pages pages pdf resources mediabox rotate =
                 (* An array of indirects. Just return it *)
                 Pdf.lookup_direct pdf "/Contents" pages
             end
-        | _ -> assert false
+        | _ -> raise (Pdf.PDFError "Pages not a dictionary")
         end
       in let rotate =
         match Pdf.lookup_direct pdf "/Rotate" pages with
