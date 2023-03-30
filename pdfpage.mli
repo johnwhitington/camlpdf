@@ -113,6 +113,8 @@ val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest
 (** Build a basic [Fit] destintation from a page number of a PDF. *)
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
+val minimum_valid_pdf : unit -> Pdf.t
+
 (**/**)
 
 (* Some old (and broken) software couldn't read page trees. Set this to output

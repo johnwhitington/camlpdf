@@ -1417,3 +1417,8 @@ let combine_pdf_resources pdf a b =
             (fun dict (k, v) -> Pdf.add_dict_entry dict k v)
             (Pdf.Dictionary [])
             (unknown_keys_a @ unknown_keys_b @ combined_known_entries)
+
+let minimum_valid_pdf () =
+  let pdf_pages = [blankpage Pdfpaper.a4] in
+  let pdf, pageroot = add_pagetree pdf_pages (Pdf.empty ()) in
+    add_root pageroot [] pdf
