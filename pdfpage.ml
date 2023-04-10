@@ -21,14 +21,10 @@ type t =
 
 (* Make a PDF rectangle from a Paper.papersize. *)
 let rectangle_of_paper paper =
-  let u = Pdfpaper.unit paper
-  in let w = Pdfpaper.width paper
-  in let h = Pdfpaper.height paper in
-    let w', h' =
-      let f = Pdfunits.convert 100. u Pdfunits.PdfPoint in
-        f w, f h
-    in
-      Pdf.Array [Pdf.Real 0.; Pdf.Real 0.; Pdf.Real w'; Pdf.Real h']
+  let u = Pdfpaper.unit paper in
+  let w = Pdfunits.points (Pdfpaper.width paper) u in
+  let h = Pdfunits.points (Pdfpaper.height paper) u in
+    Pdf.Array [Pdf.Real 0.; Pdf.Real 0.; Pdf.Real w; Pdf.Real h]
 
 (* Create a page with empty content, media box from the given paper size,
 empty resources, zero rotation and no extra dictionary entries. *)

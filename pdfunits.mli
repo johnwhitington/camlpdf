@@ -1,8 +1,7 @@
 (** Units and Unit Conversion *)
 
 (** The type of units *)
-type t = PdfPoint | Inch | Centimetre | Millimetre | Pixel
+type t = PdfPoint | Inch | Centimetre | Millimetre
 
-(** [convert d u u'] produces a convertor converting from unit [u] to [u'] with
-dpi [d] *)
-val convert : float -> t -> t -> (float -> float)
+(** Convert a measurement to points *)
+val points : float -> t -> float
