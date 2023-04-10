@@ -38,7 +38,7 @@ The API documentation, which is built by the makefile in doc/camlpdf/html, can
 also be accessed online at
 [http://www.coherentpdf.com/camlpdf](http://www.coherentpdf.com/camlpdf).
 
-The file [introduction_to_camlpdf.pdf](introduction-to-camlpdf.pdf) will help
+The file [introduction_to_camlpdf.pdf](introduction_to_camlpdf.pdf) will help
 the beginner.
 
 Some level of knowledge of the PDF file format itself, which is large, may be
