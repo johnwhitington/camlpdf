@@ -236,19 +236,29 @@ let rec filterspecial = function
   | Pdf.Name ("/ASCIIHexDecode" | "/ASCII85Decode" | "/AHx" | "/A85")::_ -> true
   | _::t -> filterspecial t
 
+let b = Buffer.create 256
+
 let string_of_lexeme = function
   | LexComment -> ""
   | Obj o -> Pdfread.string_of_lexeme o 
   | Op op -> op
   | PdfObj obj -> Pdfwrite.string_of_pdf obj
   | LexInlineImage (dict, data) ->
+      (* Compress if no compression *)
+      let dict, data =
+        match Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict with
+        | None | Some (Pdf.Array []) ->
+            Pdf.add_dict_entry dict "/F" (Pdf.Name "/Fl"),
+            Pdfcodec.encode_flate data
+        | _ -> dict, data
+      in
+      let dict = Pdf.add_dict_entry dict "/L" (Pdf.Integer (bytes_size data)) in
       let dict_string = Pdfwrite.string_of_pdf dict in
         let dict_string' =
           (* Remove the dictionary markers. *)
           implode (rev (drop' 2 (rev (drop' 2 (explode dict_string)))))
-        in let data_string =
-          string_of_bytes data
-        in let space =
+        in
+        let space =
           let filters =
             match
               Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict
@@ -259,7 +269,9 @@ let string_of_lexeme = function
           in
             if filterspecial filters then "" else " "
         in
-          "BI\n" ^ dict_string' ^ " ID" ^ space ^ data_string ^ "\nEI\n"
+          Buffer.clear b;
+          iter (Buffer.add_string b) ["BI\n"; dict_string'; " ID"; space; string_of_bytes data; "\nEI\n"];
+          Buffer.contents b
 
 let b = Buffer.create 30
 
