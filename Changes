@@ -22,6 +22,7 @@ o Now reads many more files from Stressful PDF Corpus
 o Revert 'build byte code top level camlpdf.top by default'
 o Pdfpage.add_prefix now detects and fixes non-ISO PDFs
 o Loosen EI check on inline image lexing
+o Compress inline images upon writing if uncompressed
 
 2.5 (January 2022)
 
