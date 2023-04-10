@@ -2,20 +2,21 @@ CamlPDF
 =======
 
 CamlPDF is an OCaml library for reading, writing and modifying PDF files. It is
-the basis of the commercial "CPDF" command line tool, which is available at
+the basis of the commercial "CPDF" command line tool and
+C/C++/Java/Python/.NET/JavaScript API, which is available at
 [http://www.coherentpdf.com/](http://www.coherentpdf.com/).
 
 License
 ---
 
-Copyright Coherent Graphics Ltd 2007 - 2022. Released under the LGPL with
+Copyright Coherent Graphics Ltd 2007 - 2023. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 To Build
 ---
 
 If downloading from Github, obtain the correct source. This means choosing the
-tag for a particular version, such as "v2.5". The head of the master branch
+tag for a particular version, such as "v2.6". The head of the master branch
 is unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
@@ -40,13 +41,13 @@ also be accessed online at
 The file introduction-to-camlpdf.pdf will help the beginner.
 
 Some level of knowledge of the PDF file format itself, which is large, may be
-required. The standard texts are the author's book:
+required. Useful texts are the author's book:
 
 [http://shop.oreilly.com/product/0636920021483.do](http://shop.oreilly.com/product/0636920021483.do)
 
 and the ISO standard for PDF:
 
-[http://www.adobe.com/devnet/pdf/pdf_reference.html](http://www.adobe.com/devnet/pdf/pdf_reference.html)
+[https://www.pdfa-inc.org/product/iso-32000-2-pdf-2-0-bundle-sponsored-access/](https://www.pdfa-inc.org/product/iso-32000-2-pdf-2-0-bundle-sponsored-access/)
 
 Acknowledgments
 ---
@@ -67,4 +68,4 @@ and Paulo Barreto.
 
 OCamlMakefile was written by Markus Mottl. It is available here:
 
-[http://bitbucket.org/mmottl/ocaml-makefile](http://bitbucket.org/mmottl/ocaml-makefile)
+[http://mmottl.github.io/ocaml-makefile/](http://mmottl.github.io/ocaml-makefile/)
