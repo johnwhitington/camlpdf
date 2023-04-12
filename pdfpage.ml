@@ -462,7 +462,6 @@ let mkpage getobjnum parent page =
 
 (* Build a list of objnum, pdfobject pairs from the ptree. The pages in the
 ptree are just missing their parent entries, so we add those. *)
-(* FIXME: Now we rewrote this for pdf_of_pages with nicer properties, can we get rid of this one? *)
 let rec objects_of_ptree getobjnum extras = function
   | Lf (pages, parent, this) ->
       let page_objects =
@@ -812,9 +811,7 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
 same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
 so only those in the range are kept. *)
 
-
 (* Find a page indirect from the page tree of a document, given a page number. *)
-(* FIXME speed up by caching *)
 let page_object_number pdf destpage =
   try
     Some (select destpage (Pdf.page_reference_numbers pdf))
