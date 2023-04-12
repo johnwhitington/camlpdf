@@ -542,30 +542,17 @@ let rec objects_of_ptree getobjnum extras = function
            in
              this_objects @ objs_left @ objs_right
      
-let flat_pagetrees = ref false
-
-(* Flat version *)
-let add_pagetree_flat pages pdf =
-  let extras = ref [] in
-    let getobjnum = source pdf.Pdf.objects.Pdf.maxobjnum in
-      let ptree = pagetree_flat getobjnum pages 0 in
-        let objects = objects_of_ptree getobjnum extras ptree in
-          let topnode = match hd objects with (n, _) -> n in
-            iter (fun x -> ignore (Pdf.addobj_given_num pdf x)) (objects @ !extras);
-            pdf, topnode
-
 (* Take a list of pages and a PDF. Build a page tree in the PDF, returning
 the new pdf and the object number assigned to the top page node. All references
 to objects not forming part of the tree nodes themselves are left unchanged. *)
 let add_pagetree pages pdf =
-  if !flat_pagetrees then add_pagetree_flat pages pdf else
-    let extras = ref [] in
-      let getobjnum = source pdf.Pdf.objects.Pdf.maxobjnum in
-        let ptree = pagetree getobjnum pages 0 in
-          let objects = objects_of_ptree getobjnum extras ptree in
-            let topnode = match hd objects with (n, _) -> n in
-              iter (fun x -> ignore (Pdf.addobj_given_num pdf x)) (objects @ !extras);
-              pdf, topnode
+  let extras = ref [] in
+    let getobjnum = source pdf.Pdf.objects.Pdf.maxobjnum in
+      let ptree = pagetree getobjnum pages 0 in
+        let objects = objects_of_ptree getobjnum extras ptree in
+          let topnode = match hd objects with (n, _) -> n in
+            iter (fun x -> ignore (Pdf.addobj_given_num pdf x)) (objects @ !extras);
+            pdf, topnode
 
 (* Add a root entry, replacing the Type and Pages entry, and any entries in
 extras. Preserves any entries in any existing root (e.g Metadata pointer). *)

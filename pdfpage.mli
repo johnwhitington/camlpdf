@@ -117,10 +117,6 @@ val minimum_valid_pdf : unit -> Pdf.t
 
 (**/**)
 
-(* Some old (and broken) software couldn't read page trees. Set this to output
-   entirely flat page trees. *)
-val flat_pagetrees : bool ref
-
 val process_xobjects : Pdf.t ->
            t ->
            (Pdf.t ->
