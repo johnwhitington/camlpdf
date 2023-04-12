@@ -3,6 +3,7 @@
 \usepackage{microtype}
 \usepackage{graphics}
 \usepackage[plainpages=false,pdfpagelabels,pdfborder=0 0 0]{hyperref}
+\usepackage{xurl}
 \usepackage{upquote}
 \newcommand{\smallgap}{\vspace{4mm}}
 \newcommand{\cpdf}{\texttt{cpdf}}
@@ -80,9 +81,9 @@ To build \textsf{CamlPDF}, navigate to the source directory and type
 
 \begin{framed}
 \begin{verbatim}
-ocaml
-OCaml version 5.0.0
+OCaml version 4.14.1
 Enter #help;; for help.
+
 # #use "topfind";;
 - : unit = ()
 Findlib has been successfully loaded. Additional directives:
@@ -97,8 +98,8 @@ reloaded
 
 - : unit = ()
 # #require "camlpdf";;
-/Users/john/.opam/5.0.0/lib/camlpdf: added to search path
-/Users/john/.opam/5.0.0/lib/camlpdf/camlpdf.cma: loaded
+/Users/john/.opam/4.14.1/lib/camlpdf: added to search path
+/Users/john/.opam/4.14.1/lib/camlpdf/camlpdf.cma: loaded
 \end{verbatim}
 \end{framed}
 \noindent The \textsf{Pdfread} module allows us to load PDF files into memory. The raw PDF data is parsed into a structured OCaml value of type \textsf{Pdf.pdfdoc}:
@@ -106,26 +107,24 @@ reloaded
 \begin{verbatim}
 # let pdf = Pdfread.pdf_of_file None None "hello.pdf";;
 val pdf : Pdf.t =
-  {Pdf.major = 2; minor = 0; root = 4;
+  {Pdf.major = 2; minor = 0; root = 3;
    objects =
     {Pdf.maxobjnum = 4; parse = Some <fun>;
      pdfobjects = <abstr>;
      object_stream_ids = <abstr>};
    trailerdict =
     Pdf.Dictionary
-     [("/Root", Pdf.Indirect 2);
+     [("/Root", Pdf.Indirect 3);
       ("/ID",
        Pdf.Array
-        [Pdf.String "<elided>";
-         Pdf.String "<elided>"]);
+        [Pdf.String <elided>; Pdf.String <elided>]);
       ("/Size", Pdf.Integer 4)];
-   was_linearized = false;
-   saved_encryption = None}
+   was_linearized = false; saved_encryption = None}
 \end{verbatim}
 \end{framed}
 \noindent Looking at some of the parts of the \textsf{Pdf.t} record type:
 \begin{itemize}
-\item \textsf{Pdf.major} and \textsf{Pdf.minor} - the parts of the PDF version number. Here, PDF Version 1.1
+\item \textsf{Pdf.major} and \textsf{Pdf.minor} - the parts of the PDF version number. Here, PDF Version 2.0
 \item \textsf{Pdf.root} - the object number of the 'root object' of the PDF (A PDF is a directed graph of objects, indexed by number)
 \item \textsf{Pdf.objects} - the PDF objects
 \item \textsf{Pdf.trailerdict} - the trailer dictionary. This is a distinguished PDF object containing a number of commonly used per-file items. \textsf{Pdf.trailerdict} has type \textsf{Pdf.pdfobject}, which represents all possible PDF data.
@@ -137,7 +136,7 @@ Here is the contents of the file \texttt{hello.pdf}, as you might see it in a te
 \noindent\small\verb!%PDF-2.0! \textit{Header}\\
 \noindent\small\verb!%%$^@!\\
 \noindent\small\verb!1 0 obj! \textit{Object 1\ldots}\\
-\noindent\small\verb!<< /Type /Pages /Kids [ 3 0 R ] /Count 1 >>! \textit{\ldots which is the catalogue of pages}\\
+\noindent\small\verb!<</Type/Pages/Kids[3 0 R]/Count 1>>! \textit{\ldots which is the catalogue of pages}\\
 \noindent\small\verb!endobj!\\
 \noindent\small\verb!2 0 obj! \textit{This object is a stream, which is a dictionary plus some binary data}\\
 \noindent\small\verb!<< /Length 102 >>!\\
@@ -147,19 +146,19 @@ Here is the contents of the file \texttt{hello.pdf}, as you might see it in a te
 \noindent\small\verb!endstream!\\
 \noindent\small\verb!endobj!\\
 \noindent\small\verb!3 0 obj! \textit{The page object, }\\
-\noindent\small\verb!<< /Type /Page!\\
+\noindent\small\verb!<< /Type/Page!\\
 \noindent\small\verb!   /Parent 1 0 R! \textit{The syntax "1 0 R" means a reference to Object 1}\\ 
 \noindent\small\verb!   /Resources!\\
-\noindent\small\verb!      << /Font! \textit{The font dictionary}\\
-\noindent\small\verb!            << /F0!\\
-\noindent\small\verb!              << /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>!\\
+\noindent\small\verb!      <</Font! \textit{The font dictionary}\\
+\noindent\small\verb!            <</F0!\\
+\noindent\small\verb!              <</Type/Font/Subtype/Type1/BaseFont/Times-Italic>>!\\
 \noindent\small\verb!            >> >>!\\
-\noindent\small\verb!   /MediaBox [ 0.000000 0.000000 595.275591 841.889764 ]! \textit{The page dimensions}\\
+\noindent\small\verb!   /MediaBox [0.000000 0.000000 595.275591 841.889764]! \textit{The page dimensions}\\
 \noindent\small\verb!   /Rotate 0!\\
-\noindent\small\verb!   /Contents [ 2 0 R ] >>! \textit{Reference to contents in object 2}\\
+\noindent\small\verb!   /Contents [2 0 R] >>! \textit{Reference to contents in object 2}\\
 \noindent\small\verb!endobj!\\
 \noindent\small\verb!4 0 obj!\\
-\noindent\small\verb!<< /Type /Catalog /Pages 1 0 R >>! \textit{The root object}\\
+\noindent\small\verb!<</Type /Catalog /Pages 1 0 R>>! \textit{The root object}\\
 \noindent\small\verb!endobj!\\
 \noindent\small\verb!xref! \textit{The cross-reference table, listing the byte offsets of each object for random access.}\\
 \noindent\small\verb!0 5 !\\
@@ -169,7 +168,7 @@ Here is the contents of the file \texttt{hello.pdf}, as you might see it in a te
 \noindent\small\verb!0000000227 00000 n !\\
 \noindent\small\verb!0000000449 00000 n !\\
 \noindent\small\verb!trailer! \textit{The trailer dictionary}\\
-\noindent\small\verb!<< /Size 5 /Root 4 0 R /ID [ (<elided>) (<elided>) ] >>!\\
+\noindent\small\verb!<</Size 5/Root 4 0 R/ID [(<elided>) (<elided>)]>>!\\
 \noindent\small\verb!startxref!\\
 \noindent\small\verb!498! \textit{The trailer}\\
 \noindent\small\verb!%%EOF!\\
@@ -188,7 +187,7 @@ The \textsf{Pdf.t} data type is a record of mutable values. Let's change the PDF
 The objects in a PDF document are of type \textsf{Pdf.pdfobject}:
 \begin{framed}
 \noindent\verb!type stream =! \textit{Stream data. Either in memory or still in the file}\\
-\verb!  | Got of Utility.bytestream!\\
+\verb!  | Got of bytes!\\
 \verb!  | ToGet of Pdfio.input * int * int! \textit{input, offset, length}\\
 \verb!!\\
 \verb!type pdfobject =!\\
@@ -209,11 +208,11 @@ The objects in a PDF document are of type \textsf{Pdf.pdfobject}:
 \begin{framed}
 \begin{verbatim}
 3 0 obj
-<< /Type /Page
+<< /Type/Page
    /Parent 1 0 R
-   /MediaBox [ 0.000000 0.000000 595.275591 841.889764 ]
+   /MediaBox [0.000000 0.000000 595.275591 841.889764]
    /Rotate 0
-   /Contents [ 2 0 R ]
+   /Contents [2 0 R]
 >>
 end
 \end{verbatim}
@@ -318,7 +317,8 @@ Let's add operators to underline the text -- \textsf{Op\_m} to move, \textsf{Op\
 \begin{framed}
 \small\begin{verbatim}
 # let width =
-    Pdfstandard14.textwidth false Pdftext.TimesItalic "Hello, World!";;
+    Pdfstandard14.textwidth false Pdftext.WinAnsiEncoding
+    Pdftext.TimesItalic "Hello, World!";;
 val width : int = 5555
 
 # let actual_width = float width *. 36. /. 1000.;;
@@ -341,7 +341,7 @@ val ops' : Pdfops.t list = ...
 val stream : Pdf.pdfobject =
   Pdf.Stream
    {contents =
-     (Pdf.Dictionary [("/Length", Pdf.Integer 72)], Pdf.Got <abstr>)}
+     (Pdf.Dictionary [("/Length", Pdf.Integer 68)], Pdf.Got <abstr>)}
 \end{verbatim}
 \end{framed}
 
@@ -383,89 +383,6 @@ val pdf : Pdf.t = ...
 }
 
 
-\smallgap
-
-\noindent Summary of \textsf{CamlPDF} modules:
-
-\smallgap
-
-{\centering\small
-\begin{tabular}{lp{10cm}l}
-  \textbf{Module} & \textbf{Description} \\
-Pdfutil &
-General Functions. & \\
-Pdfio &
-Generic Input/Ouput from/to channels, strings, files etc. & \\
-Pdftransform &
-Affine Transformations in Two Dimensions &  \\
-Pdfunits &
-Units and Unit Conversion & \\
-Pdfpaper &
-Media Sizes & \\
-Pdf &
-Representing PDF Files in Memory & \\
-Pdfcrypt &
-Decrypting PDF files & \\
-Pdfflate &
-Interface to miniz.c via Zlib-like functions. & \\
-Pdfcodec &
-Encoding and Decoding PDF Streams & \\
-Pdfwrite &
-Writing PDF Files & \\
-Pdfgenlex &
-A very fast lexer for very basic tokens. & \\
-Pdfread &
-Reading PDF Files & \\
-Pdfjpeg &
-PDF Jpeg Support & \\
-Pdfops &
-Parsing PDF Graphics Streams & \\
-Pdfdest &
-Destinations & \\
-Pdfmarks &
-Bookmarks & \\
-Pdfpagelabels &
-Page Labels & \\
-Pdfpage &
-Page-level functionality & \\
-Pdfannot &
-Annotations & \\
-Pdffun &
-Parsing and Evaluating PDF Functions. & \\
-Pdfspace &
-Colour Spaces & \\
-Pdfimage &
-Extract Images. & \\
-Pdfafm &
-Parse Adobe Font Metrics files & \\
-Pdfafmdata &
-AFM Data for the standard 14 fonts & \\ 
-Pdfglyphlist &
-Glyph Lists & \\
-Pdftext &
-Parsing fonts and extracting text from content streams and PDF strings & \\
-Pdfstandard14 &
-Standard PDF Fonts & \\
-Pdfgraphics &
-Structured Graphics. & \\
-Pdfshapes &
-Basic Shapes & \\
-Pdfdate &
-Representing and Parsing PDF Dates & \\
-Pdfocg &
-Optional Content Groups. & \\
-Pdfcff &
-Convert a CFF Type 1 Font to a Type 3 Font. & \\
-Pdftype1 &
-Convert an PostScript Type 1 Font to a Type 3 Font. & \\
-Pdftruetype &
-Convert a TrueType font to a Type 3 Font. & \\
-Pdftype0 &
-Type 0 font support & \\
-Pdfmerge &
-Merge PDF files, optionally rotating some pages. 
- \end{tabular}
-}
 
 \smallgap
 \noindent The HTML documentation for CamlPDF is built in \texttt{doc/html/camlpdf} when \textsf{CamlPDF} is built. You can, of course, eschew the top level and compile projects using the CamlPDF library directly: this gives native speeds and self-contained executables.
@@ -479,7 +396,7 @@ The author's book is a suitable introduction to the PDF file format:\\
 \smallgap
 
 \noindent For any serious work, you will need the PDF Reference Manual\\
-\url{http://www.adobe.com/devnet/acrobat/pdfs/PDF32000_2008.pdf}
+\url{https://www.pdfa-inc.org/product/iso-32000-2-pdf-2-0-bundle-sponsored-access/}
 
 \smallgap
 
