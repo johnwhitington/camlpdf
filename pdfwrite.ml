@@ -222,6 +222,7 @@ let string_of_pdf s =
   Buffer.contents b
 
 let string_of_pdf_including_data s =
+  begin match s with Pdf.Stream _ -> Pdf.getstream s | _ -> () end;
   Buffer.clear b;
   strings_of_pdf
     (function
@@ -229,7 +230,7 @@ let string_of_pdf_including_data s =
      | WStream stream ->
          match stream with
          | Got data -> Buffer.add_string b (string_of_bytes data)
-         | ToGet _ -> ())
+         | ToGet _ -> Printf.printf "WARNING: toget in string_of_pdf_including_data\n")
     (Hashtbl.create 0)
     s;
   Buffer.contents b
