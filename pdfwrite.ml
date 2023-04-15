@@ -615,11 +615,6 @@ let pdf_to_output
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None) linearize encrypt mk_id pdf o
 =
-  if !write_debug then
-    begin Printf.eprintf "****pdf_to_output\n"; tt' (); (*debug_whole_pdf pdf*) end;
-  if !write_debug then
-    Printf.eprintf "pdf_to_output: preserve %b, generate %b, linearize %b\n"
-    preserve_objstm generate_objstm linearize;
   if linearize then
     raise
       (Pdf.PDFError
