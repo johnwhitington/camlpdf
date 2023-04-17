@@ -17,9 +17,10 @@ OCAMLLDFLAGS = -g
 
 TARGETS := byte-code-library htdoc
 
-LIBINSTALL_FILES = camlpdf.cma libcamlpdf_stubs.a \
-  dllcamlpdf_stubs.* $(foreach x,$(PDFMODS),$x.mli) \
-  $(foreach x,$(PDFMODS),$x.cmt) $(foreach x,$(PDFMODS),$x.cmi)
+LIBINSTALL_FILES = \
+  camlpdf.cma libcamlpdf_stubs.a dllcamlpdf_stubs.* \
+  $(foreach x,$(PDFMODS),$x.mli) $(foreach x,$(PDFMODS),$x.cmt) \
+  $(foreach x,$(PDFMODS),$x.cmi) $(foreach x,$(PDFMODS),$x.cmti)
 
 ifneq ($(shell ocamlopt -version),)
   TARGETS += native-code-library
