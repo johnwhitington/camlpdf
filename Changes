@@ -24,6 +24,7 @@ o Pdfpage.add_prefix now detects and fixes non-ISO PDFs
 o Loosen EI check on inline image lexing
 o Compress inline images upon writing if uncompressed
 o Retired old unused font modules to old/
+o Cope with /Crypt identity filters
 
 2.5 (January 2022)
 
