@@ -149,7 +149,7 @@ val setinit : input -> bytes -> int -> int -> unit
 (** [setinit_string i s o l] sets s o...o + l - 1 from the input *)
 val setinit_string : input -> caml_bytes -> int -> int -> unit
 
-(** [setinit_bytes i o l] gives a [bytes] with s o...o + l - 1 from the input *)
+(** [bytes_of_input i o l] gives a [bytes] with s o...o + l - 1 from the input *)
 val bytes_of_input : input -> int -> int -> bytes
 
 (** Make bytes from a string. *)

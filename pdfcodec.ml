@@ -1123,6 +1123,9 @@ type source =
   | StreamSource of bytes
   | InputSource of input
 
+let decode_identity i =
+  Pdfio.bytes_of_input i 0 i.in_channel_length
+
 let decoder pdf dict source name =
   let input_of_source = function
     | InputSource i -> i
@@ -1130,6 +1133,7 @@ let decoder pdf dict source name =
   in
     let i = input_of_source source in
       match name with
+      | "/Crypt" -> decode_identity i
       | "/ASCIIHexDecode" | "/AHx" -> decode_ASCIIHex i
       | "/ASCII85Decode" | "/A85" -> decode_ASCII85 i
       | "/FlateDecode" | "/Fl" ->
