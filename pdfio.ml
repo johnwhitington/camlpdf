@@ -145,6 +145,7 @@ let string_of_bytes s =
       done;
       Buffer.contents buf
 
+
 let bytes_of_int_array a =
   let s = mkbytes (Array.length a) in
     for i = 0 to bytes_size s - 1 do
@@ -487,6 +488,9 @@ let bytes_of_input i o l =
       Short s
     else
       bytes_of_caml_bytes s
+
+let string_of_input i =
+  string_of_bytes (bytes_of_input i 0 i.in_channel_length)
 
 let getinit i s o l =
   if l = 0 then () else
