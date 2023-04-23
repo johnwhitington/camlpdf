@@ -6,10 +6,7 @@ let write_debug = ref false
 
 (* The file header. *)
 let header pdf =
-  Printf.sprintf
-    "%%PDF-%i.%i\n%%\128\129\130\131\n"
-    pdf.Pdf.major
-    pdf.Pdf.minor
+  Printf.sprintf "%%PDF-%i.%i\n%%\128\129\130\131\n" pdf.Pdf.major pdf.Pdf.minor
 
 (* Write the cross-reference table to a channel. *)
 let output_string_of_xref i n =
@@ -65,14 +62,12 @@ type writeout =
 We want real numbers with no exponents (format compliance), and no trailing
 zeroes (compactness). (Jan 2012 - have added special case for whole numbers.
 Can still get trailing zeroes on small values e.g 0.00001 => 0.000010, but no
-printf way to prevent this).
+printf way to prevent this). In addition, on 32 bit systems, we now read in
+numbers > 2^30 or < -2^30 as floating point values so that we can preserve
+them. We should write such numbers out as integers too. But int_of_float gives
+the wrong answer here. So we must pre-check and produce an integer instead. *)
 
-Feb 2018: In addition, on 32 bit systems, we now read in numbers > 2^30 or < -2^30
-as floating point values so that we can preserve them. We should write such
-numbers out as integers too. But int_of_float gives the wrong answer here. So
-we must pre-check and produce an integer instead. *)
 let max_int_float = float_of_int max_int
-
 let min_int_float = float_of_int min_int
 
 let format_real x =
@@ -342,21 +337,6 @@ let bake_object_streams compress pdf numbers =
              Pdf.addobj_given_num pdf (tostream, obj))
     numbers
 
-let print_data instream nonstream =
-  if !write_debug then
-    begin
-      (*Printf.eprintf "Reserved for object streams: 1 to %i\n" (length instream);
-      Printf.eprintf "Streams: ";
-      print_ints (map fst instream);
-      Printf.eprintf "\n";
-      Printf.eprintf "Objects in streams: ";
-      print_ints (flatten (map snd instream));
-      Printf.eprintf "\n";
-      Printf.eprintf "Nonstream objects: ";
-      print_ints nonstream;
-      Printf.eprintf "\n"*)
-    end
-
 (* Modify PDF to reinstate object streams from the saved hints. Then returns
 the xref stream. Hints are now invalid, of course. Numbering scheme:
 1...n   object streams
@@ -397,7 +377,6 @@ let reinstate_object_streams compress we_will_be_encrypting pdf =
         (fun x -> if not (Hashtbl.mem all_in_stream x) then Some x else None)
         (Pdf.objnumbers pdf)
   in
-  print_data objects_for_streams nonstream_objects;
   (* Now renumber the PDF such that we have (1...n, [n + 1....m]) used for the
   and renumber the nonstream objects to (m + 1).... Also renumber
   objects_for_streams and nonstream_objects *)
@@ -421,16 +400,12 @@ let reinstate_object_streams compress we_will_be_encrypting pdf =
     pdf.Pdf.root <- pdf'.Pdf.root;
     pdf.Pdf.objects <- pdf'.Pdf.objects;
     pdf.Pdf.trailerdict <- pdf'.Pdf.trailerdict;
-  (* Apply the changes to objects_for_streams and nonstream_objects *)
-  let renumbered_nonstream_objects =
-    map (Hashtbl.find changetable) nonstream_objects
-  in
+  (* Apply the changes to objects_for_streams *)
   let renumbered_objects_for_streams =
     combine
       (indx (map (Hashtbl.find changetable) (map fst objects_for_streams)))
       (map_lol (Hashtbl.find changetable) (map snd objects_for_streams))
   in
-  print_data renumbered_objects_for_streams renumbered_nonstream_objects;
   (* Now build the object streams and bake them into the PDF *)
   bake_object_streams compress pdf renumbered_objects_for_streams;
   renumbered_objects_for_streams
@@ -452,7 +427,7 @@ let max_bytes_required l =
       while let v = !r > 0 in r := !r lsr 8; v do b += 1 done;
       max 1 !b
 
-(* Output nbyyes bytes from x, highest byte first to the list reference given *)
+(* Output nbytes bytes from x, highest byte first to the list reference given *)
 let output_bytes nbytes x o =
   for pos = nbytes - 1 downto 0 do
     o.output_byte ((x land (255 lsl (pos * 8))) lsr (pos * 8))
@@ -586,12 +561,8 @@ let dummy_encryption =
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
   ?(preserve_objstm = false) ?(generate_objstm = false)
-  ?(compress_objstm = true) ?(recrypt = None) linearize encrypt mk_id pdf o
+  ?(compress_objstm = true) ?(recrypt = None) encrypt mk_id pdf o
 =
-  if linearize then
-    raise
-      (Pdf.PDFError
-        "Linearization not supported since v1.8. Use an external linearizer.");
   if mk_id then Pdf.change_id pdf (string_of_float (Random.float 1.));
   let renumbered_objects_for_streams, preserve_objstm =
     if generate_objstm then
@@ -699,11 +670,11 @@ let pdf_to_output
 let pdf_to_channel
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
-  linearize encrypt mk_id pdf ch
+  encrypt mk_id pdf ch
 =
   pdf_to_output
     ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-    linearize encrypt mk_id pdf (output_of_channel ch)
+    encrypt mk_id pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
 trailer dictionary is updated using the current date and time and the filename.
@@ -714,14 +685,14 @@ ones will be generated in addition. To get totally fresh object streams, set
 let pdf_to_file_options
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
-  linearize encrypt mk_id pdf f
+  encrypt mk_id pdf f
 =
   if mk_id then Pdf.change_id pdf f;
   let ch = open_out_bin f in
     try
       pdf_to_channel
         ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
-        linearize encrypt false pdf ch;
+        encrypt false pdf ch;
       close_out ch
     with
       e -> close_out ch; raise e
@@ -729,4 +700,4 @@ let pdf_to_file_options
 let pdf_to_file pdf f =
   pdf_to_file_options
     ~preserve_objstm:true ~generate_objstm:false ~compress_objstm:true
-    false None true pdf f
+    None true pdf f

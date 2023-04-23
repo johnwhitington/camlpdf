@@ -27,20 +27,18 @@ type encryption =
 
 (** {2 Writing to outputs, channels and files.} *)
 
-(** Write a PDF document to an [Pdfio.output], optionally encrypting and/or
-linearizing. For now, linearization will not preserve object streams. If
+(** Write a PDF document to an [Pdfio.output], optionally encrypting. If
 [?preserve_objstm] is set (default is false), object streams which were in the
 original file will be preserved. If [?create_objstm] is set (default is false),
 additional new object streams will be created. To re-encrypt the file using its
 existing encryption, provide the user or owner password in the [?recrypt]
-argument. The unlabelled boolean argument is true if linearization is required.
-*)
+argument. *)
 val pdf_to_output :
   ?preserve_objstm:bool ->
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
   ?recrypt:string option ->
-  bool -> encryption option -> bool -> Pdf.t -> Pdfio.output -> unit
+  encryption option -> bool -> Pdf.t -> Pdfio.output -> unit
 
 (** As [pdf_to_output] but to an OCaml channel. If the second boolean is set, build a new
 /ID (don't set this for encrypted documents). *)
@@ -49,7 +47,7 @@ val pdf_to_channel :
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
   ?recrypt:string option -> 
-  bool -> encryption option -> bool -> Pdf.t -> out_channel -> unit
+  encryption option -> bool -> Pdf.t -> out_channel -> unit
 
 (** As [pdf_to_channel] but to a named file. *)
 val pdf_to_file_options :
@@ -57,7 +55,7 @@ val pdf_to_file_options :
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
   ?recrypt:string option ->
-  bool -> encryption option -> bool -> Pdf.t -> string -> unit
+  encryption option -> bool -> Pdf.t -> string -> unit
 
 (** Simple write to given file name. Equivalent to [pdf_to_file_options false None true] *)
 val pdf_to_file : Pdf.t -> string -> unit
