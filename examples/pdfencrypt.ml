@@ -18,7 +18,7 @@ let _ =
          Pdfwrite.user_password = "";
          Pdfwrite.permissions = [Pdfcrypt.NoEdit; Pdfcrypt.NoPrint]}
       in
-        Pdfwrite.pdf_to_file_options false (Some encryption) false pdf out_file
+        Pdfwrite.pdf_to_file_options (Some encryption) false pdf out_file
     with
       err ->
         Printf.printf "Failed to produce output.\n%s\n\n" (Printexc.to_string err);
