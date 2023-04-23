@@ -1,4 +1,4 @@
-(* From CamlZip. See LICENSE *)
+(* From CamlZip. See README.md *)
 exception Error of string * string
 
 let _ =
@@ -6,24 +6,24 @@ let _ =
 
 type stream
 
-type flush_command =
-    Z_NO_FLUSH
-  | Z_SYNC_FLUSH
-  | Z_FULL_FLUSH
-  | Z_FINISH
+type flush_command = Z_NO_FLUSH | Z_SYNC_FLUSH | Z_FULL_FLUSH | Z_FINISH
 
 external deflate_init: int -> bool -> stream = "camlpdf_camlzip_deflateInit"
+
 external deflate:
   stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
   = "camlpdf_camlzip_deflate_bytecode" "camlpdf_camlzip_deflate"
+
 external deflate_end: stream -> unit = "camlpdf_camlzip_deflateEnd"
 
 external inflate_init: bool -> stream = "camlpdf_camlzip_inflateInit"
+
 external inflate:
   stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
   = "camlpdf_camlzip_inflate_bytecode" "camlpdf_camlzip_inflate"
+
 external inflate_end: stream -> unit = "camlpdf_camlzip_inflateEnd"
 
 let buffer_size = 1024
@@ -50,7 +50,6 @@ let compress ?(level = 6) ?(header = true) refill flush =
   in
     compr 0 0;
     deflate_end zs
-
 
 let uncompress ?(header = true) refill flush =
   let inbuf = Bytes.create buffer_size
