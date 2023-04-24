@@ -678,7 +678,7 @@ let write_bitstream_append_aligned a b =
 let debug_next_char i =
   try
     let a = unopt (i.input_char ()) in
-      Pdfe.log (Printf.sprintf "%C = %i\n%!" a (int_of_char a))
+      Pdfe.log (Printf.sprintf "%C = %i\n" a (int_of_char a))
   with
     _ -> ()
 

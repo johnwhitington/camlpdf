@@ -284,6 +284,6 @@ let transform_annotations pdf transform rest =
                | None -> annot
              in
                Pdf.addobj_given_num pdf (i, annot)
-         | _ -> Pdfe.log "transform_annotations: not indirect\n%!")
+         | _ -> Pdfe.log "transform_annotations: not indirect\n")
         annots
    | _ -> ()

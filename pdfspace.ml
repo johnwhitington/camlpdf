@@ -275,4 +275,4 @@ let write_colourspace (pdf : Pdf.t) = function
   | DeviceGray -> Pdf.Name "/DeviceGray"
   | DeviceRGB -> Pdf.Name "/DeviceRGB"
   | DeviceCMYK -> Pdf.Name "/DeviceCMYK"
-  | _ -> Pdfe.log "write_colourspace space not suppported\n%!"; Pdf.Null
+  | _ -> Pdfe.log "write_colourspace space not suppported\n"; Pdf.Null

@@ -469,7 +469,7 @@ let get_raw_image pdf resources width height dict data =
     read_raw_image size colspace bpc pdf resources width height dict data
   with
     e ->
-      (*i Pdf.log (Printf.sprintf ((Pdfwrite.string_of_pdf (Pdf.direct pdf dict)) ^ "%!")); i*)
+      (*i Pdf.log (Printf.sprintf ((Pdfwrite.string_of_pdf (Pdf.direct pdf dict)))); i*)
       raise e 
 
 (* Print some debug information about an image. *)

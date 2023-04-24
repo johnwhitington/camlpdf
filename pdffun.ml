@@ -134,7 +134,7 @@ let keyword_of_string = function
   | "copy" -> Copy | "exch" -> Exch | "pop" -> Pop
   | "dup" -> Dup | "index" -> Index | "roll" -> Roll
   | s ->
-      Pdfe.log (Printf.sprintf "%s%!" ("Bad keyword " ^ s)); assert false
+      Pdfe.log (Printf.sprintf "%s" ("Bad keyword " ^ s)); assert false
 
 let parse_calculator s =
   let lexemes =
@@ -166,7 +166,7 @@ let parse_calculator s =
           Float f::parse t
       | [Pdfgenlex.LexInt i]::t-> Int (i32ofi i)::parse t (* FIXME: range *)
       | [Pdfgenlex.LexName x]::t -> keyword_of_string x::parse t
-      | h::_ -> (* Pdfe.log (Printf.sprintf ((Cgenlex.string_of_tokens h) ^ "%!")); *) raise (Failure "Bad lexeme")
+      | h::_ -> (* Pdfe.log (Printf.sprintf ((Cgenlex.string_of_tokens h))); *) raise (Failure "Bad lexeme")
     and procss lexemes =
       try
         parse (group_operators (strip_outer_braces lexemes))

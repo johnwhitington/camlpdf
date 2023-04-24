@@ -172,7 +172,7 @@ let rec find_pages pages pdf resources mediabox rotate =
             (match mediabox with
             | Some m -> last_mediabox_seen := m; m
             | None ->
-                Pdfe.log "Warning: missing mediabox. Using most recently seen.\n%!";
+                Pdfe.log "Warning: missing mediabox. Using most recently seen.\n";
                 !last_mediabox_seen);
           rotate = rotate;
           rest =
@@ -295,7 +295,7 @@ let change_operator pdf lookup lookup_option seqnum = function
         | Some x ->
             Pdfops.Op_BDC (n, Pdf.Name x)
         | None ->
-            Pdfe.log "Warning: Missing Op_BDC /Properties entry\n%!";
+            Pdfe.log "Warning: Missing Op_BDC /Properties entry\n";
             Pdfops.Op_BDC (n, Pdf.Name p)
       end
   | Pdfops.InlineImage (dict, bytes) ->
@@ -626,7 +626,7 @@ let change_pages_find_matrix dest mattable refnumstable =
           with
             _ ->
               Pdfe.log (Printf.sprintf
-                "page not found for bookmark or annotation dest:%s\n%!"
+                "page not found for bookmark or annotation dest:%s\n"
                 (Pdfwrite.string_of_pdf (Pdfdest.pdfobject_of_destination dest)));
               Pdftransform.i_matrix
           end
@@ -708,11 +708,11 @@ let change_pages_process_annotations mattable refnumstable pdf =
                       end
                   | _ -> ()
                   end
-                | _ -> Pdfe.log "change_pages_process_annotations: annotation direct\n%!")
+                | _ -> Pdfe.log "change_pages_process_annotations: annotation direct\n")
                 annots
         | None -> ()
         | _ ->
-            Pdfe.log "change_pages_process_annotations: /Annots not an array\n%!")
+            Pdfe.log "change_pages_process_annotations: /Annots not an array\n")
      (pages_of_pagetree pdf)
      (indx (pages_of_pagetree pdf))
 
@@ -768,7 +768,7 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                          combine old_page_numbers new_page_numbers
                        else
                          begin
-                           Pdfe.log "change_pages: No change supplied, and lengths differ\n%!";
+                           Pdfe.log "change_pages: No change supplied, and lengths differ\n";
                            []
                          end
                    | Some cs ->
@@ -795,15 +795,15 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                           change_pages_process_bookmarks mattable refnumstable pdf
                         else
                           begin
-                            Pdfe.log "Pdfpage.change_pages: non-null matrices when lengths differ\n%!";
+                            Pdfe.log "Pdfpage.change_pages: non-null matrices when lengths differ\n";
                             pdf
                           end
                       in
                         begin try change_pages_process_annotations mattable refnumstable pdf with
-                          e -> Pdfe.log (Printf.sprintf "failure in change_pages_process_annotations: %s\n%!" (Printexc.to_string e))
+                          e -> Pdfe.log (Printf.sprintf "failure in change_pages_process_annotations: %s\n" (Printexc.to_string e))
                         end;
                         begin try change_pages_process_openaction mattable refnumstable pdf with
-                          e -> Pdfe.log (Printf.sprintf "failure in change_pages_process_openaction: %s\n%!" (Printexc.to_string e))
+                          e -> Pdfe.log (Printf.sprintf "failure in change_pages_process_openaction: %s\n" (Printexc.to_string e))
                         end;
                         pdf
 
@@ -1081,7 +1081,7 @@ let protect pdf resources content =
     let qs = length (keep (eq Pdfops.Op_q) ops)
     and bigqs = length (keep (eq Pdfops.Op_Q) ops) in
     let deficit = if qs > bigqs then qs - bigqs else 0 in
-      if deficit <> 0 then Pdfe.log (Printf.sprintf "Q Deficit was nonzero. Fixing. %i\n%!" deficit);
+      if deficit <> 0 then Pdfe.log (Printf.sprintf "Q Deficit was nonzero. Fixing. %i\n" deficit);
       many Pdfops.Op_Q deficit
 
 (* We check for q/Q mismatches in existing section. *)

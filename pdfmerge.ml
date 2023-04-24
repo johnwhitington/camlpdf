@@ -93,7 +93,7 @@ let rec read_name_tree pdf tree =
         if odd (length elts)
           then
              begin
-               Pdfe.log "Bad /Names array. Name tree will be read as empty\n%!";
+               Pdfe.log "Bad /Names array. Name tree will be read as empty\n";
                []
              end
           else pairs_of_list elts
@@ -110,7 +110,7 @@ let read_number_tree pdf tree =
       map (function (Pdf.Integer i, x) -> (string_of_int i, x) | _ -> raise Exit) r
     with
       Exit ->
-        Pdfe.log "Pdfmerge.read_number_tree: skipping malformed name tree\n%!";
+        Pdfe.log "Pdfmerge.read_number_tree: skipping malformed name tree\n";
         []
 
 let read_name_tree pdf tree =
@@ -119,7 +119,7 @@ let read_name_tree pdf tree =
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with
       Exit ->
-        Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n%!";
+        Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n";
         []
 
 let maxsize = 10 (* Must be at least two *)
@@ -352,7 +352,7 @@ let merge_bookmarks changes pdfs ranges pdf =
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
   with
-    e -> Pdfe.log (Printf.sprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e)); pdf
+    e -> Pdfe.log (Printf.sprintf "failure in merge_bookmarks %s\n" (Printexc.to_string e)); pdf
 
 (* This is a pre-processing step to deduplicate name trees. It presently only
    runs on destination name trees, because that's the only kind where we know

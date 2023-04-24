@@ -716,7 +716,7 @@ let rec parse_tounicode pdf tounicode =
                    (lose Pdf.is_whitespace (charlist_of_bytes data))))
           with
             e ->
-              Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e));
+              Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
               raise e
           end
       | _ -> assert false
@@ -737,7 +737,7 @@ let add_tounicode pdf font fontdict =
         begin try
           Some (hashtable_of_dictionary <| parse_tounicode pdf tounicode)
         with
-          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n%!" (Printexc.to_string e)); None
+          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n" (Printexc.to_string e)); None
         end
     | None -> None
   in
@@ -1109,7 +1109,7 @@ let charcode_extractor_of_font_real ?(debug=false) font =
             in
             hashtable_of_dictionary reversed, true
         with
-          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n%!" (Printexc.to_string e)); (null_hash (), false)
+          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n" (Printexc.to_string e)); (null_hash (), false)
         end
     | None -> null_hash (), false
   in
@@ -1146,9 +1146,9 @@ let codepoint_of_pdfdocencoding_character i =
           (Hashtbl.find Pdfglyphlist.reverse_name_to_pdf_hashes i)
       with
       | [codepoint] -> codepoint
-      | _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n%!" i))
+      | _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string (char %i)\n" i))
     with
-      _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string 2 (char %i)\n%!" i))
+      _ -> raise (Pdf.PDFError (Printf.sprintf "codepoint_of_pdfdocencoding: bad text string 2 (char %i)\n" i))
 
 (* Build a UTF-8 string from a list of unicode codepoints. *)
 let get_utf8_chars c =
@@ -1177,7 +1177,7 @@ let codepoints_of_pdfdocstring s =
     map codepoint_of_pdfdocencoding_character (map int_of_char (explode s))
 
 let utf8_of_pdfdocstring s =
-  (*Printf.printf "utf8_of_pdfdocstring: Pdf string is %S\n%!" s;*)
+  (*Printf.printf "utf8_of_pdfdocstring: Pdf string is %S\n" s;*)
   utf8_of_codepoints (codepoints_of_pdfdocstring s)
 
 (* Build a PDFDocEncoding or UTF16BE string from a UTF8 encoded string *)
@@ -1202,7 +1202,7 @@ let rec codepoints_of_utf8 = function
         lor ((c3 land 0b00_11_11_11) lsl 6)
         lor (c4 land 0b00_11_11_11)::codepoints_of_utf8 cs
   | _ ->
-      raise (Pdf.PDFError "Bad UTF8 in codepoints_of_utf8\n%!")
+      raise (Pdf.PDFError "Bad UTF8 in codepoints_of_utf8\n")
 
 let codepoints_of_utf8 s = codepoints_of_utf8 (map int_of_char (explode s))
 
@@ -1225,7 +1225,7 @@ let pdfdocstring_of_codepoints codepoints =
     Exit -> utf16be_of_codepoints codepoints
 
 let pdfdocstring_of_utf8 s =
-  (*Printf.printf "utf8_of_pdfdocstring: JSON string is %S\n%!" s;*)
+  (*Printf.printf "utf8_of_pdfdocstring: JSON string is %S\n" s;*)
   pdfdocstring_of_codepoints (codepoints_of_utf8 s)
 
 (* PDF strings (except /ID in the trailer dictionary and inside page content
