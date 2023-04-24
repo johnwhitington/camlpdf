@@ -1284,7 +1284,7 @@ let time = ref 0. (*ref (clock ())*)
 let tt' () = ()
   (*(*Gc.major ();*)
   let t = clock () in
-    Printf.eprintf "Elapsed: %.2f\n%!" (t -. !time);
+    Pdfe.log (Printf.sprintf "Elapsed: %.2f\n" (t -. !time));
     time := t*)
 
 let starts_with prefix s =

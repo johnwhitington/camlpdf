@@ -716,7 +716,7 @@ let rec parse_tounicode pdf tounicode =
                    (lose Pdf.is_whitespace (charlist_of_bytes data))))
           with
             e ->
-              Printf.eprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e);
+              Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n%!" (Printexc.to_string e));
               raise e
           end
       | _ -> assert false
@@ -737,7 +737,7 @@ let add_tounicode pdf font fontdict =
         begin try
           Some (hashtable_of_dictionary <| parse_tounicode pdf tounicode)
         with
-          e -> Printf.eprintf "bad tounicode (%s)\n%!" (Printexc.to_string e); None
+          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n%!" (Printexc.to_string e)); None
         end
     | None -> None
   in
@@ -1109,7 +1109,7 @@ let charcode_extractor_of_font_real ?(debug=false) font =
             in
             hashtable_of_dictionary reversed, true
         with
-          e -> Printf.eprintf "bad tounicode (%s)\n%!" (Printexc.to_string e); (null_hash (), false)
+          e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n%!" (Printexc.to_string e)); (null_hash (), false)
         end
     | None -> null_hash (), false
   in
@@ -1126,7 +1126,7 @@ let charcode_extractor_of_font_real ?(debug=false) font =
             Some (let r = Hashtbl.find table glyphname in if debug then Printf.printf "Found charcode %i\n\n" r; r)
       with
         Not_found ->
-          if debug then Printf.eprintf "Found no charcode for unicode codepoint %X.\n" codepoint;
+          if debug then Pdfe.log (Printf.sprintf "Found no charcode for unicode codepoint %X.\n" codepoint);
           None
 
 let charcode_extractor_of_font ?(debug=false) pdf fontdict =

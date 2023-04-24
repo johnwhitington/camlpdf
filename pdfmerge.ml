@@ -93,7 +93,7 @@ let rec read_name_tree pdf tree =
         if odd (length elts)
           then
              begin
-               Printf.eprintf "Bad /Names array. Name tree will be read as empty\n%!";
+               Pdfe.log "Bad /Names array. Name tree will be read as empty\n%!";
                []
              end
           else pairs_of_list elts
@@ -110,7 +110,7 @@ let read_number_tree pdf tree =
       map (function (Pdf.Integer i, x) -> (string_of_int i, x) | _ -> raise Exit) r
     with
       Exit ->
-        Printf.eprintf "Pdfmerge.read_number_tree: skipping malformed name tree\n%!";
+        Pdfe.log "Pdfmerge.read_number_tree: skipping malformed name tree\n%!";
         []
 
 let read_name_tree pdf tree =
@@ -119,7 +119,7 @@ let read_name_tree pdf tree =
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with
       Exit ->
-        Printf.eprintf "Pdfmerge.read_name_tree: skipping malformed name tree\n%!";
+        Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n%!";
         []
 
 let maxsize = 10 (* Must be at least two *)
@@ -352,7 +352,7 @@ let merge_bookmarks changes pdfs ranges pdf =
         in
           Pdfmarks.add_bookmarks bookmarks' pdf
   with
-    e -> Printf.eprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e); pdf
+    e -> Pdfe.log (Printf.sprintf "failure in merge_bookmarks %s\n%!" (Printexc.to_string e)); pdf
 
 (* This is a pre-processing step to deduplicate name trees. It presently only
    runs on destination name trees, because that's the only kind where we know
@@ -375,7 +375,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try (*let r = *) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
-      Not_found -> prerr_endline ("apply_namechanges_to_destination_nametree: destination not found: " ^ s); s
+      Not_found -> Pdfe.log ("apply_namechanges_to_destination_nametree: destination not found: " ^ s); s
   in
   let rec rewrite_kids d =
     (*Printf.printf "rewrite_kids on dict %s\n" (Pdfwrite.string_of_pdf d);*)
@@ -394,7 +394,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
             let a' = flatten (map (fun (a, b) -> [a; b]) pairs) in
               Pdf.add_dict_entry dict "/Names" (Pdf.Array a')
           with
-            Invalid_argument _ -> Printf.eprintf "Warning: malformed /Names"; dict
+            Invalid_argument _ -> Pdfe.log "Warning: malformed /Names"; dict
           end
       | _ -> dict
     in
@@ -429,7 +429,7 @@ let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try Hashtbl.find changes s with
-      Not_found -> prerr_endline ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s); s
+      Not_found -> Pdfe.log ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s); s
   in
     let rec f = function
     | Pdf.Dictionary d ->
@@ -650,7 +650,7 @@ let merge_structure_hierarchy pdf pdfs =
         (option_map
           (function
            | Pdf.Dictionary d -> Some d
-           | _ -> Printf.eprintf "merge_dicts: not a dict"; None) dicts))
+           | _ -> Pdfe.log "merge_dicts: not a dict"; None) dicts))
   in
   let merge_arrays arrays =
     Pdf.Array
@@ -658,7 +658,7 @@ let merge_structure_hierarchy pdf pdfs =
         (option_map
           (function
            | Pdf.Array a -> Some a
-           | _ -> Printf.eprintf "merge_array: not an array"; None) arrays))
+           | _ -> Pdfe.log "merge_array: not an array"; None) arrays))
   in
   let mkarray = function
     | Pdf.Array a -> Pdf.Array a
@@ -769,7 +769,7 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                 None -> extra_catalog_entries
               | Some ocgpropnum -> add "/OCProperties" (Pdf.Indirect ocgpropnum) extra_catalog_entries
               | exception e ->
-                  Printf.eprintf "Warning: failed to merge OCGs (%s)\n" (Printexc.to_string e);
+                  Pdfe.log (Printf.sprintf "Warning: failed to merge OCGs (%s)\n" (Printexc.to_string e));
                   extra_catalog_entries
             in
             let extra_catalog_entries =
@@ -777,14 +777,14 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
               | None -> extra_catalog_entries
               | Some acroformnum -> add "/AcroForm" (Pdf.Indirect acroformnum) extra_catalog_entries
               | exception e ->
-                  Printf.eprintf "Warning: failed to merge Acroforms (%s)\n" (Printexc.to_string e);
+                  Pdfe.log (Printf.sprintf "Warning: failed to merge Acroforms (%s)\n" (Printexc.to_string e));
                   extra_catalog_entries
             in
             let extra_catalog_entries =
               match merge_structure_hierarchy pdf pdfs with
               | None -> extra_catalog_entries
               | exception e ->
-                  Printf.eprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e);
+                  Pdfe.log (Printf.sprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e));
                   extra_catalog_entries
               | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in

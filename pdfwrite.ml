@@ -96,7 +96,7 @@ let make_pdf_name_inner b s =
   for x = 1 to String.length s - 1 do (* skip / *)
     match String.get s x with
     | '\000' ->
-      Printf.eprintf "Warning: name %S contains the null character\n%!" s;
+      Pdfe.log (Printf.sprintf "Warning: name %S contains the null character\n%!" s);
       Buffer.add_string b "#00"
     | h when h < '\033' || h > '\126' || Pdf.is_delimiter h || h = '#' ->
       Buffer.add_char b '#';
@@ -236,8 +236,8 @@ let _ = Pdfcodec.string_of_pdf := string_of_pdf
 let _ = Pdf.string_of_pdf := string_of_pdf
 
 let debug_whole_pdf pdf =
-  Printf.eprintf "trailerdict = %s\n" (string_of_pdf pdf.Pdf.trailerdict);
-  Pdf.objiter (fun i o -> Printf.eprintf "%i = %s\n" i (string_of_pdf o)) pdf
+  Pdfe.log (Printf.sprintf "trailerdict = %s\n" (string_of_pdf pdf.Pdf.trailerdict));
+  Pdf.objiter (fun i o -> Pdfe.log (Printf.sprintf "%i = %s\n" i (string_of_pdf o))) pdf
 
 (* Calculate strings, one for each indirect object in the body. *)
 let strings_of_object (n, pdfobject) =

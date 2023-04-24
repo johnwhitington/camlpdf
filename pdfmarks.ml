@@ -223,7 +223,7 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
     match Pdf.lookup_direct pdf "/Title" outline with
     | Some (Pdf.String s) -> s
     | _ ->
-      Printf.eprintf "/Title not a string or not present in document outline entry. Using the empty string.\n";
+      Pdfe.log "/Title not a string or not present in document outline entry. Using the empty string.\n";
       ""
   in
     begin let page =

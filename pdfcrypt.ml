@@ -563,7 +563,7 @@ let file_encryption_key_aesv3 ?digest iso utf8pw o oe u =
     let d =
       match digest with
       | Some d -> 
-         if Array.length d <> 32 then Printf.eprintf "file_encryption_key_aesv3 pre-made length %i\n%!" (Array.length d);
+         if Array.length d <> 32 then Pdfe.log (Printf.sprintf "file_encryption_key_aesv3 pre-made length %i\n%!" (Array.length d));
          d
       | None ->
           let i =
@@ -572,7 +572,7 @@ let file_encryption_key_aesv3 ?digest iso utf8pw o oe u =
               Pdfcryptprimitives.sha256 (Pdfio.input_of_string x)))
                 (String.concat "" [utf8pw; String.sub o 40 8; String.sub u 0 48]))
           in
-            if Array.length i <> 32 then Printf.eprintf "file_encryption_key_aesv3 made length %i\n%!" (Array.length i);
+            if Array.length i <> 32 then Pdfe.log (Printf.sprintf "file_encryption_key_aesv3 made length %i\n%!" (Array.length i));
             i
     in
       Pdfcryptprimitives.aes_decrypt_data ~remove_padding:false 8 d (bytes_of_string (zero_iv ^ oe))
@@ -665,7 +665,7 @@ let decrypt_pdf ?keyfromowner user_pw pdf =
                {Pdf.from_get_encryption_values = (crypt_type, u, o, p, id, ue, oe);
                 Pdf.encrypt_metadata = encrypt_metadata;
                 Pdf.perms = perms};
-           if !crypt_debug then Printf.eprintf "decrypt_pdf: ready to call process_cryption\n%!";
+           if !crypt_debug then Pdfe.log "decrypt_pdf: ready to call process_cryption\n%!";
            (process_cryption
              (not encrypt_metadata) false pdf crypt_type user_pw r u o p id
              keylength file_encryption_key,
@@ -990,7 +990,7 @@ let encrypt_pdf_AES encrypt_metadata user_pw owner_pw banlist pdf =
       encrypt_pdf_AES_inner owner user p user_pw id encrypt_metadata pdf
 
 let encrypt_pdf_AES256_inner iso encrypt_metadata owner user p perms oe ue id key pdf =
-  if !crypt_debug then Printf.eprintf "encrypt_pdf_AES256_inner, ISO = %b\n%!" iso;
+  if !crypt_debug then Pdfe.log (Printf.sprintf "encrypt_pdf_AES256_inner, ISO = %b\n%!" iso);
   let crypt_dict =
     Pdf.Dictionary
       ["/Filter", Pdf.Name "/Standard";

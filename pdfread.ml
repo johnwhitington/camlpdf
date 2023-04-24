@@ -71,7 +71,7 @@ let rec read_header_inner pos i =
                   (Pdf.PDFError (Pdf.input_pdferror i "Malformed PDF header"))
               else
                 begin
-                  if !read_debug then Printf.eprintf "setting offset to %i\n%!" pos;
+                  if !read_debug then Pdfe.log (Printf.sprintf "setting offset to %i\n%!" pos);
                   i.set_offset pos;
                   int_of_string (string_of_char major), int_of_string (implode minorchars)
                 end
@@ -385,7 +385,7 @@ let lex_keyword i =
       | _ -> LexNone
       end
   | l ->
-      Printf.eprintf "failed to lex keyword: %s\n" (Pdfgenlex.string_of_token l);
+      Pdfe.log (Printf.sprintf "failed to lex keyword: %s\n" (Pdfgenlex.string_of_token l));
       LexNone
 
 (* Read some chars from a file. Leaves position as-is, except in the case of
@@ -587,10 +587,10 @@ let lex_next dictlevel arraylevel endonstream i previous_lexemes p opt lexobj =
                 end
       | x when x >= 'a' && x <= 'z' -> lex_keyword i
       | 'I' -> StopLexing (* We've hit an ID marker in an inline image *)
-      | c -> (*Printf.eprintf "lexnone with character %C\n%!" c;*) LexNone
+      | c -> (*Pdfe.log (Printf.sprintf "lexnone with character %C\n" c);*) LexNone
   with
     e ->
-      Printf.eprintf "Recovering from Lex error: %s\n%!" (Printexc.to_string e);
+      Pdfe.log (Printf.sprintf "Recovering from Lex error: %s\n" (Printexc.to_string e));
       StopLexing
 
 (* Lex just a dictionary, consuming only the tokens to the end of it. This is
@@ -791,8 +791,8 @@ let process_parse_dictionary elts =
       Parsed (Pdf.Dictionary (mkpairs [] elts))
     with
       Pdf.PDFError "parse_dictionary" ->
-        Printf.eprintf
-          "Malformed file: odd length dictionary. Carrying on...\n%!";
+        Pdfe.log
+          "Malformed file: odd length dictionary. Carrying on...\n";
         Parsed (Pdf.Dictionary [])
 
 let process_parse_array elts =
@@ -892,11 +892,11 @@ let parse_finish ?(failure_is_ok = false) q =
      Lexeme LexObj; Lexeme LexEndObj] ->
       o, Pdf.Null
   | l ->
-      Printf.eprintf "Unable to parse object:\n%!";
+      Pdfe.log "Unable to parse object:\n";
         iter
           (function
-              Parsed p -> Printf.eprintf "%S\n%!" (Pdfwrite.string_of_pdf p)
-            | Lexeme l -> Printf.eprintf "%S\n%!" (string_of_lexeme l))
+              Parsed p -> Pdfe.log (Printf.sprintf "%S\n" (Pdfwrite.string_of_pdf p))
+            | Lexeme l -> Pdfe.log (Printf.sprintf "%S\n" (string_of_lexeme l)))
           l;
         raise (Pdf.PDFError "Could not extract object")
 
@@ -906,7 +906,6 @@ let parse ?(failure_is_ok = false) lexemes =
     parse_finish
       ~failure_is_ok:failure_is_ok (parse_to_tree [] (parse_R lexemes))
   with
-    (* 14th November 2016: fixed this up to re-raise. Check *)
     Pdf.PDFError _ as e ->
       if failure_is_ok then (max_int, Pdf.Null) else raise e
 
@@ -927,9 +926,9 @@ let lex_stream_object
 =
   (*if !read_debug then
     begin
-      Printf.eprintf "lexing object stream at %i\n%!" (i.Pdfio.pos_in ());
-      Printf.eprintf "lexing object stream %i\nTo find the indexes:\n%!" obj;
-      iter (Printf.eprintf "%i %!") indexes; Printf.eprintf "\n%!"
+      Pdfe.log (Printf.sprintf "lexing object stream at %i\n%!" (i.Pdfio.pos_in ()));
+      Pdfe.log (Printf.sprintf "lexing object stream %i\nTo find the indexes:\n" obj);
+      iter (Pdfe.log (Printf.sprintf "%i %!")) indexes; Pdfe.log "\n"
     end;*)
   let _, stmobj = parse (lex_object i xrefs parse opt obj) in
     match stmobj with
@@ -1136,7 +1135,7 @@ let read_xref_line_stream i w1 w2 w3 =
       let f1 = read_field w1 in
         let f2 = read_field w2 in
           let f3 = read_field w3 in
-            (*if !read_debug then Printf.eprintf "%i %i %i\n%!" f1 f2 f3;*)
+            (*if !read_debug then Pdfe.log (Printf.sprintf "%i %i %i\n%!" f1 f2 f3);*)
             match f1 with
             | 0 -> StreamFree (f2, f3)
             | 1 -> Valid (f2, f3)
@@ -1158,11 +1157,11 @@ let read_xref_stream i =
         false (fun _ -> [])
       with
       | LexInt i -> i
-      | _ -> Printf.eprintf "couldn't lex object number\n%!"; raise err
+      | _ -> Pdfe.log "couldn't lex object number\n"; raise err
     in
     if !read_debug then
-      Printf.eprintf
-        "Object number of this xref stream is %i\n%!" xrefstream_objectnumber;
+      Pdfe.log (Printf.sprintf
+        "Object number of this xref stream is %i\n" xrefstream_objectnumber);
     (* Go back to the beginning *)
     i.seek_in original_pos;
     (* And proceed as before *)
@@ -1204,7 +1203,7 @@ let read_xref_stream i =
         | _ -> raise err
       in
         if !read_debug then
-          (Printf.eprintf "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n%!"; tt' ());
+          (Pdfe.log "HAVE READ XREF STREAM DICT, NOW ACTUAL XREF STREAM DATA\n%!"; tt' ());
         Pdfcodec.decode_pdfstream (Pdf.empty ()) stream;
         let w1, w2, w3 =
           match Pdf.lookup_direct (Pdf.empty ()) "/W" stream with
@@ -1218,18 +1217,18 @@ let read_xref_stream i =
         in let xrefs = ref [] in
           begin try
             if !read_debug then
-              (Printf.eprintf "About to start read_xref_stream\n%!"; tt' ());
+              (Pdfe.log "About to start read_xref_stream\n%!"; tt' ());
             while true do xrefs =| read_xref_line_stream i' w1 w2 w3 done
           with
             _ ->
               if !read_debug then
-                (Printf.eprintf "End of read_xref_stream\n%!"; tt' ());
+                (Pdfe.log "End of read_xref_stream\n%!"; tt' ());
               ()
           end;
           xrefs := rev !xrefs;
           if !read_debug then
-            (Printf.eprintf
-              "****** read %i raw Xref stream entries\n%!" (length !xrefs); tt' ());
+            (Pdfe.log (Printf.sprintf
+              "****** read %i raw Xref stream entries\n%!" (length !xrefs)); tt' ());
           let starts_and_lens =
             match Pdf.lookup_direct (Pdf.empty ()) "/Index" stream with
             | Some (Pdf.Array elts) ->
@@ -1258,8 +1257,8 @@ let read_xref_stream i =
           in
             let xrefs' = ref [] in
           if !read_debug then
-            Printf.eprintf
-              "****** Begin iteration: %i\n%!" (length starts_and_lens);
+            Pdfe.log (Printf.sprintf
+              "****** Begin iteration: %i\n%!" (length starts_and_lens));
             iter
               (fun (start, len) ->
                 let these_xrefs =
@@ -1285,8 +1284,8 @@ let read_xref_stream i =
                 starts_and_lens;
               i.seek_in original_pos;
               if !read_debug then
-                (Printf.eprintf "***READ_XREF_STREAM final result was %i xrefs\n%!"
-                (length !xrefs'); tt' ());
+                (Pdfe.log (Printf.sprintf "***READ_XREF_STREAM final result was %i xrefs\n"
+                (length !xrefs')); tt' ());
               rev !xrefs', xrefstream_objectnumber
 
 (* A suitable function for the Pdf module to use to lex and parse an object.
@@ -1331,8 +1330,8 @@ revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
   if !read_debug then
-    (Printf.eprintf "read_pdf, revision is %s\n%!"
-      (match revision with None -> "None" | Some x -> string_of_int x); tt' ());
+    (Pdfe.log (Printf.sprintf "read_pdf, revision is %s\n"
+      (match revision with None -> "None" | Some x -> string_of_int x)); tt' ());
   begin match revision with
      Some x when x < 1 && x <> (-1) -> raise BadRevision
    | _ -> ()
@@ -1343,9 +1342,11 @@ let read_pdf ?revision user_pw owner_pw opt i =
   i.seek_in 0;
   if !read_debug then
     begin
-      Printf.eprintf "Start of read_pdf\n%!";
-      Printf.eprintf "%s\n%!" i.Pdfio.source;
-      Printf.eprintf "opt is %!"; Printf.eprintf "%b%!" opt; Printf.eprintf "\n%!"
+      Pdfe.log (Printf.sprintf "Start of read_pdf\n%!");
+      Pdfe.log (Printf.sprintf "%s\n%!" i.Pdfio.source);
+      Pdfe.log (Printf.sprintf "opt is %!");
+      Pdfe.log (Printf.sprintf "%b%!" opt);
+      Pdfe.log (Printf.sprintf "\n")
     end;
   let postdeletes = ref [] in
   let object_stream_ids = null_hash () in
@@ -1392,9 +1393,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
       | xrefchars -> xref := int_of_string (implode xrefchars);
       end;
-      if !read_debug then (Printf.eprintf "Reading Cross-reference table\n%!"; tt' ());
+      if !read_debug then (Pdfe.log (Printf.sprintf "Reading Cross-reference table\n"); tt' ());
       while not !got_all_xref_sections do
-        if !read_debug then Printf.eprintf "Reading xref section at %i\n%!" !xref;
+        if !read_debug then Pdfe.log (Printf.sprintf "Reading xref section at %i\n" !xref);
         i.seek_in !xref;
         incr current_revision;
         (* Distinguish between xref table and xref stream. *)
@@ -1402,8 +1403,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
         (* Read cross-reference table *)
         let read_table skip =
           if !read_debug then
-            Printf.eprintf "Reading table for revision %i, skip = %b\n%!"
-            !current_revision skip;
+            Pdfe.log (Printf.sprintf "Reading table for revision %i, skip = %b\n%!"
+            !current_revision skip);
           if peek_char i = Some 'x'
             then
               iter (if skip then (function _ -> ()) else addref) (read_xref i)
@@ -1417,7 +1418,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           None -> read_table false
         | Some r when r <= !current_revision -> read_table false
         | _ ->
-            if !read_debug then Printf.eprintf "Skipping revision %i\n%!" !current_revision;
+            if !read_debug then Pdfe.log (Printf.sprintf "Skipping revision %i\n%!" !current_revision);
             read_table true
         end;
         (* It is now assumed that [i] is at the start of the trailer dictionary.  *)
@@ -1443,7 +1444,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 i.seek_in n;
                 let read_table () =
                   if !read_debug then
-                    Printf.eprintf "Reading table for revision stm %i\n%!" !current_revision;
+                    Pdfe.log (Printf.sprintf "Reading table for revision stm %i\n%!" !current_revision);
                   let refs, objnumbertodelete = read_xref_stream i in
                     postdeletes := objnumbertodelete::!postdeletes;
                     iter addref refs
@@ -1453,7 +1454,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                   | Some r when r <= !current_revision -> read_table ()
                   | _ ->
                       if !read_debug then
-                        Printf.eprintf "Skipping /XRefStm in revision %i\n%!" !current_revision
+                        Pdfe.log (Printf.sprintf "Skipping /XRefStm in revision %i\n%!" !current_revision)
                   end;
             | _ -> ()
             end;
@@ -1480,7 +1481,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           raise (Revisions real_revisions)
       else
       if !read_debug then
-        (Printf.eprintf "*** READ %i XREF entries\n%!" (Hashtbl.length xrefs); tt' ());
+        (Pdfe.log (Printf.sprintf "*** READ %i XREF entries\n%!" (Hashtbl.length xrefs)); tt' ());
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) ->
@@ -1496,7 +1497,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
           | Some (XRefStream _) -> 0
           | None -> raise Not_found
         in
-        if !read_debug then (Printf.eprintf "Reading non-stream objects%!\n"; tt' ());
+        if !read_debug then (Pdfe.log (Printf.sprintf "Reading non-stream objects%!\n"); tt' ());
         let objects_nonstream =
           let objnumbers = ref [] in
             xrefs_table_iter
@@ -1516,14 +1517,14 @@ let read_pdf ?revision user_pw owner_pw opt i =
                      fun o -> o, (ref Pdf.ToParse, getgen o))
                 !objnumbers
           in
-          if !read_debug then (Printf.eprintf "Reading stream objects%!\n"; tt' ());
+          if !read_debug then (Pdfe.log (Printf.sprintf "Reading stream objects%!\n"); tt' ());
           let objects_stream =
            let streamones =
              let l = ref [] in
                Hashtbl.iter (fun k v -> match v with XRefStream (s, i) -> l =| (k, s, i) | _ -> ()) xrefs;
                !l
            in
-             if !read_debug then (Printf.eprintf "Made streamones\n"; tt' ());
+             if !read_debug then (Pdfe.log "Made streamones\n"; tt' ());
              (*Printf.printf
                 "*** %i objects are in streams\n" (length streamones);
                iter
@@ -1534,7 +1535,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
              iter
                (function (n, s, _) -> Hashtbl.add object_stream_ids n s)
                streamones;
-             if !read_debug then (Printf.eprintf "Added object_stream_ids \n"; tt' ());
+             if !read_debug then (Pdfe.log "Added object_stream_ids\n"; tt' ());
              if opt then
                begin
                  let collated =
@@ -1573,7 +1574,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                let partial =
                  mkpartial objects_nonstream (Pdf.Dictionary !trailerdict)
                in
-                 if !read_debug then (Printf.eprintf "Made partial \n"; tt' ());
+                 if !read_debug then (Pdfe.log "Made partial\n"; tt' ());
                  let readstream streamobjnumber indexes =
                    lex_stream_object
                     i xrefs parse opt streamobjnumber indexes user_pw owner_pw
@@ -1587,7 +1588,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                          List.iter (function (_, s, _) as x -> Hashtbl.add gt s x; Hashtbl.replace sst s 0) streamones;
                          List.map (Hashtbl.find_all gt) (map fst (list_of_hashtbl sst))
                        in
-                         if !read_debug then (Printf.eprintf "Made groups \n"; tt' ());
+                         if !read_debug then (Pdfe.log "Made groups\n"; tt' ());
                          iter
                            (fun group ->
                               let firsts = map (fun (n, _, _) -> n) group in
@@ -1596,7 +1597,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                              groups;
                              t
                    in
-                     if !read_debug then (Printf.eprintf "Made themap \n"; tt' ());
+                     if !read_debug then (Pdfe.log "Made themap\n"; tt' ());
                      map
                        (function (n, s, i) ->
                          (n,
@@ -1607,16 +1608,16 @@ let read_pdf ?revision user_pw owner_pw opt i =
          in
           if !read_debug then
             begin
-              Printf.eprintf
-                "There were %i nonstream objects\n%!" (length objects_nonstream);
-              Printf.eprintf
-                "There were %i stream objects\n%!" (length objects_stream);
-              Printf.eprintf "\n%!";
+              Pdfe.log (Printf.sprintf
+                "There were %i nonstream objects\n%!" (length objects_nonstream));
+              Pdfe.log (Printf.sprintf
+                "There were %i stream objects\n%!" (length objects_stream));
+              Pdfe.log (Printf.sprintf "\n%!");
               tt' ();
             end;
           objects_stream, objects_nonstream, root, trailerdict
     in
-      if !read_debug then (Printf.eprintf "Finishing up...\n%!"; tt' ());
+      if !read_debug then (Pdfe.log (Printf.sprintf "Finishing up...\n"); tt' ());
       let objects = objects_stream @ objects_nonstream in
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
@@ -1631,7 +1632,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None}
           in
-          if !read_debug then (Printf.eprintf "made final objects...\n%!"; tt' ());
+          if !read_debug then (Pdfe.log (Printf.sprintf "made final objects...\n"); tt' ());
           (* Check for a /Version in the document catalog *)
           begin match Pdf.lookup_direct pdf "/Version" (Pdf.lookup_obj pdf root) with
             Some (Pdf.Name s) ->
@@ -1642,7 +1643,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                        ("%PDF-" ^ String.sub s 1 (String.length s - 1)))
                 with
                   e ->
-                    Printf.eprintf "%s\n" (Printexc.to_string e);
+                    Pdfe.log (Printf.sprintf "%s\n" (Printexc.to_string e));
                     (pdf.Pdf.major, pdf.Pdf.minor)
               in
                 pdf.Pdf.major <- major;
@@ -1659,17 +1660,17 @@ let read_pdf ?revision user_pw owner_pw opt i =
             pdf.Pdf.objects.Pdf.object_stream_ids <- object_stream_ids;
             (*if !read_debug then
               begin
-                Printf.eprintf "Object stream IDs:\n%!";
+                Pdfe.log (Printf.sprintf "Object stream IDs:\n%!");
                 Hashtbl.iter
                   (fun o s ->
-                     Printf.eprintf "Object %i was in stream %i\n%!" o s)
+                     Pdfe.log (Printf.sprintf "Object %i was in stream %i\n%!" o s))
                   object_stream_ids
               end;*)
             if !read_debug then
               begin
-                Printf.eprintf "Done reading PDF file.\n%!"; tt' ();
+                Pdfe.log "Done reading PDF file.\n"; tt' ();
                 match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
-                | Some _ -> Printf.eprintf "***File is encrypted\n%!" | _ -> ()
+                | Some _ -> Pdfe.log "***File is encrypted\n" | _ -> ()
               end;
             pdf
 
@@ -1759,15 +1760,15 @@ let read_malformed_pdf_objects i =
     while let x = i.input_char () in rewind i; x <> None do
       let c = i.pos_in () in
         try
-          if !read_debug then Printf.eprintf
-             "read_malformed_pdf_object is reading an object at %i\n%!" c;
+          if !read_debug then Pdfe.log (Printf.sprintf
+             "read_malformed_pdf_object is reading an object at %i\n" c);
           let objnum, obj =
             parse
               ~failure_is_ok:true
               (lex_object_at
                 true i true parse (lex_object i (null_hash ()) parse true))
           in
-            if !read_debug then Printf.eprintf "Got object %i ok\n%!" objnum;
+            if !read_debug then Pdfe.log (Printf.sprintf "Got object %i ok\n" objnum);
             (*if !read_debug then Printf.printf "Got object %i, which is %s ok%!\n"
                 objnum (Pdfwrite.string_of_pdf obj);*)
             if objnum > 0 && objnum < max_int then objs := add objnum obj !objs;
@@ -1775,14 +1776,14 @@ let read_malformed_pdf_objects i =
             if i.pos_in () = c then ignore (input_line i) (* no progress. *)
         with
           e ->
-            if !read_debug then Printf.eprintf "Couldn't get object, moving on\n%!";
+            if !read_debug then Pdfe.log "Couldn't get object, moving on\n";
             ignore (input_line i) (* Move on *)
     done;
     !objs
 
 let read_malformed_pdf upw opw i =
-  Printf.eprintf
-    "Attempting to reconstruct the malformed pdf %s...\n%!" i.Pdfio.source;
+  Pdfe.log (Printf.sprintf
+    "Attempting to reconstruct the malformed pdf %s...\n%!" i.Pdfio.source);
   if !read_debug then flprint "Beginning of malformed PDF reconstruction\n";
   let trailerdicts = read_malformed_trailerdicts i in
     if !read_debug then flprint "Finished reading malformed trailer dictionaries\n";
@@ -1794,10 +1795,10 @@ let read_malformed_pdf upw opw i =
         (function (objnum, obj) -> (objnum, (ref (Pdf.Parsed obj), 0)))
         (read_malformed_pdf_objects i)
     in
-      Printf.eprintf "Read %i objects\n%!" (length objects);
+      Pdfe.log (Printf.sprintf "Read %i objects\n%!" (length objects));
       let trailerdict, root =
         if !read_debug then
-          iter (fun td -> Printf.eprintf "trailerdict is %s\n%!" (Pdfwrite.string_of_pdf (Pdf.Dictionary td))) trailerdicts;
+          iter (fun td -> Pdfe.log (Printf.sprintf "trailerdict is %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary td)))) trailerdicts;
         (* Select best trailerdict. Most recent one which has a dictionary as a root. *)
         let trailerdict = ref [] in
         let root = ref ~-1 in
@@ -1821,7 +1822,7 @@ let read_malformed_pdf upw opw i =
         and DecodeParms *)
         let trailerdict' = sanitize_trailerdict (length objects) trailerdict in
         let was_linearized = is_linearized i in
-          Printf.eprintf "Malformed PDF reconstruction succeeded!\n%!";
+          Pdfe.log "Malformed PDF reconstruction succeeded!\n";
           let pdf =
            {Pdf.major = major;
             Pdf.minor = minor;
@@ -1871,7 +1872,7 @@ let read_pdf revision upw opw opt i =
       | e ->
           if !error_on_malformed then raise e else
             begin
-              Printf.eprintf "Because of error %s, will read as malformed.\n%!" (Printexc.to_string e);
+              Pdfe.log (Printf.sprintf "Because of error %s, will read as malformed.\n%!" (Printexc.to_string e));
               try read_malformed_pdf upw opw i with e' ->
                 report_read_error i e e'
              end

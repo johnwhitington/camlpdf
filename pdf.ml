@@ -1020,12 +1020,12 @@ let transform_quadpoint_single pdf transform = function
         let (x4, y4) = Pdftransform.transform_matrix transform (x4, y4) in
           map (fun x -> Real x) [x1; y1; x2; y2; x3; y3; x4; y4]
   | qp ->
-     Printf.eprintf "Malformed /QuadPoints format: must be a multiple of 8 entries\n";
+     Pdfe.log "Malformed /QuadPoints format: must be a multiple of 8 entries\n";
      qp
 
 let transform_quadpoints pdf transform = function
 | Array qps ->
     Array (flatten (map (transform_quadpoint_single pdf transform) (splitinto 8 qps)))
 | qp ->
-    Printf.eprintf "Unknown or malformed /QuadPoints format %s\n" (!string_of_pdf qp);
+    Pdfe.log (Printf.sprintf "Unknown or malformed /QuadPoints format %s\n" (!string_of_pdf qp));
     qp
