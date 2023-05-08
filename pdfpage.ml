@@ -449,8 +449,9 @@ let mkpage getobjnum parent page =
         ([("/Type", Pdf.Name "/Page");
           ("/Parent", Pdf.Indirect parent);
           ("/Resources", page.resources);
-          ("/MediaBox", page.mediabox);
-          ("/Rotate", Pdf.Integer (int_of_rotation page.rotate))]
+          ("/MediaBox", page.mediabox)]
+         @
+          (let i = int_of_rotation page.rotate in if i = 0 then [] else [("/Rotate", Pdf.Integer i)])
       @
         (match page.rest with
          | Pdf.Dictionary d -> d
