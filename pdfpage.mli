@@ -94,9 +94,9 @@ val shortest_unused_prefix : Pdf.t -> string
     the prefix to any name used in any content streams. *)
 val add_prefix : Pdf.t -> string -> unit
 
-(** Calling [protect pdf resources streams] add stack operators to a pre-ISO
+(** Calling [protect pdf] add stack operators to a pre-ISO
     content stream to ensure it is composeable. *)
-val protect : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject list -> Pdfops.t list
+val protect : Pdfops.t list -> Pdfops.t list
 
 (** Add operators to the beginning of a page. If [fast] is set (default false),
     don't check for mismatched stack operators. *)

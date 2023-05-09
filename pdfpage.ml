@@ -1077,13 +1077,12 @@ let prepend_operators pdf ops ?(fast=false) page =
         [Pdfops.stream_of_ops (ops @ old_ops)]}
 
 (* Add stack operators to a content stream to ensure it is composeable. *)
-let protect pdf resources content =
-  let ops = Pdfops.parse_operators pdf resources content in
-    let qs = length (keep (eq Pdfops.Op_q) ops)
-    and bigqs = length (keep (eq Pdfops.Op_Q) ops) in
-    let deficit = if qs > bigqs then qs - bigqs else 0 in
-      if deficit <> 0 then Pdfe.log (Printf.sprintf "Q Deficit was nonzero. Fixing. %i\n" deficit);
-      many Pdfops.Op_Q deficit
+let protect ops =
+  let qs = length (keep (eq Pdfops.Op_q) ops)
+  and bigqs = length (keep (eq Pdfops.Op_Q) ops) in
+  let deficit = if qs > bigqs then qs - bigqs else 0 in
+    if deficit <> 0 then Pdfe.log (Printf.sprintf "Q Deficit was nonzero. Fixing. %i\n" deficit);
+    many Pdfops.Op_Q deficit
 
 (* We check for q/Q mismatches in existing section. *)
 let postpend_operators pdf ops ?(fast=false) page =
@@ -1091,13 +1090,15 @@ let postpend_operators pdf ops ?(fast=false) page =
     {page with content =
        page.content @ [Pdfops.stream_of_ops ([Pdfops.Op_q] @ ops @ [Pdfops.Op_Q])]}
   else
-    let beforeops =
-      [Pdfops.Op_q]
-    and afterops =
-      protect pdf page.resources page.content @ [Pdfops.Op_Q] @ ops
-    in
-      {page with content =
-         [Pdfops.stream_of_ops (beforeops @ Pdfops.parse_operators pdf page.resources page.content @ afterops)]}
+    let existing_ops = Pdfops.parse_operators pdf page.resources page.content in
+      if existing_ops = [] then
+        {page with content = [Pdfops.stream_of_ops ops]} (* avoid protecting the empty contents *)
+      else
+        let protected = protect existing_ops in
+        let beforeops = [Pdfops.Op_q] in
+        let afterops = protected @ [Pdfops.Op_Q] @ ops in
+          {page with content =
+             [Pdfops.stream_of_ops (beforeops @ existing_ops @ afterops)]}
 
 (* Source of possible prefix strings. String is always copied. *)
 let next_string s =
