@@ -67,6 +67,8 @@ CamlZip by Xavier Leroy. The originals are available here:
 The file [rijndael-alg-fst.c](rijndael-alg-fst.c) was written by Vincent
 Rijmen, Antoon Bosselaers and Paulo Barreto.
 
+The file [sha2.c](sha2.c) was written by Olivier Gay.
+
 [OCamlMakefile](OCamlMakefile) was written by Markus Mottl. It is available
 here:
 
