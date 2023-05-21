@@ -1114,7 +1114,6 @@ let read_xref i =
           End_of_file | Sys_error _
           | Failure _ (*"int_of_string"*) -> fail ()
       end;
-      if !entries = 0 then fail ();
       !xrefs
 
 (* PDF 1.5 cross-reference stream support. [i] is the input. The tuple describes
