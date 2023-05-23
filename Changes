@@ -1,7 +1,7 @@
 2.6 (Next version)
 
 Merging improvements:
-o Fix merge to keep major PDF version number
+o Keep major PDF version number
 o Merge /StructTreeRoot entries (Structure hierarchy / Tagged PDF)
 o Disambiguate destination name trees when merging
 o Preserve named destinations in bookmarks when merging
