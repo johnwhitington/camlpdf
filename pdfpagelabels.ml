@@ -36,7 +36,7 @@ let label_of_range pdf (startpage, thing) =
   let startpage =
     match startpage with
     | Pdf.Integer i -> i + 1
-    | _ -> raise (Pdf.PDFError "Bad Number Tree")
+    | _ -> Pdfe.log "Bad Number Tree\n"; 1
   and labelstyle =
     match Pdf.lookup_direct pdf "/S" thing with
     | Some (Pdf.Name "/D") -> DecimalArabic

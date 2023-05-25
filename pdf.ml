@@ -929,7 +929,9 @@ let rec contents_of_nametree pdf tree =
   | Some (Array names) ->
       let rec pairs_of_list prev = function
       | [] -> rev prev
-      | [_] -> raise (PDFError "contents_of_nametree: bad /Names")
+      | [_] ->
+          Pdfe.log "warning: contents_of_nametree: odd number of /Names\n";
+          rev prev
       | k::v::r -> pairs_of_list ((k, v)::prev) r
       in
         pairs_of_list [] names
