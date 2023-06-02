@@ -26,6 +26,7 @@ o Compress inline images upon writing if uncompressed
 o Retired old unused modules to old/
 o Cope with /Crypt identity filters
 o Ability to redirect error output
+o Make ASCII85Decode against newlines
 
 2.5 (January 2022)
 

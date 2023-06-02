@@ -7,17 +7,13 @@ let debug = ref false
 let flate_level = ref 6
 
 (* Get the next non-whitespace character in a stream. *)
-let rec get_streamchar skipped s =
+let rec get_streamchar s =
   match s.input_byte () with
-  | x when x = Pdfio.no_more -> raise End_of_file
+  | x when x = Pdfio.no_more ->
+      raise End_of_file
   | x ->
-    let chr = Char.unsafe_chr x in
-      if Pdf.is_whitespace chr then
-        begin
-          incr skipped;
-          get_streamchar skipped s
-        end
-      else chr
+      let chr = Char.unsafe_chr x in
+        if Pdf.is_whitespace chr then get_streamchar s else chr
 
 (* Raised if there was bad data. *)
 exception Couldn'tDecodeStream of string
@@ -51,8 +47,8 @@ let decode_ASCIIHex i =
   in let enddata = ref false in
     try
       while not !enddata do
-        let b = get_streamchar (ref 0) i in
-          let b' = get_streamchar (ref 0) i in
+        let b = get_streamchar i in
+          let b' = get_streamchar i in
             match b, b' with
             | '>', _ ->
                 (* Rewind for inline images *)
@@ -87,6 +83,10 @@ let decode_ASCIIHex i =
           raise (Couldn'tDecodeStream "ASCIIHex")
 
 (* ASCII85 *)
+let rec input_byte_ignoring i =
+  match i.input_byte () with
+  | 10 | 13 -> input_byte_ignoring i
+  | x -> x
 
 (* Decode five characters. *)
 let decode_5bytes c1 c2 c3 c4 c5 n o =
@@ -116,7 +116,7 @@ let conso cs o =
   | _ -> o
 
 let rec decode_ASCII85_i i cs o =
-  match i.input_byte () with
+  match input_byte_ignoring i with
   | x when x = Pdfio.no_more -> raise End_of_file
   | x ->
      match char_of_int x with
@@ -127,7 +127,7 @@ let rec decode_ASCII85_i i cs o =
      | 'z' ->
        decode_ASCII85_i i [] ('\000'::'\000'::'\000'::'\000'::conso (rev cs) o)
      | '~' ->
-       begin match i.input_byte () with
+       begin match input_byte_ignoring i with
        | x when x = Pdfio.no_more -> raise End_of_file
        | x ->
           match char_of_int x with
@@ -897,8 +897,7 @@ too low. Fails in the usual manner if the index is too high. *)
 let get0 a i =
   if i < 0 then 0 else a.(i)
 
-(* TIFF prediction. 8bpp only for now. We don't have example files for the
-others yet, so we'll have to wait to create our own examples. *)
+(* TIFF prediction. 8bpp only for now. *)
 let decode_tiff_predictor colors bpc columns stream =
   match bpc with
   | 1 -> raise (DecodeNotSupported "TIFF Predictor for 1bpc not supported")
@@ -1293,8 +1292,7 @@ let decode_pdfstream_onestage pdf stream =
       begin match
         Pdf.direct pdf (Pdf.lookup_fail "no /Length" pdf "/Length" dict)
       with
-      | Pdf.Integer _ -> ()
-      (*i if l <> bytes_size s then raise (PDFError "Wrong /Length") i*)
+      | Pdf.Integer _ -> () (*i if l <> bytes_size s then raise (PDFError "Wrong /Length") i*)
       | _ -> raise (Pdf.PDFError "No /Length")
       end;
       let stream' = decode_one pdf dict (StreamSource s) in
@@ -1345,10 +1343,6 @@ let decode_from_input i dict =
         let rec decode_rest stream = function
           | [] -> stream
           | Pdf.Name _::more ->
-              (* Removing the filter just done, and its decodeparms. Note that
-              /F can denote a file specification, but this can never be in an
-              inline image (which is currrently the only use of
-              decode_from_input, so that's ok for now. *)
               let filters =
                 Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict
               in let decodeparms =
@@ -1427,7 +1421,7 @@ let encoder_of_encoding = function
 let process_prediction_data predictor predictor_columns d =
   match predictor with
     PNGUp -> encode_predictor 12 1 8 predictor_columns d
-  | _ -> raise (Pdf.PDFError "process_predction_data")
+  | _ -> raise (Pdf.PDFError "process_prediction_data")
 
 let process_prediction predictor predictor_columns stream =
   match stream with
