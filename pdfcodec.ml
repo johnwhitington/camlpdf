@@ -83,25 +83,16 @@ let decode_ASCIIHex i =
           raise (Couldn'tDecodeStream "ASCIIHex")
 
 (* ASCII85 *)
-
-(* Decode five characters. *)
 let decode_5bytes c1 c2 c3 c4 c5 n o =
-  let d x p =
-    i32mul (i32ofi (int_of_char x - 33)) (i32ofi (pow p 85))
-  in
-    let total =
-      i32add
-        (i32add (d c1 4) (d c2 3))
-        (i32add (d c3 2) (i32add (d c4 1) (d c5 0)))
-    in
-      let extract t =
-        char_of_int (i32toi (lsr32 (lsl32 total (24 - t)) 24))
-      in
-        if n = 4 then extract 0::extract 8::extract 16::extract 24::o
-        else if n = 3 then extract 8::extract 16::extract 24::o
-        else if n = 2 then extract 16::extract 24::o
-        else if n = 1 then extract 24::o
-        else o
+  let d x p = i32mul (i32ofi (int_of_char x - 33)) (i32ofi (pow p 85)) in
+  let total = i32add (i32add (d c1 4) (d c2 3)) (i32add (d c3 2) (i32add (d c4 1) (d c5 0))) in
+  let extract t = char_of_int (i32toi (lsr32 (lsl32 total (24 - t)) 24)) in
+    match n with
+    | 4 -> extract 0::extract 8::extract 16::extract 24::o
+    | 3 -> extract 8::extract 16::extract 24::o
+    | 2 -> extract 16::extract 24::o
+    | 1 -> extract 24::o
+    | _ -> o
 
 let conso cs o =
   match cs with
@@ -114,9 +105,9 @@ let conso cs o =
 let rec decode_ASCII85_i i cs o =
   match get_streamchar i with
   | 'z' ->
-    decode_ASCII85_i i [] ('\000'::'\000'::'\000'::'\000'::conso (rev cs) o)
+      decode_ASCII85_i i [] ('\000'::'\000'::'\000'::'\000'::conso (rev cs) o)
   | '~' ->
-    bytes_of_charlist (rev (conso (rev cs) o))
+      bytes_of_charlist (rev (conso (rev cs) o))
   | c when c >= '!' && c <= 'u' ->
       if length cs = 5
         then (decode_ASCII85_i i [c] (conso (rev cs) o))
@@ -131,29 +122,24 @@ let decode_ASCII85 i =
 (* Encode a single symbol set. *)
 let encode_4bytes = function
   | [b1; b2; b3; b4] ->
-      let ( * ) = Int64.mul
-      in let ( - ) = Int64.sub
-      in let ( / ) = Int64.div 
-      in let rem = Int64.rem in
+      let ( * ), ( - ), ( / ), rem = Int64.mul, Int64.sub, Int64.div, Int64.rem in
         let numbers =
           [i64ofi (int_of_char b1) * i64ofi (pow 3 256);
            i64ofi (int_of_char b2) * i64ofi (pow 2 256);
            i64ofi (int_of_char b3) * i64ofi (pow 1 256);
            i64ofi (int_of_char b4) * i64ofi (pow 0 256)]
         in
-          let t = fold_left Int64.add Int64.zero numbers
-          in let one85 = i64ofi (pow 1 85) in let two85 = i64ofi (pow 2 85)
-          in let three85 = i64ofi (pow 3 85) in let zero85 = i64ofi (pow 0 85)
-          in let four85 = i64ofi (pow 4 85) in
-            let t, c5 = t - rem t one85, rem t one85 / zero85 in
-              let t, c4 = t - rem t two85, rem t two85 / one85 in
-                let t, c3 = t - rem t three85, rem t three85 / two85 in
-                  let t, c2 = t - rem t four85, rem t four85 / three85 in
-                    let i1, i2, i3, i4, i5 =
-                      i64toi (t / four85),
-                      i64toi c2, i64toi c3, i64toi c4, i64toi c5
-                    in
-                      i1, i2, i3, i4, i5
+          let t = fold_left Int64.add Int64.zero numbers in
+          let one85 = i64ofi (pow 1 85) in
+          let two85 = i64ofi (pow 2 85) in
+          let three85 = i64ofi (pow 3 85) in
+          let zero85 = i64ofi (pow 0 85) in
+          let four85 = i64ofi (pow 4 85) in
+          let t, c5 = t - rem t one85, rem t one85 / zero85 in
+          let t, c4 = t - rem t two85, rem t two85 / one85 in
+          let t, c3 = t - rem t three85, rem t three85 / two85 in
+          let t, c2 = t - rem t four85, rem t four85 / three85 in
+            i64toi (t / four85), i64toi c2, i64toi c3, i64toi c4, i64toi c5
   | _ -> assert false
 
 (* Encode a stream. *)
