@@ -277,11 +277,11 @@ let encode_flate stream =
 let debug_stream_serial = ref 0
 
 let debug_stream s =
-  (*Pdfe.log "First 50 bytes\n";
+  Pdfe.log "First 50 bytes\n";
   for x = 0 to 50 do
     Pdfe.log (Printf.sprintf "%C = %i\n" (char_of_int (bget s x)) (bget s x))
-  done*)
-  (* Write stream to current directory as <length>_<serial>.zlib *)
+  done
+  (*(* Write stream to current directory as <length>_<serial>.zlib *)
   let name = string_of_int (bytes_size s) ^ "_" ^ string_of_int !debug_stream_serial ^ ".zlib" in
     Pdfe.log (Printf.sprintf "Writing %s\n" name);
     debug_stream_serial += 1;
@@ -289,10 +289,9 @@ let debug_stream s =
       for x = 0 to bytes_size s - 1 do
         output_byte fh (bget s x)
       done;
-      close_out fh
+      close_out fh*)
 
 let decode_flate stream =
-  (*Printf.printf "stream length from ocaml: %i\n" (bytes_size stream);*)
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try
       if is_js then
