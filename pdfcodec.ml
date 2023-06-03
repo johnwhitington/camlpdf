@@ -83,10 +83,6 @@ let decode_ASCIIHex i =
           raise (Couldn'tDecodeStream "ASCIIHex")
 
 (* ASCII85 *)
-let rec input_byte_ignoring i =
-  match i.input_byte () with
-  | 10 | 13 -> input_byte_ignoring i
-  | x -> x
 
 (* Decode five characters. *)
 let decode_5bytes c1 c2 c3 c4 c5 n o =
@@ -116,33 +112,17 @@ let conso cs o =
   | _ -> o
 
 let rec decode_ASCII85_i i cs o =
-  match input_byte_ignoring i with
-  | x when x = Pdfio.no_more -> raise End_of_file
-  | x ->
-     match char_of_int x with
-     | c when Pdf.is_whitespace c ->
-       if length cs = 5
-         then decode_ASCII85_i i [] (conso (rev cs) o)
-         else decode_ASCII85_i i cs o
-     | 'z' ->
-       decode_ASCII85_i i [] ('\000'::'\000'::'\000'::'\000'::conso (rev cs) o)
-     | '~' ->
-       begin match input_byte_ignoring i with
-       | x when x = Pdfio.no_more -> raise End_of_file
-       | x ->
-          match char_of_int x with
-          | '>' ->
-             bytes_of_charlist (rev (conso (rev cs) o))
-          | c ->
-             if length cs = 5
-               then decode_ASCII85_i i [c] (conso (rev cs) o)
-               else decode_ASCII85_i i (c::cs) o
-       end
-     | c when c >= '!' && c <= 'u' ->
-       if length cs = 5
-         then (decode_ASCII85_i i [c] (conso (rev cs) o))
-         else (decode_ASCII85_i i (c::cs) o)
-     | _ -> raise (Failure "A")
+  match get_streamchar i with
+  | 'z' ->
+    decode_ASCII85_i i [] ('\000'::'\000'::'\000'::'\000'::conso (rev cs) o)
+  | '~' ->
+    bytes_of_charlist (rev (conso (rev cs) o))
+  | c when c >= '!' && c <= 'u' ->
+      if length cs = 5
+        then (decode_ASCII85_i i [c] (conso (rev cs) o))
+        else (decode_ASCII85_i i (c::cs) o)
+  | _ ->
+      raise (Pdf.PDFError "decode_ASCII85_i")
 
 let decode_ASCII85 i =
   try decode_ASCII85_i i [] [] with
