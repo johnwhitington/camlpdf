@@ -207,7 +207,11 @@ val bytes_of_input_channel : in_channel -> bytes
 (** {2 Bit streams for reading} *)
 
 (** The type of most-significant-bit-first bitstreams over inputs. *)
-type bitstream
+type bitstream =
+  {input : input; (* The input from which bits are taken. It is advanced a byte at a time *)
+   mutable currbyte : int; (* Current byte value from input *)
+   mutable bit : int; (* Mask for getting the next bit (128, 64,... 2, 1 or 0 = none left) *)
+   mutable bitsread : int (* A count of the number of bits read since inception. Debug use only *)}
 
 (** Make a bitstream from an input. *)
 val bitbytes_of_input : input -> bitstream
