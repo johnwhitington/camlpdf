@@ -419,9 +419,13 @@ let bytes_of_input_channel ch =
 
 (* Save a bytes to a channel. *)
 let bytes_to_output_channel ch data =
-  for x = 1 to bytes_size data do
-    output_byte ch (bget_unsafe data (x - 1))
-  done
+  match data with
+  | Short caml_bytes ->
+      output_string ch (Obj.magic caml_bytes : string)
+  | Long _ as data ->
+      for x = 1 to bytes_size data do
+        output_byte ch (bget_unsafe data (x - 1))
+      done
 
 (* Like Stdlib.read_line *) 
 let b = Buffer.create 256
