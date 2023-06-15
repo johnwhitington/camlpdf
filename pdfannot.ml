@@ -259,8 +259,8 @@ let transform_annotations pdf transform rest =
              let annot = Pdf.lookup_obj pdf i in
              let rect' =
                match Pdf.lookup_direct pdf "/Rect" annot with
-               | Some rect -> Pdf.transform_rect pdf transform rect
-               | None -> raise (Pdf.PDFError "transform_annotations: no rect")
+               | Some rect -> Some (Pdf.transform_rect pdf transform rect)
+               | None -> None (* malformed, but seen in the wild *)
                in
              let quadpoints' =
                match Pdf.lookup_direct pdf "/QuadPoints" annot with
@@ -272,7 +272,9 @@ let transform_annotations pdf transform rest =
                | Some rect -> Some (Pdf.transform_rect pdf transform rect)
                | _ -> None
              in
-             let annot = Pdf.add_dict_entry annot "/Rect" rect' in
+             let annot =
+               match rect' with None -> annot | Some rect' -> Pdf.add_dict_entry annot "/Rect" rect'
+             in
              let annot =
                match quadpoints' with
                | Some qp -> Pdf.add_dict_entry annot "/QuadPoints" qp 
