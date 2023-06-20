@@ -375,7 +375,7 @@ let apply_namechanges_to_destination_nametree pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try (*let r = *) Hashtbl.find changes s (*in Printf.printf "%s -> %s\n" s r; r*) with
-      Not_found -> Pdfe.log ("apply_namechanges_to_destination_nametree: destination not found: " ^ s); s
+      Not_found -> Pdfe.log ("apply_namechanges_to_destination_nametree: destination not found: " ^ s ^ "\n"); s
   in
   let rec rewrite_kids d =
     (*Printf.printf "rewrite_kids on dict %s\n" (Pdfwrite.string_of_pdf d);*)
@@ -429,7 +429,7 @@ let apply_namechanges_at_destination_callsites pdf changes =
   let changes = hashtable_of_dictionary changes in
   let rewrite_string s =
     try Hashtbl.find changes s with
-      Not_found -> Pdfe.log ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s); s
+      Not_found -> Pdfe.log ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s ^ "\n"); s
   in
     let rec f = function
     | Pdf.Dictionary d ->
