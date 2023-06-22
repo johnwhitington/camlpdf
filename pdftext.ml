@@ -843,7 +843,7 @@ let tounicode_map s us =
 
 (* Just for the kind produced by the font subsetter for now. *)
 let write_tounicode pdf u =
-  let bytes = tounicode_map 0 (map (fun (_, s) -> s) (sort compare ((list_of_hashtbl u)))) in
+  let bytes = tounicode_map 33 (map (fun (_, s) -> s) (sort compare ((list_of_hashtbl u)))) in
     Pdf.addobj pdf (Pdf.Stream {contents = (Pdf.Dictionary [("/Length", Pdf.Integer (bytes_size bytes))], Pdf.Got bytes)})
 
 let write_font ?objnum pdf = function
