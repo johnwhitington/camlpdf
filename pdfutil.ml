@@ -199,6 +199,19 @@ let rev_map5 f a b c d e =
 let map5 f a b c d e =
   rev (rev_map5 f a b c d e)
 
+let rec rev_map6_inner f a b c d e g outputs =
+  match a, b, c, d, e, g with
+  | [], [], [], [], [], [] -> outputs
+  | ha::ta, hb::tb, hc::tc, hd::td, he::te, hg::tg ->
+      rev_map6_inner f ta tb tc td te tg (f ha hb hc hd he hg::outputs)
+  | _ -> raise (Invalid_argument "Pdfutil.map6")
+
+let rev_map6 f a b c d e g =
+  rev_map6_inner f a b c d e g []
+
+let map6 f a b c d e g =
+  rev (rev_map6 f a b c d e g)
+
 let sum = fold_left ( + ) 0
 
 let fsum = fold_left ( +. ) 0.

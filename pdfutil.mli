@@ -130,6 +130,16 @@ val map5 :
   ('a -> 'b -> 'c -> 'd -> 'e -> 'f) ->
   'a list -> 'b list -> 'c list -> 'd list -> 'e list -> 'f list
 
+(** Similar to [rev_map], but 6 arguments. *)
+val rev_map6 :
+  ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g) ->
+  'a list -> 'b list -> 'c list -> 'd list -> 'e list -> 'f list -> 'g list
+
+(** Similar to [map2], but 6 arguments. *)
+val map6 :
+  ('a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g) ->
+  'a list -> 'b list -> 'c list -> 'd list -> 'e list -> 'f list -> 'g list
+
 (** [take l n] takes [n] elements from the list raising [Invalid_argument] if
 there are not enough elements to take or if n < 0. *)
 val take : 'a list -> int -> 'a list
