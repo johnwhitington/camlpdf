@@ -1,5 +1,6 @@
-(** General Functions. Typically one will [open Pdfutil]. *)
+(** General functions
 
+    Typically one will [open Pdfutil]. *)
 
 (** {2 Debug Printing} *)
 

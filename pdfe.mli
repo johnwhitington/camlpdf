@@ -1,4 +1,4 @@
-(** Errors. *)
+(** Errors *)
 
 (** The type of loggers. Subject to change. *)
 type logger = string -> unit
