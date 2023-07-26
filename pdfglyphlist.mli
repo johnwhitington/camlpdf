@@ -8,11 +8,14 @@ val glyph_hashes : unit -> (string, int list) Hashtbl.t
 one-to-one map, so this reversal is heuristic. *)
 val reverse_glyph_hashes : unit -> (int list, string) Hashtbl.t
 
+(** Convert a glyph name to a PDF encoding number *)
 val name_to_pdf : (string * int) list
+
+(** Convert a glyph name to a PDF encoding number, hash table version *)
 val name_to_pdf_hashes : (string, int) Hashtbl.t
+
+(** Convert a PDF encoding number to glyph name, hash table version. *)
 val reverse_name_to_pdf_hashes : (int, string) Hashtbl.t
-(** Convert a glyph name to a PDF encoding number. A hash table version, and a
-    reverse hash table version. *)
 
 (** Convert a glyph name to a Windows encoding number *)
 val name_to_win : (string * int) list

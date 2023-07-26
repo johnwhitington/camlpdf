@@ -113,6 +113,8 @@ val pagenumber_of_target : ?fastrefnums:(int, int) Hashtbl.t -> Pdf.t -> Pdfdest
 (** Build a basic [Fit] destintation from a page number of a PDF. *)
 val target_of_pagenumber : Pdf.t -> int -> Pdfdest.t
 
+(** Generate a PDF file with a single A4 page. Unlike [Pdf.empty] it is a fully
+    valid PDF. *)
 val minimum_valid_pdf : unit -> Pdf.t
 
 (**/**)

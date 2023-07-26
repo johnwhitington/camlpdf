@@ -46,6 +46,9 @@ val string_replace_all : string -> string -> string -> string
 (** The same, but provide a function for the replacement string *)
 val string_replace_all_lazy : string -> (unit -> string) -> string -> string
 
+(** The standard OCaml [starts_with] function, for versions of OCaml too old to have it. *)
+val starts_with : string -> string -> bool
+
 (** {2 Lists} *)
 
 val hd : ('a list -> 'a)
@@ -76,8 +79,10 @@ val sort : (('a -> 'a -> int) -> 'a list -> 'a list)
 (** Tail-recursive versions of list functions (and some simple variations). See
 [Stdlib] for documentation. *)
 
+(** Sum of a list of integers. *)
 val sum : int list -> int
 
+(** Sum of a list of floats. *)
 val fsum : float list -> float
 
 (** Cumulative sum of a list given an initial value. For example, [cumulative_sum 1 [2; 3; 4]] is [[3; 6; 10]] *)
@@ -690,5 +695,3 @@ val roman_lower : int -> string
 (* This is legitimately not documented because it requires altering the source
    to use. See the .ml *)
 val tt' : unit -> unit
-
-val starts_with : string -> string -> bool

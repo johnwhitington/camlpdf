@@ -101,5 +101,6 @@ val string_of_lexeme : Pdfgenlex.t -> string
 (** Print a lexeme to Standard Output with a space after it, for debug. *)
 val print_lexeme : Pdfgenlex.t -> unit
 
-(** / **)
+(**/**)
+
 val endpage : (Pdf.t -> int) ref

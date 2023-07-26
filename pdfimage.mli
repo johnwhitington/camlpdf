@@ -40,6 +40,9 @@ byte values prior to any decoding, i.e in the raw input image data before /Decod
 val get_image_unprocessed_pixel : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject
 -> (int -> int array) option
 
+(** Given a PDF, an image and a /Resources dictionary, return the colourspace
+of the image *)
 val colspace : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> Pdfspace.t
 
+(** Given a PDF and an image, return any /BPC entry *)
 val bpc : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject option
