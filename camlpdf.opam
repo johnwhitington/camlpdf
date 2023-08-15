@@ -1,4 +1,6 @@
 opam-version: "2.0"
+name: "camlpdf"
+version: "v2.6"
 maintainer: "contact@coherentgraphics.co.uk"
 authors: ["John Whitington"]
 homepage: "http://github.com/johnwhitington/camlpdf"
