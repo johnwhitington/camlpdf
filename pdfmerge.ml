@@ -425,11 +425,17 @@ let apply_namechanges_to_destination_nametree pdf changes =
         end
     | _ -> ()
 
-let apply_namechanges_at_destination_callsites pdf changes =
+let apply_namechanges_at_destination_callsites pdf changes allchanges =
   let changes = hashtable_of_dictionary changes in
+  let allchanges = hashtable_of_dictionary (rev allchanges) in (* prefer first instance *)
   let rewrite_string s =
     try Hashtbl.find changes s with
-      Not_found -> Pdfe.log ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s ^ "\n"); s
+      Not_found ->
+        (* It may be an external link. Look up the (first) change for that *)
+        try Hashtbl.find allchanges s with
+          Not_found ->
+            (*Pdfe.log ("warning: apply_namechanges_at_destination_callsite: destination not found: " ^ s ^ "\n");*)
+            s
   in
     let rec f = function
     | Pdf.Dictionary d ->
@@ -488,8 +494,8 @@ let merge_pdfs_rename_name_trees names pdfs =
        | (pdf, None) -> (pdf, []))
       pdfs_and_nametrees
   in
-  if !mdebug then iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;
-  (* Calculate the changes e.g (pdf, "section", "section.f1") *)
+  (*if !mdebug then iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;*)
+  (* Calculate the changes e.g (pdf, "section", "section-f1") *)
   let num = ref ~-1 in
   let worked l =
     let ns = flatten (map (fun (pdf, ns) -> map snd ns) l) in
@@ -501,26 +507,19 @@ let merge_pdfs_rename_name_trees names pdfs =
     names :=
       map2
         (fun (pdf, ns) i ->
-           (pdf, map (fun (n, _) -> if i = 0 then (n, n) else (n, n ^ "-f" ^ string_of_int i)) ns))
+           (pdf, map (fun (n, _) -> (n, n ^ "-f" ^ string_of_int i)) ns))
         !names
         (ilist !num (!num + length !names - 1))
   done;
   if !mdebug then
     begin
-      Printf.printf "\nAfter changes\n";
-      iter (fun (pdf, ns) -> iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
+      iter (fun (pdf, ns) -> Printf.printf "Changes for this PDF:\n"; iter (fun (nold, nnew) -> Printf.printf "%s %s \n" nold nnew) ns) !names;
     end;
-  (* 2. Remove any names which don't change. *)
-  let tochange =
-    option_map
-      (fun (pdf, ns) -> let ns' = keep (fun (n, n') -> n <> n') ns in if ns' = [] then None else Some (pdf, ns'))
-      !names
-  in
-  if !mdebug then Printf.printf "%i pdfs to fix up\n" (length tochange);
   (* Apply the changes to the destination name tree in each file, in place *)
-  iter (fun (pdf, changes) -> apply_namechanges_to_destination_nametree pdf changes) tochange;
+  iter (fun (pdf, changes) -> apply_namechanges_to_destination_nametree pdf changes) !names;
   (* Apply the changes to each PDFs annots entries and anywhere else Dests can be used, in place. *)
-  iter (fun (pdf, changes) -> apply_namechanges_at_destination_callsites pdf changes) tochange
+  let allchanges = flatten (map snd !names) in
+  iter (fun (pdf, changes) -> apply_namechanges_at_destination_callsites pdf changes allchanges) !names
 
 (* Merge catalog items from the PDFs, taking the first instance of any one we
  * find. Items we know how to merge properly, like /Dests, /Names, /PageLabels,
