@@ -53,6 +53,11 @@ let rec read_destination pdf pdfobject =
          Pdf.Name "/XYZ"; l; t] ->
         XYZ
           (read_targetpage p, option_getnum l, option_getnum t, None) 
+    | Pdf.Array (* Read common malformed one. *)
+        [(Pdf.Indirect _ | Pdf.Integer _) as p;
+         Pdf.Name "/XYZ"; l] ->
+        XYZ
+          (read_targetpage p, option_getnum l, None, None) 
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/Fit"] ->
         Fit (read_targetpage p)
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitH"; t] ->
