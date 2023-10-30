@@ -1652,9 +1652,19 @@ let read_pdf ?revision user_pw owner_pw opt i =
             (* Delete items in !postdeletes - these are any xref streams, and
             object streams (if finished with).  This allows decryption to be
             performed without accidently trying to decrypt these streams -
-            which would fail due to them not being of set lengths. Also saves
-            memory *)
-            iter (Pdf.removeobj pdf) !postdeletes;
+            which would fail due to them not being of set lengths. *)
+            iter
+              (fun i ->
+                 (* Oct 2023 - check it's not been overwritten by a later revision of the file *)
+                 match Pdf.lookup_obj pdf i with
+                 | Pdf.Stream {contents = (Pdf.Dictionary d, _)}  ->
+                    begin match lookup "/Type" d with
+                    | Some (Pdf.Name ("/XRef" | "/ObjStm")) -> Pdf.removeobj pdf i
+                    | _ -> ()
+                    end
+                 | exception Not_found -> ()
+                 | _ -> ())
+              !postdeletes;
             (* Add stream_object_ids *)
             pdf.Pdf.objects.Pdf.object_stream_ids <- object_stream_ids;
             (*if !read_debug then
