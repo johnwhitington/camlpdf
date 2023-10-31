@@ -36,6 +36,9 @@ type t =
    startpage : int;
    startvalue : int}
 
+(** String of label style e.g DecimalArabic *)
+val string_of_labelstyle : labelstyle -> string
+
 (** Debug string of page label *)
 val string_of_pagelabel : t -> string
 

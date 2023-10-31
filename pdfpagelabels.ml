@@ -16,7 +16,6 @@ type t =
    startpage : int;
    startvalue : int} 
 
-(* For debug only... *)
 let string_of_labelstyle = function
   | DecimalArabic -> "DecimalArabic"
   | UppercaseRoman -> "UppercaseRoman"
