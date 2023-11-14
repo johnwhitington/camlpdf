@@ -34,16 +34,16 @@ let rec string_of_colourspace = function
   | CalRGB (_, _, _, _) -> "/CalRGB"
   | Lab (_, _, _) -> "/Lab"
   | ICCBased {icc_alternate = a} ->
-      "ICC Based - alternate is " ^ string_of_colourspace a
+      "ICCBased (" ^ string_of_colourspace a ^ ")"
   | Indexed (a, _) ->
-      "Indexed - base is " ^ string_of_colourspace a
+      "Indexed (" ^ string_of_colourspace a ^ ")"
   | Pattern -> "/Pattern"
   | PatternWithBaseColourspace a ->
-      "PatternWithBaseColourspace - base is " ^ string_of_colourspace a
+      "PatternWithBaseColourspace (" ^ string_of_colourspace a ^ ")"
   | Separation (_, a, _) ->
-      "Separation - base is " ^ string_of_colourspace a
+      "Separation (" ^ string_of_colourspace a ^ ")"
   | DeviceN (_, a, _, _) ->
-      "DeviceN - base is " ^ string_of_colourspace a
+      "DeviceN (" ^ string_of_colourspace a ^ ")"
 
 let name_of_colourspace = function
   | Separation (x, _, _) -> Some x
