@@ -68,7 +68,7 @@ type t =
   | Op_K of float * float * float * float
   | Op_k of float * float * float * float
   | Op_sh of string
-  | InlineImage of (Pdf.pdfobject * Pdfio.bytes)
+  | InlineImage of (Pdf.pdfobject * Pdf.pdfobject option * Pdfio.bytes)
   | Op_Do of string
   | Op_MP of string
   | Op_DP of string * Pdf.pdfobject 

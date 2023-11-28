@@ -2,6 +2,7 @@
 
 o Add opam file in-source
 o Cope with more malformed bookmarks
+o Remember and reapply inline image decode parameters
 
 2.6 (July 2023)
 

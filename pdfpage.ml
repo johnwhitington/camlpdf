@@ -298,7 +298,7 @@ let change_operator pdf lookup lookup_option seqnum = function
             Pdfe.log "Warning: Missing Op_BDC /Properties entry\n";
             Pdfops.Op_BDC (n, Pdf.Name p)
       end
-  | Pdfops.InlineImage (dict, bytes) ->
+  | Pdfops.InlineImage (dict, dp, bytes) ->
       (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
       let dict' =
         match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
@@ -317,7 +317,7 @@ let change_operator pdf lookup lookup_option seqnum = function
               (Pdf.Name (lookup "/ColorSpace" seqnum n))
         | _ -> dict
       in
-        Pdfops.InlineImage (dict', bytes)
+        Pdfops.InlineImage (dict', dp, bytes)
   | x -> x
 
 (* Only for use with twoup now. FIXME: Can blow up shared content streams. Needs
@@ -1183,7 +1183,7 @@ let prefix_operator pdf p = function
   | Pdfops.Op_Do x -> Pdfops.Op_Do (addp p x)
   | Pdfops.Op_DP (n, Pdf.Name x) -> Pdfops.Op_DP (n, Pdf.Name (addp p x))
   | Pdfops.Op_BDC (n, Pdf.Name x) -> Pdfops.Op_BDC (n, Pdf.Name (addp p x))
-  | Pdfops.InlineImage (dict, bytes) ->
+  | Pdfops.InlineImage (dict, dp, bytes) ->
       (* Replace any indirect "/CS" or "/ColorSpace" with a new "/CS" *)
       let dict' =
         match Pdf.lookup_direct_orelse pdf "/CS" "/ColorSpace" dict with
@@ -1197,7 +1197,7 @@ let prefix_operator pdf p = function
               (Pdf.Name (addp p n))
         | _ -> dict
       in
-        Pdfops.InlineImage (dict', bytes)
+        Pdfops.InlineImage (dict', dp, bytes)
   | x -> x
 
 let change_resources pdf prefix resources =

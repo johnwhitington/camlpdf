@@ -69,7 +69,7 @@ type t =
   | Op_K of float * float * float * float (* Set CMYK stroking *)
   | Op_k of float * float * float * float (* Set CMYK nonstroking *)
   | Op_sh of string (* Shading pattern *)
-  | InlineImage of (Pdf.pdfobject * bytes) (* Inline image dictionary/data *)
+  | InlineImage of (Pdf.pdfobject * Pdf.pdfobject option * bytes) (* Inline image dictionary, previous decodeparams if any, data *)
   | Op_Do of string (* Introduce an XObject *)
   | Op_MP of string (* Marked content point *)
   | Op_DP of string * Pdf.pdfobject (* same with property list *)
@@ -84,7 +84,7 @@ type lexeme =
   | Op of string
   | Obj of Pdfgenlex.t
   | PdfObj of Pdf.pdfobject
-  | LexInlineImage of (Pdf.pdfobject * bytes)
+  | LexInlineImage of (Pdf.pdfobject * Pdf.pdfobject option * bytes)
   | LexComment
   
 (* Lexing *)
@@ -205,7 +205,7 @@ let lexemes_of_op f = function
       f (Obj (Pdfgenlex.LexReal c)); f (Obj (Pdfgenlex.LexReal m));
       f (Obj (Pdfgenlex.LexReal y)); f (Obj (Pdfgenlex.LexReal k)); f (Op "k")
   | Op_sh s -> f (Obj (Pdfgenlex.LexName s)); f (Op "sh")
-  | InlineImage (dict, data) -> f (LexInlineImage (dict, data))
+  | InlineImage (dict, dp, data) -> f (LexInlineImage (dict, dp, data))
   | Op_Do s -> f (Obj (Pdfgenlex.LexName s)); f (Op "Do")
   | Op_MP s -> f (Obj (Pdfgenlex.LexName s)); f (Op "MP")
   | Op_DP (s, obj) ->
@@ -243,7 +243,7 @@ let string_of_lexeme = function
   | Obj o -> Pdfread.string_of_lexeme o 
   | Op op -> op
   | PdfObj obj -> Pdfwrite.string_of_pdf obj
-  | LexInlineImage (dict, data) ->
+  | LexInlineImage (dict, dp, data) ->
       (* Compress if no compression *)
       let dict, data =
         match Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict with
@@ -529,7 +529,8 @@ let lex_inline_image pdf resources i =
                         dict
                         ["/Filter"; "/F"; "/DecodeParms"; "/DP"] 
                 in
-                  dict', data
+                let dp = None in
+                  dict', dp, data
     | _ ->
         Pdfe.log "Did not recognise beginning of inline image ID\n";
         nocontent i
