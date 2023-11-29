@@ -967,14 +967,27 @@ let decode_predictor pred colors bpc columns stream =
           done;
           bytes_of_arraylist (rev !outputlines)
 
-(* Assumes 12 (PNGUp, no column padding required, colors, bpc standard values.
-This is just for xref streams for now *)
+(* A couple of special-purpose encoders for prediction. *)
 let encode_predictor pred colors bpc columns stream =
-  if pred = 12 then
-    begin
-      let get0 a i =
-        if i < 0 then 0 else bget a i
-      in
+  let get0 a i =
+    if i < 0 then 0 else bget a i
+  in
+    match pred with
+    | 11 ->
+        (* Just for recompressing inline images. *)
+        let o, bytes = Pdfio.input_output_of_bytes 4096 in
+          for scanline = 0 to bytes_size stream / columns - 1 do
+            o.Pdfio.output_byte 1; (* tag for Sub *)
+            for byte = 0 to columns - 1 do
+              o.Pdfio.output_byte
+                ((get0 stream (scanline * columns + byte) -
+                 get0 stream (scanline * (columns - 1) + byte))
+                 mod 256)
+            done
+          done;
+          Pdfio.extract_bytes_from_input_output o bytes
+    | 12 ->
+        (* Just for XRef streams. *)
         let o, bytes = Pdfio.input_output_of_bytes 4096 in
           for scanline = 0 to bytes_size stream / columns - 1 do
             o.Pdfio.output_byte 2; (* tag for Up *)
@@ -985,10 +998,9 @@ let encode_predictor pred colors bpc columns stream =
                  mod 256)
             done
           done;
-      Pdfio.extract_bytes_from_input_output o bytes
-    end
-  else
-    raise (Pdf.PDFError "encode_predictor: not supported")
+        Pdfio.extract_bytes_from_input_output o bytes
+    | n ->
+        raise (Pdf.PDFError ("encode_predictor: not supported - " ^ string_of_int n))
 
 (* Run Length Encoding *)
 let encode_runlength stream =
