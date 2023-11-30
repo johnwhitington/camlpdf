@@ -974,14 +974,14 @@ let encode_predictor pred colors bpc columns stream =
   in
     match pred with
     | 11 ->
-        (* Just for recompressing inline images. *)
+        (* Just for recompressing inline images. Restricted to bpc = 8, colors = 3 for now. *)
         let o, bytes = Pdfio.input_output_of_bytes 4096 in
-          for scanline = 0 to bytes_size stream / columns - 1 do
+          for scanline = 0 to bytes_size stream / (columns * 3) - 1 do
             o.Pdfio.output_byte 1; (* tag for Sub *)
-            for byte = 0 to columns - 1 do
+            for byte = 0 to columns * 3 - 1 do
               o.Pdfio.output_byte
-                ((get0 stream (scanline * columns + byte) -
-                 get0 stream (scanline * (columns - 1) + byte))
+                ((get0 stream (scanline * columns + byte)) -
+                 (get0 stream (scanline * columns + byte - 3))
                  mod 256)
             done
           done;

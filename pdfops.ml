@@ -258,8 +258,14 @@ let string_of_lexeme = function
                   let columns = match Pdf.lookup_direct (Pdf.empty ()) "/Columns" d with Some (Pdf.Integer x) -> x | _ -> 1 in
                     match colours, bpc with
                     | 3, 8 ->
-                        Printf.eprintf "Found an inline image predictor to reinstate\n%!";
-                        dict, data
+                        let data = Pdfcodec.encode_predictor 11 colours bpc columns data in
+                        let dict =
+                          Pdf.add_dict_entry dict "/DP"
+                            (Pdf.Dictionary [("/Colors", Pdf.Integer colours);
+                                             ("/Columns", Pdf.Integer columns);
+                                             ("/Predictor", Pdf.Integer 11)])
+                        in
+                          dict, data
                     | _, _ -> dict, data
             in
               Pdf.add_dict_entry dict "/F" (Pdf.Name "/Fl"),
