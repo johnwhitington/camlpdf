@@ -248,8 +248,22 @@ let string_of_lexeme = function
       let dict, data =
         match Pdf.lookup_direct_orelse (Pdf.empty ()) "/F" "/Filter" dict with
         | None | Some (Pdf.Array []) ->
-            Pdf.add_dict_entry dict "/F" (Pdf.Name "/Fl"),
-            Pdfcodec.encode_flate data
+            (* Was there previously a predictor? *)
+            let dict, data =
+              match dp with
+              | None -> dict, data
+              | Some d ->
+                  let colours = match Pdf.lookup_direct (Pdf.empty ()) "/Colors" d with Some (Pdf.Integer x) -> x | _ -> 1 in
+                  let bpc = match Pdf.lookup_direct_orelse (Pdf.empty ()) "/BPC" "/BitsPerComponent" d with Some (Pdf.Integer x) -> x | _ -> 8 in
+                  let columns = match Pdf.lookup_direct (Pdf.empty ()) "/Columns" d with Some (Pdf.Integer x) -> x | _ -> 1 in
+                    match colours, bpc with
+                    | 3, 8 ->
+                        Printf.eprintf "Found an inline image predictor to reinstate\n%!";
+                        dict, data
+                    | _, _ -> dict, data
+            in
+              Pdf.add_dict_entry dict "/F" (Pdf.Name "/Fl"),
+              Pdfcodec.encode_flate data
         | _ -> dict, data
       in
       let dict = Pdf.add_dict_entry dict "/L" (Pdf.Integer (bytes_size data)) in
@@ -529,7 +543,7 @@ let lex_inline_image pdf resources i =
                         dict
                         ["/Filter"; "/F"; "/DecodeParms"; "/DP"] 
                 in
-                let dp = None in
+                let dp = Pdf.lookup_direct_orelse (Pdf.empty ()) "/DP" "/DecodeParms" dict in
                   dict', dp, data
     | _ ->
         Pdfe.log "Did not recognise beginning of inline image ID\n";
