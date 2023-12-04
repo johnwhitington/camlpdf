@@ -11,7 +11,7 @@ type pixel_layout =
 type t =
   | JPEG of bytes * float list option
   | JPEG2000 of bytes * float list option
-  | JBIG2 of bytes * float list option
+  | JBIG2 of bytes * float list option * int option
   | Raw of int * int * pixel_layout * bytes
 
 let string_of_layout = function
@@ -553,15 +553,19 @@ let get_image_24bpp pdf resources stream =
             | Some (Pdf.Name ("/DCTDecode" | "/DCT"))
             | Some (Pdf.Array [Pdf.Name ("/DCTDecode" | "/DCT")]) -> JPEG (s, get_decode ())
             | Some (Pdf.Name "/JBIG2Decode")
-            | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) -> JBIG2 (s, get_decode ())
+            | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) ->
+                let globals =
+                  match lookup "/JBIG2Globals" d with
+                  | Some (Pdf.Indirect i) -> Some i
+                  | _ -> None
+                in
+                  JBIG2 (s, get_decode (), globals)
             | Some (Pdf.Name "/JPXDecode")
             | Some (Pdf.Array [Pdf.Name "/JPXDecode"]) -> JPEG2000 (s, get_decode ())
             | _ -> raise (Pdf.PDFError "decode_to_image")
             end
       | _ -> assert false
 
-(* For now, this just knows how to do 1bpp specially, since this causes enormous
-memory headaches in pdf2xar *)
 let get_image pdf resources stream =
   let stream = Pdf.direct pdf stream in
     let streamdict, data =
@@ -647,7 +651,13 @@ let get_image pdf resources stream =
             | Some (Pdf.Name ("/DCTDecode" | "/DCT"))
             | Some (Pdf.Array [Pdf.Name ("/DCTDecode" | "/DCT")]) -> JPEG (s, get_decode ())
             | Some (Pdf.Name "/JBIG2Decode")
-            | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) -> JBIG2 (s, get_decode ())
+            | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) ->
+                let globals =
+                  match lookup "/JBIG2Globals" d with
+                  | Some (Pdf.Indirect i) -> Some i
+                  | _ -> None
+                in
+                  JBIG2 (s, get_decode (), globals)
             | Some (Pdf.Name "/JPXDecode")
             | Some (Pdf.Array [Pdf.Name "/JPXDecode"]) -> JPEG2000 (s, get_decode ())
             | _ -> raise (Pdf.PDFError "decode_to_image")

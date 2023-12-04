@@ -9,7 +9,7 @@ type pixel_layout =
 type t =
   | JPEG of Pdfio.bytes * float list option
   | JPEG2000 of Pdfio.bytes * float list option
-  | JBIG2 of Pdfio.bytes * float list option
+  | JBIG2 of Pdfio.bytes * float list option * int option
   | Raw of int * int * pixel_layout * Pdfio.bytes
 
 (** Given a pdf document, resources dictionary and a stream representing an
