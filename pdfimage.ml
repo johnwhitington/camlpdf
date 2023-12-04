@@ -555,8 +555,12 @@ let get_image_24bpp pdf resources stream =
             | Some (Pdf.Name "/JBIG2Decode")
             | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) ->
                 let globals =
-                  match lookup "/JBIG2Globals" d with
-                  | Some (Pdf.Indirect i) -> Some i
+                  match lookup "/DecodeParms" d with
+                  | Some (Pdf.Dictionary d) ->
+                      begin match lookup "/JBIG2Globals" d with
+                      | Some (Pdf.Indirect i) -> Some i
+                      | _ -> None
+                      end
                   | _ -> None
                 in
                   JBIG2 (s, get_decode (), globals)
@@ -653,8 +657,12 @@ let get_image pdf resources stream =
             | Some (Pdf.Name "/JBIG2Decode")
             | Some (Pdf.Array [Pdf.Name "/JBIG2Decode"]) ->
                 let globals =
-                  match lookup "/JBIG2Globals" d with
-                  | Some (Pdf.Indirect i) -> Some i
+                  match lookup "/DecodeParms" d with
+                  | Some (Pdf.Dictionary d) ->
+                      begin match lookup "/JBIG2Globals" d with
+                      | Some (Pdf.Indirect i) -> Some i
+                      | _ -> None
+                      end
                   | _ -> None
                 in
                   JBIG2 (s, get_decode (), globals)
