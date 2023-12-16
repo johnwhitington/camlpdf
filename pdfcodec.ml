@@ -1421,7 +1421,7 @@ let process_prediction predictor predictor_columns stream =
   | _ -> assert false
 
 (* Encode a PDF stream with an encoding. *)
-let encode_pdfstream pdf encoding ?predictor ?(predictor_columns = 1) stream =
+let encode_pdfstream pdf encoding ?(only_if_smaller=false) ?predictor ?(predictor_columns = 1) stream =
   Pdf.getstream stream;
   match stream with
   | Pdf.Stream ({contents = d, Pdf.Got s} as stream) ->
@@ -1432,5 +1432,5 @@ let encode_pdfstream pdf encoding ?predictor ?(predictor_columns = 1) stream =
       in
         let data = encoder_of_encoding encoding predicted in
           let d'' = add_encoding (bytes_size data) pdf encoding d' in
-            stream := d'', Pdf.Got data
+            if not only_if_smaller || bytes_size data + 20 < bytes_size s then stream := d'', Pdf.Got data
   | _ -> raise (Pdf.PDFError "Pdf.encode_pdfstream: malformed Stream")

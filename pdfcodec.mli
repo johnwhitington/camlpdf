@@ -38,7 +38,7 @@ exception DecodeNotSupported of string
 (** {2 Encoding} *)
 
 (** Encode a PDF stream with an encoding. The only predictor supported is PNGUp. *)
-val encode_pdfstream : Pdf.t -> encoding -> ?predictor:predictor -> ?predictor_columns:int -> Pdf.pdfobject -> unit
+val encode_pdfstream : Pdf.t -> encoding -> ?only_if_smaller:bool -> ?predictor:predictor -> ?predictor_columns:int -> Pdf.pdfobject -> unit
 
 (** {2 Decoding} *)
 

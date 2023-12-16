@@ -333,7 +333,7 @@ let bake_object_streams compress pdf numbers =
               ("/First", Pdf.Integer first)]
          in
            let obj = Pdf.Stream {contents = (dict, Pdf.Got data)} in
-             if compress then Pdfcodec.encode_pdfstream pdf Pdfcodec.Flate obj;
+             if compress then Pdfcodec.encode_pdfstream ~only_if_smaller:true pdf Pdfcodec.Flate obj;
              Pdf.addobj_given_num pdf (tostream, obj))
     numbers
 
@@ -476,6 +476,7 @@ let make_xref_stream pdf xrefs renumbered_objects_for_streams =
           in
             let xrefstream = Pdf.Stream {contents = (dict, Pdf.Got data)} in
               Pdfcodec.encode_pdfstream
+                ~only_if_smaller:true
                 pdf
                 Pdfcodec.Flate
                 ~predictor:Pdfcodec.PNGUp
