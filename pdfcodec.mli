@@ -5,8 +5,7 @@
 - Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode,
 LZWDecode, RunLengthDecode.
 - Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode.
-- Predictors: PNG (all), TIFF (8-bit only).
-
+- Decode predictors: PNG (all), TIFF (8-bit only).
 *)
 
 (** {2 Types} *)
@@ -33,7 +32,6 @@ exception Couldn'tDecodeStream of string
 
 (** CamlPDF doesn't support this encoding or its predictor. *)
 exception DecodeNotSupported of string
-
 
 (** {2 Encoding} *)
 
