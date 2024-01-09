@@ -293,8 +293,8 @@ let decode_flate stream =
 
 (* Decode LZW. *)
 let decode_lzw early i =
-  let prefix_code = Array.make 4096 0
-  and append_character = Array.make 4096 0
+  let prefix_code = Array.make 8192 0
+  and append_character = Array.make 8192 0
   and bit_count = ref 0
   and bit_buffer = ref 0l
   and endflush = ref 4
