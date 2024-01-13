@@ -194,7 +194,7 @@ let getuntil_white_or_delimiter =
 let getuntil_white_or_delimiter_string =
   getuntil_string true is_whitespace_or_delimiter
 
-(* \section {Lexing} *)
+(* Lexing *)
 
 (* Each of the following functions lexes a particular object, leaving the
 channel position at the character after the end of the lexeme. Upon entry, the
@@ -499,7 +499,7 @@ let lex_stream_data i l opt =
     with
       _ -> raise (Pdf.PDFError (Pdf.input_pdferror i "lex_stream_data"))
 
-(* Lex a stream. This involves \emph{parsing} the stream dictionary to get the
+(* Lex a stream. This involves parsing the stream dictionary to get the
 length. [i] is at the start of the stream data, suitable for input to
 [lex_stream_data]. We extract the dictionary by going through
 [previous_lexemes], the reverse-order list of the lexemes already read. *)
@@ -700,7 +700,6 @@ let lex_object_at oneonly i opt p lexobj =
              else lex_object_at i (a::lexemes)
     in
       lex_object_at i []
-
 
 (* Type of sanitized cross-reference entries. They are either plain offsets, or
 an object stream an index into it. *)
@@ -924,12 +923,12 @@ let parse_single_object s =
 let lex_stream_object
   i xrefs parse opt obj indexes user_pw owner_pw partial_pdf gen
 =
-  (*if !read_debug then
+  if !read_debug then
     begin
       Pdfe.log (Printf.sprintf "lexing object stream at %i\n" (i.Pdfio.pos_in ()));
       Pdfe.log (Printf.sprintf "lexing object stream %i\nTo find the indexes:\n" obj);
-      iter (Pdfe.log (Printf.sprintf "%i ")) indexes; Pdfe.log "\n"
-    end;*)
+      iter (fun i -> Pdfe.log (Printf.sprintf "%i " i)) indexes; Pdfe.log "\n"
+    end;
   let _, stmobj = parse (lex_object i xrefs parse opt obj) in
     match stmobj with
     | Pdf.Stream {contents = d, stream} ->

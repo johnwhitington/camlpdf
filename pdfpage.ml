@@ -228,8 +228,20 @@ let pages_of_pagetree_quick pdf =
 let endpage pdf =
   pages_of_pagetree_quick pdf
 
+let endpage_fast pdf =
+  let document_catalog =
+    try Pdf.lookup_obj pdf pdf.Pdf.root with
+      Not_found -> raise (Pdf.PDFError "/Root entry is incorrect")
+  in 
+  let pages =
+    Pdf.lookup_fail "No or malformed /Pages" pdf "/Pages" document_catalog
+  in
+    match Pdf.lookup_direct pdf "/Count" pages with
+    | Some (Pdf.Integer i) -> i
+    | _ -> 0
+
 let _ =
-  Pdfread.endpage := endpage
+  Pdfread.endpage := endpage_fast
 
 (* Make a collection of pages capable of being merged -- in other words rename
 their resources so as not to clash. *)
