@@ -28,7 +28,7 @@ convert this to the output stream. *)
 let encode_ASCIIHex stream =
   let size = bytes_size stream in
     let stream' = mkbytes (size * 2 + 1) in
-      bset stream' (size * 2) (int_of_char '>'); (*r ['>'] is end-of-data *)
+      bset stream' (size * 2) (int_of_char '>'); (* ['>'] is end-of-data *)
       for p = 0 to size - 1 do
         let chars = explode (Printf.sprintf "%02X" (bget stream p)) in
           bset stream' (p * 2) (int_of_char (hd chars));
