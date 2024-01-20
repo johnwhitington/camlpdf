@@ -8,7 +8,7 @@ o Option to compress a stream only if it is made smaller
 o Encode predictor for PNG Sub (bpc = 8, 3 components)
 o Fix for LZWDecode streams which overfill the table
 o New endpage_fast and use it for malformed file detection
-o Remove some very old unusused Pdfimage code
+o Remove some very old unused Pdfimage code
 
 2.6 (July 2023)
 
