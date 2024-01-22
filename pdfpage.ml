@@ -879,14 +879,10 @@ let pdf_of_pages_build_pagetree thetree objnumbers pdf =
 (* pdf_of_pages, if it has duplicates in the range, will produce duplicate
 items in the page tree, pointing to the same page object. This is bad for
 two reasons:
-
    a) Adobe Reader is broken and crashes in this case
-
    b) In any event, duplicate references make further document changes
    confusing for most programs.  So, we duplicate the actual page objects, and
-   do the minimal renumbering.
-
-*)
+   do the minimal renumbering.  *)
 
 (* Given a number n, of a page node, copy it to a new object, and rewrite all
 but the first instance in the page tree to that new number. *)
@@ -981,9 +977,23 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
     let refnums = Pdf.page_reference_numbers basepdf in
     let fastrefnums = hashtable_of_dictionary (combine refnums (indx refnums)) in
     let table = hashset_of_list range in
+    let firstindex = ref ~-1 in
+    let index = ref ~-1 in
+    let r =
       option_map
-        (function m -> if Hashtbl.mem table (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) then Some m else None)
-        (Pdfmarks.read_bookmarks basepdf)
+        (function m ->
+          index += 1;
+          if Hashtbl.mem table (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) then
+            begin
+              if !firstindex = -1 then firstindex := !index;
+              Some m
+            end
+          else
+            None)
+        (Pdfmarks.read_bookmarks basepdf);
+    in
+      Printf.printf "Index of first saved bookmark: %i\n" !firstindex;
+      r
   in
     let pdf = Pdf.empty () in
       Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
