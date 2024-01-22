@@ -624,7 +624,7 @@ let merge_acroforms pdf pdfs =
     in
       Some (Pdf.addobj pdf new_dict)
 
-(* Merge structure heirarchy / tagged PDF.
+(* Merge structure hierarchy / tagged PDF.
 
 /IDTree                 name tree     merge
 /ParentTree             number tree   merge
@@ -731,7 +731,7 @@ let max_version_number pdfs =
   if pdfs = [] then raise (Invalid_argument "max_version_number") else
     hd (sort compare (map (fun p -> (p.Pdf.major, p.Pdf.minor)) pdfs))
 
-let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
+let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(struct_hierarchy=true) names pdfs ranges =
   let pdfs = merge_pdfs_renumber names pdfs in
     merge_pdfs_rename_name_trees names pdfs;
     let major', minor' = max_version_number pdfs in
@@ -780,12 +780,13 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts names pdfs ranges =
                   extra_catalog_entries
             in
             let extra_catalog_entries =
-              match merge_structure_hierarchy pdf pdfs with
-              | None -> extra_catalog_entries
-              | exception e ->
-                  Pdfe.log (Printf.sprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e));
-                  extra_catalog_entries
-              | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
+              if not struct_hierarchy then extra_catalog_entries else
+                match merge_structure_hierarchy pdf pdfs with
+                | None -> extra_catalog_entries
+                | exception e ->
+                    Pdfe.log (Printf.sprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e));
+                    extra_catalog_entries
+                | Some structheirnum -> add "/StructTreeRoot" (Pdf.Indirect structheirnum) extra_catalog_entries
             in
    let extra_catalog_entries = remove "/OpenAction" extra_catalog_entries in
    let infodict = Pdf.lookup_direct (hd pdfs) "/Info" (hd pdfs).Pdf.trailerdict in
