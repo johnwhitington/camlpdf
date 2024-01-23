@@ -9,6 +9,7 @@ o Encode predictor for PNG Sub (bpc = 8, 3 components)
 o Fix for LZWDecode streams which overfill the table
 o New endpage_fast and use it for malformed file detection
 o Remove some very old unused Pdfimage code
+o Reconstruct tree in Pdfpage.pdf_of_pages for better bookmarks
 
 2.6 (July 2023)
 
