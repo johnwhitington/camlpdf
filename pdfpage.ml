@@ -978,22 +978,43 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
     let fastrefnums = hashtable_of_dictionary (combine refnums (indx refnums)) in
     let table = hashset_of_list range in
     let firstindex = ref ~-1 in
+    let firstindexlevel = ref ~-1 in
     let index = ref ~-1 in
+    let marks = Pdfmarks.read_bookmarks basepdf in
     let r =
       option_map
         (function m ->
           index += 1;
           if Hashtbl.mem table (pagenumber_of_target ~fastrefnums basepdf m.Pdfmarks.target) then
             begin
-              if !firstindex = -1 then firstindex := !index;
+              (*Printf.printf "Keeping index %i: %s\n" !index m.Pdfmarks.text;*)
+              if !firstindex = -1 then
+                begin
+                  firstindex := !index;
+                  firstindexlevel := m.Pdfmarks.level
+                end;
               Some m
             end
           else
             None)
-        (Pdfmarks.read_bookmarks basepdf);
+        marks
     in
-      Printf.printf "Index of first saved bookmark: %i\n" !firstindex;
-      r
+      (*Printf.printf "Index of first saved bookmark: %i, at level %i\n" !firstindex !firstindexlevel;*)
+      (* Find the last bookmark at firstindexlevel - 1, firstindexlevel -2 .... 0 and add them as prefixes *) 
+      firstindexlevel -= 1;
+      let got = ref [] in
+      for n = !firstindex downto 0 do
+        let mark = List.nth marks n in
+        (*Printf.printf "n = %i: %s\n" n mark.Pdfmarks.text;*)
+        if !firstindexlevel > -1 then
+          if mark.Pdfmarks.level = !firstindexlevel then
+            begin
+              (*Printf.printf "got a mark at level %i\n" !firstindexlevel;*)
+              got := mark::!got;
+              firstindexlevel -= 1
+            end
+      done;
+      !got @ r
   in
     let pdf = Pdf.empty () in
       Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
