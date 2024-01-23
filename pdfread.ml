@@ -595,15 +595,21 @@ let lex_next dictlevel arraylevel endonstream i previous_lexemes p opt lexobj =
 
 (* Lex just a dictionary, consuming only the tokens to the end of it. This is
 used in the [PDFPages] module to read dictionaries in graphics streams. *)
-let lex_dictionary i =
+let lex_dictionary minus_one i =
   let rec lex_dictionary_getlexemes i lexemes dictlevel arraylevel =
     let lex_dictionary_next i dictlevel arraylevel =
       let dummyparse = fun _ -> 0, Pdf.Null
       in let dummylexobj = fun _ -> [] in
+        (*Printf.eprintf "lex_dictionary_next: dictlevel = %i\n" !dictlevel;*)
+        let r =
         lex_next dictlevel arraylevel false i [] dummyparse false dummylexobj
+        in
+          (*Printf.eprintf "Read lexeme %S\n" (string_of_lexeme r);
+          Printf.eprintf "after lex_dictionary_next: dictlevel = %i\n" !dictlevel;*)
+          r
     in
       match lex_dictionary_next i dictlevel arraylevel with
-      | LexRightDict when !dictlevel = 0 && !arraylevel = 0 ->
+      | LexRightDict when !dictlevel = (if minus_one then -1 else 0) && !arraylevel = 0 ->
           rev (LexRightDict::lexemes)
       | StopLexing ->
           rev lexemes
@@ -1295,7 +1301,7 @@ let get_object i xrefs n =
 let is_linearized i =
   try
     ignore (read_header i);
-    let lexemes = lex_dictionary i in
+    let lexemes = lex_dictionary false i in
       let _, parsed = parse ~failure_is_ok:true lexemes in
         match Pdf.lookup_direct (Pdf.empty ()) "/Linearized" parsed with
         | Some (Pdf.Integer _ | Pdf.Real _) -> true

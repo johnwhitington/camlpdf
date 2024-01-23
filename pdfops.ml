@@ -349,7 +349,7 @@ let lex_number i =
 (* Lex and parse a dictionary to a Pdf.pdfobject. This constitutes a single
 lexeme in terms of this module. *)
 let get_dictionary i =
-  PdfObj (snd (Pdfread.parse (Pdfread.lex_dictionary i)))
+  PdfObj (snd (Pdfread.parse (Pdfread.lex_dictionary false i)))
 
 (* Given a colourspace and the number of bits per component, give the number of
 bytes per pixel in the stored image data. *)
@@ -394,7 +394,7 @@ let lex_inline_image pdf resources i =
   if !debug then Pdfe.log (Printf.sprintf "lex_inline_image at %i\n" (i.pos_in ()));
   try
   let dict =
-    let lexemes = Pdfread.lex_dictionary i in
+    let lexemes = Pdfread.lex_dictionary true i in
       snd
         (Pdfread.parse
           ([Pdfgenlex.LexLeftDict] @ lexemes @ [Pdfgenlex.LexRightDict]))

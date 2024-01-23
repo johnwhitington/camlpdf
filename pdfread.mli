@@ -82,7 +82,7 @@ val lex_hexstring : Pdfio.input -> Pdfgenlex.t
 val lex_comment : Pdfio.input -> Pdfgenlex.t
 
 (** Lex a dictinonary, assuming there is one to lex. *)
-val lex_dictionary : Pdfio.input -> Pdfgenlex.t list
+val lex_dictionary : bool -> Pdfio.input -> Pdfgenlex.t list
 
 (** Lex stream data of the given length. If the boolean is true, then actually
     read the data. If not, merely record the intention to. *)

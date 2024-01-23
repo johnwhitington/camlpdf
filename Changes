@@ -10,6 +10,7 @@ o Fix for LZWDecode streams which overfill the table
 o New endpage_fast and use it for malformed file detection
 o Remove some very old unused Pdfimage code
 o Reconstruct tree in Pdfpage.pdf_of_pages for better bookmarks
+o Cope with predictor dictionary not being end of inline image dictionary
 
 2.6 (July 2023)
 
