@@ -1,4 +1,6 @@
-2.7 (To come)
+2.8 (to come)
+
+2.7 (February 2024)
 
 o Add opam file in-source
 o Cope with more malformed bookmarks
@@ -7,7 +9,7 @@ o Pdfimage extracts and stores JBIG2Globals
 o Option to compress a stream only if it is made smaller
 o Encode predictor for PNG Sub (bpc = 8, 3 components)
 o Fix for LZWDecode streams which overfill the table
-o New endpage_fast and use it for malformed file detection
+o New endpage_fast
 o Remove some very old unused Pdfimage code
 o Reconstruct tree in Pdfpage.pdf_of_pages for better bookmarks
 o Cope with predictor dictionary not being end of inline image dictionary
