@@ -9,14 +9,14 @@ C/C++/Java/Python/.NET/JavaScript API, which is available at
 License
 ---
 
-Copyright Coherent Graphics Ltd 2007 - 2023. Released under the LGPL with
+Copyright Coherent Graphics Ltd 2007 - 2024. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 To Build
 ---
 
 If downloading from Github, obtain the correct source. This means choosing the
-tag for a particular version, such as "v2.6". The head of the master branch is
+tag for a particular version, such as "v2.7". The head of the master branch is
 unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
