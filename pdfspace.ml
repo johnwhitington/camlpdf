@@ -67,22 +67,22 @@ let rec get_basic_table_colourspace c =
   | x -> x
 
 (* Read a colour space. Raises [Not_found] on error. *)
-let rec read_colourspace_inner pdf resources = function
+let rec read_colourspace pdf resources = function
   | Pdf.Indirect i ->
-      read_colourspace_inner pdf resources (Pdf.direct pdf (Pdf.Indirect i))
+      read_colourspace pdf resources (Pdf.direct pdf (Pdf.Indirect i))
   | Pdf.Name ("/DeviceGray" | "/G") -> DeviceGray
   | Pdf.Name ("/DeviceRGB" | "/RGB") -> DeviceRGB
   | Pdf.Name ("/DeviceCMYK" | "/CMYK") -> DeviceCMYK
   | Pdf.Name "/Pattern" -> Pattern
   | Pdf.Array [Pdf.Name "/Pattern"; base_colspace] ->
-      PatternWithBaseColourspace (read_colourspace_inner pdf resources base_colspace)
-  | Pdf.Array [onething] -> read_colourspace_inner pdf resources onething (* [PDFTests/illus_effects.pdf] [[/Pattern]] *)
+      PatternWithBaseColourspace (read_colourspace pdf resources base_colspace)
+  | Pdf.Array [onething] -> read_colourspace pdf resources onething (* [PDFTests/illus_effects.pdf] [[/Pattern]] *)
   | Pdf.Name space ->
       begin match Pdf.lookup_direct pdf "/ColorSpace" resources with
       | Some csdict ->
           begin match Pdf.lookup_direct pdf space csdict with
           | Some space' ->
-              read_colourspace_inner pdf resources space'
+              read_colourspace pdf resources space'
           | None -> raise Not_found
           end
       | None -> raise Not_found
@@ -137,7 +137,7 @@ let rec read_colourspace_inner pdf resources = function
           in
             let alternate =
               match Pdf.lookup_direct pdf "/Alternate" dict with
-              | Some cs -> read_colourspace_inner pdf resources cs
+              | Some cs -> read_colourspace pdf resources cs
               | _ ->
                  match n with
                  | 1 -> DeviceGray
@@ -167,7 +167,7 @@ let rec read_colourspace_inner pdf resources = function
         | Pdf.Integer h -> h
         | _ -> raise (Pdf.PDFError "Bad /Hival")
       in let bse =
-        read_colourspace_inner pdf resources bse
+        read_colourspace pdf resources bse
       in
         let mktable_rgb data =
           try
@@ -233,7 +233,7 @@ let rec read_colourspace_inner pdf resources = function
             Indexed (bse, table)
   | Pdf.Array [Pdf.Name "/Separation"; Pdf.Name name; alternate; tint] ->
       let alt_space =
-        read_colourspace_inner pdf resources alternate
+        read_colourspace pdf resources alternate
       in let tint_transform =
         Pdffun.parse_function pdf tint
       in
@@ -242,7 +242,7 @@ let rec read_colourspace_inner pdf resources = function
       let names =
         Array.of_list (map (function Pdf.Name s -> s | _ -> raise Not_found) names)
       in let alternate =
-        read_colourspace_inner pdf resources alternate
+        read_colourspace pdf resources alternate
       in let tint =
         Pdffun.parse_function pdf tint
       in
@@ -251,25 +251,13 @@ let rec read_colourspace_inner pdf resources = function
       let names =
         Array.of_list (map (function Pdf.Name s -> s | _ -> raise Not_found) names)
       in let alternate =
-        read_colourspace_inner pdf resources alternate
+        read_colourspace pdf resources alternate
       in let tint =
         Pdffun.parse_function pdf tint
       in
         DeviceN (names, alternate, tint, attributes)
   | _ -> raise Not_found
        
-let read_colourspace pdf resources space =
-  try
-    read_colourspace_inner pdf resources space
-  with
-    e ->
-      (*i Printf.printf "SPACE:\n";
-      Printf.printf "%s\n" (Pdfwrite.string_of_pdf space);
-      Printf.printf "RESOURCES:\n";
-      Printf.printf "%s\n" (Pdfwrite.string_of_pdf resources);
-      flprint "\n"; i*)
-      raise e
-
 (* Flatten a colourspace to pdf objects. Unfinished. *)
 let write_colourspace (pdf : Pdf.t) = function
   | DeviceGray -> Pdf.Name "/DeviceGray"
