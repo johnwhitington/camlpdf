@@ -25,11 +25,6 @@ let read_targetpage = function
   | Pdf.Integer i -> OtherDocPageNumber i
   | _ -> assert false (* ruled out in read_destination *)
 
-(* We don't allow indirect references anywhere except in the page reference. *)
-let read_destination_error n s =
-  Pdfe.log (Printf.sprintf "Warning: Could not read destination %s %s \n" n s);
-  NullDestination
-
 let rec read_destination pdf pdfobject =
   let option_getnum = function
   | Pdf.Null -> None
@@ -76,7 +71,6 @@ let rec read_destination pdf pdfobject =
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBV"; l] ->
         FitBV (read_targetpage p, option_getnum l)
     | Pdf.Name n ->
-      (* PDF 1.1. Name object *)
       begin match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
       | Some catalog ->
           begin match Pdf.lookup_direct pdf "/Dests" catalog with
@@ -90,7 +84,6 @@ let rec read_destination pdf pdfobject =
       | None -> raise (Pdf.PDFError "read_destination: no catalog")
       end
     | Pdf.String s ->
-      (* PDF 1.2. String object *)
       let rootdict = Pdf.lookup_obj pdf pdf.Pdf.root in
         begin match Pdf.lookup_direct pdf "/Names" rootdict with
         | Some namedict ->
@@ -106,7 +99,9 @@ let rec read_destination pdf pdfobject =
             end
         | _ -> NamedDestinationElsewhere s 
         end
-    | p -> read_destination_error "G" (Pdfwrite.string_of_pdf p)
+    | p ->
+        Pdfe.log (Printf.sprintf "Warning: Could not read destination %s\n" (Pdfwrite.string_of_pdf p));
+        NullDestination
 
 let pdf_of_targetpage = function
   | PageObject i -> Pdf.Indirect i
