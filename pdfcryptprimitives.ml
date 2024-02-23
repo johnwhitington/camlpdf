@@ -141,9 +141,6 @@ let cutshort s =
             s'
 
 (* Decrypt data *)
-let print_txt d p =
-  for x = p to p + 15 do Printf.printf "%02x" (bget d x) done; flprint "\n"
-
 let aes_decrypt_data ?(remove_padding = true) nk key data =
   let key = key_expansion_decrypt nk key in
   let len = bytes_size data in

@@ -337,9 +337,9 @@ let process_cryption
       do_encryption (find_key no_encrypt_metadata user_pw r o p id keylength)
     else None
 
-let printable_of_string s =
+(*let printable_of_string s =
   String.concat
-    "" (map (fun c -> Printf.sprintf "%02x" (int_of_char c)) (explode s))
+    "" (map (fun c -> Printf.sprintf "%02x" (int_of_char c)) (explode s))*)
 
 let get_encryption_values pdf =
   match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
@@ -438,7 +438,7 @@ type permission =
   | NoAssemble (* R3 only, Bit 11 *)
   | NoHqPrint (* R3 only, Bit 12 *)
 
-let string_of_permission = function
+(*let string_of_permission = function
   | NoEdit -> "NoEdit"
   | NoPrint -> "NoPrint"
   | NoCopy -> "NoCopy"
@@ -446,10 +446,10 @@ let string_of_permission = function
   | NoForms -> "NoForms"
   | NoExtract -> "NoExtract"
   | NoAssemble -> "NoAssemble"
-  | NoHqPrint -> "NoHqPrint"
+  | NoHqPrint -> "NoHqPrint"*)
 
-let string_of_bans bans =
-  fold_left ( ^ ) "" (interleave " " (map string_of_permission bans))
+(*let string_of_bans bans =
+  fold_left ( ^ ) "" (interleave " " (map string_of_permission bans))*)
   
 let p_of_banlist toban =
   let p = ref 0l in
@@ -486,11 +486,10 @@ let banlist_of_p p =
     if bitset 12 then l =| NoHqPrint;
     !l
 
-
-let print_string name s =
+(*let print_string name s =
   flprint name;
   iter (Printf.printf "%i ") (map int_of_char (explode s));
-  flprint "\n"
+  flprint "\n"*)
 
 (* New r = 6 algorithm (2.B in the standard) *)
 

@@ -197,14 +197,6 @@ and strings_of_pdf ?(hex=false) f changetable = function
         f (WString (string_of_int n'));
         f (WString " 0 R")
 
-let strings_of_pdf_return obj =
-  let strings = ref [] in
-    strings_of_pdf
-      (function x -> strings := x::!strings)
-      (Hashtbl.create 0)
-      obj;
-    rev !strings
-
 (* Produce a single string from a PDF object. *)
 let b = Buffer.create 100
 
@@ -238,17 +230,6 @@ let _ = Pdf.string_of_pdf := string_of_pdf
 let debug_whole_pdf pdf =
   Pdfe.log (Printf.sprintf "trailerdict = %s\n" (string_of_pdf pdf.Pdf.trailerdict));
   Pdf.objiter (fun i o -> Pdfe.log (Printf.sprintf "%i = %s\n" i (string_of_pdf o))) pdf
-
-(* Calculate strings, one for each indirect object in the body. *)
-let strings_of_object (n, pdfobject) =
-  let strings = ref [] in
-  strings := [WString (string_of_int n); WString " 0 obj\n"];
-  strings_of_pdf
-    (function x -> strings := x::!strings)
-    (Hashtbl.create 0)
-    pdfobject;
-  strings := WString "\nendobj\n"::!strings;
-  rev !strings
 
 let strings_of_pdf_object f (_, pdfobject) n' changetable =
   f (WString (string_of_int n'));

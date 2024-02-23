@@ -29,10 +29,10 @@ let remove_bookmarks pdf =
 type ntree =
   Br of int * Pdf.pdfobject * ntree list * bool (* bool is will_be_open *)
 
-let rec print_tree (Br (i, obj, ls, isopen)) =
+(*let rec print_tree (Br (i, obj, ls, isopen)) =
   Printf.printf "Br (%i, %s, %b\n" i (Pdfwrite.string_of_pdf obj) isopen;
   iter print_tree ls;
-  flprint ")\n"
+  flprint ")\n"*)
 
 let fresh source pdf =
   incr source; pdf.Pdf.objects.Pdf.maxobjnum + !source

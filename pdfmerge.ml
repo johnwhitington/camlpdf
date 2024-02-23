@@ -41,11 +41,11 @@ let remove_duplicate_fonts pdf =
         pdf.Pdf.objects <- !pdfr.Pdf.objects;
         pdf.Pdf.trailerdict <- !pdfr.Pdf.trailerdict
 
-let debug_pagelabels ls =
+(*let debug_pagelabels ls =
   iter (Printf.printf "%s\n") (map Pdfpagelabels.string_of_pagelabel ls)
 
 let debug_collection_of_pagelabels =
-  iter (fun ls -> debug_pagelabels ls; flprint "\n")
+  iter (fun ls -> debug_pagelabels ls; flprint "\n")*)
 
 (* Merging /Dests (Named destinations) in the catalog (PDF v1.1 style, rather
  * than in the PDF 1.3 style in the name tree). Since the new /Dests must be an

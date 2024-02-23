@@ -29,7 +29,7 @@ type deferred_encryption =
    keylength : int;
    r : int}
 
-let print_deferred_encryption e =
+(*let print_deferred_encryption e =
   begin match e.crypt_type with
   | Pdfcryptprimitives.ARC4 (a, b) -> Printf.printf "crypt_type = ARC4 (%i, %i)\n" a b
   | Pdfcryptprimitives.AESV2 -> Printf.printf "crypt_type = AESV2\n"
@@ -44,7 +44,7 @@ let print_deferred_encryption e =
   Printf.printf "\n";
   Printf.printf "obj = %i, gen = %i\n" e.obj e.gen;
   Printf.printf "keylength = %i\n" e.keylength;
-  Printf.printf "r = %i\n" e.r
+  Printf.printf "r = %i\n" e.r*)
 
 type toget_crypt =
   | NoChange

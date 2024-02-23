@@ -14,28 +14,6 @@ type t =
   | JBIG2 of bytes * float list option * int option
   | Raw of int * int * pixel_layout * bytes
 
-let string_of_layout = function
-  | BPP1 -> "BPP1"
-  | BPP8 -> "BPP8"
-  | BPP24 -> "BPP24"
-  | BPP48 -> "BPP48"
-
-let string_of_image = function
-  | JPEG _ -> "JPEG"
-  | JPEG2000 _ -> "JPEG2000"
-  | JBIG2 _ -> "JBIG2"
-  | Raw (w, h, layout, data) ->
-      "RAW: " ^ string_of_int w ^ " " ^ string_of_int h
-      ^ " " ^ string_of_layout layout ^ " bytes of data = "
-      ^ string_of_int (bytes_size data)
-
-let print_floats fs =
-  for x = 1 to Array.length fs do
-    print_float fs.(x - 1);
-    print_string " "
-  done;
-  print_string "\n"
-
 (* Decodes an image in-place, given an array of floats. Assumes that output of Decode fits into same number of bits as input of Decode. FIXME: When might this not be true? *)
 
 (* Invert the bits in a bytes *)
@@ -471,26 +449,6 @@ let get_raw_image pdf resources width height dict data =
     e ->
       (*i Pdf.log (Printf.sprintf ((Pdfwrite.string_of_pdf (Pdf.direct pdf dict)))); i*)
       raise e 
-
-(* Print some debug information about an image. *)
-let print_image pdf resources img =
-  (*i Printf.printf "-----------------------------------------------------\n";
-  Printf.printf "Image Dictionary:\n%s\n" (Pdfwrite.string_of_pdf img); i*)
-  let w = match Pdf.lookup_direct pdf "/Width" img with Some (Pdf.Integer n) -> n | _ ->  0
-  in let h = match Pdf.lookup_direct pdf "/Height" img with Some (Pdf.Integer n)-> n | _ -> 0 in
-    Printf.printf "Width is %i, height %i\n" w h;
-  begin match Pdf.lookup_direct pdf "/ColorSpace" img with
-  | Some cs -> Printf.printf "Colourspace is...%s\n" (Pdfspace.string_of_colourspace (Pdfspace.read_colourspace pdf resources cs))
-  | None -> Printf.printf "No Colourspace\n"
-  end;
-  begin match Pdf.lookup_direct pdf "/BitsPerComponent" img with
-  | Some (Pdf.Integer n) -> Printf.printf "%i Bits Per Component\n" n
-  | _ -> Printf.printf "No /BitsPerComponent\n"
-  end;
-  begin match Pdf.lookup_direct pdf "/Decode" img with
-  | Some decode -> Printf.printf "Decode Array: %s\n" (Pdfwrite.string_of_pdf decode)
-  | None -> Printf.printf "No /Decode Array\n"
-  end
 
 let get_image_24bpp pdf resources stream =
   (*i flprint "\n";

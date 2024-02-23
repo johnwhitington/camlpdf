@@ -713,9 +713,9 @@ type xref =
   | XRefPlain of int * int (* offset, generation. *)
   | XRefStream of int * int (* object number of stream, index. *)
 
-let string_of_xref = function
+(*let string_of_xref = function
   | XRefPlain (p, i) -> Printf.sprintf "XRefPlain (%i, %i)" p i
-  | XRefStream (o, i) -> Printf.sprintf "XrefStream %i, index %i" o i
+  | XRefStream (o, i) -> Printf.sprintf "XrefStream %i, index %i" o i*)
 
 let xrefs_table_create () = Hashtbl.create 1001
 
@@ -759,7 +759,7 @@ type partial_parse_element =
   | Lexeme of Pdfgenlex.t
   | Parsed of Pdf.pdfobject
 
-let print_parseme = function
+(*let print_parseme = function
   | Parsed p ->
       flprint "PARSED:";
       print_string (Pdfwrite.string_of_pdf p);
@@ -767,7 +767,7 @@ let print_parseme = function
   | Lexeme l ->
       flprint "LEXEME:";
       print_lexeme l;
-      flprint "\n" 
+      flprint "\n"*)
 
 (* Parse stage one. *)
 let parse_R ts =
@@ -1019,15 +1019,6 @@ let lex_stream_object
           (Pdf.PDFError
             (Pdf.input_pdferror i (Printf.sprintf "lex_stream_object: not a stream, but %s"
                                    (Pdfwrite.string_of_pdf stmobj))))
-
-(* Advance to the first thing after the current pointer which is not a comment.
-*)
-let rec ignore_comments i =
-  let pos = i.pos_in () in
-    match i.input_char () with
-    | Some '%' -> ignore (input_line i); ignore_comments i
-    | Some _ -> i.seek_in pos
-    | None -> raise End_of_file
 
 (* Cross-reference tables *)
 

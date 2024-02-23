@@ -611,12 +611,12 @@ let lex_next pdf resources i =
     | Couldn'tHandleContent ->
         raise (Pdf.PDFError "Malformed page content")
 
-let print_lexeme = function
+(*let print_lexeme = function
   | Obj p -> Pdfread.print_lexeme p
   | Op s -> print_string s; print_newline ()
   | PdfObj p -> print_string "PDF OBJECT\n"
   | LexInlineImage _ -> print_string "INLINE IMAGE\n"
-  | LexComment -> print_string "COMMENT\n"
+  | LexComment -> print_string "COMMENT\n"*)
 
 (* Lex a graphics stream *)
 let lex_stream pdf resources i =
@@ -911,12 +911,12 @@ let stream_of_lexemes (oplists : lexeme list list) =
             done;
             s
 
-let print_stream s =
+(*let print_stream s =
   if bytes_size s > 0 then 
     for x = 0 to bytes_size s - 1 do
       Printf.printf "%c" (char_of_int (bget s x))
     done;
-  print_newline ()
+  print_newline ()*)
     
 (* Make a stream from a list of operators. *)
 let stream_of_ops ops =

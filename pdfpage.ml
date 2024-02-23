@@ -407,15 +407,15 @@ let rec pagetree objnumsource pages parent =
         in let right_tree = pagetree objnumsource right this_num in
           Br (this, left_tree, right_tree, parent, this_num)
 
-let pagetree_flat objnumsource pages parent =
-  Lf (pages, parent, objnumsource ())
+(*let pagetree_flat objnumsource pages parent =
+  Lf (pages, parent, objnumsource ())*)
 
 (* Version for pdf_of_pages where we are using the same object numbers *)
 type ptree_objnumbers =
   | OLf of int list * int * int (* object numbers, parent, object number of this leaf *)
   | OBr of int list * ptree_objnumbers * ptree_objnumbers * int * int (* object numbers, left, right, parent, object number of this branch *)
 
-let rec print_ptree = function
+(*let rec print_ptree = function
   | OLf (is, parent, objnumleaf) ->
       Printf.printf "OLf with object numbers ";
       print_ints is;
@@ -427,7 +427,7 @@ let rec print_ptree = function
       Printf.printf "***LEFTS\n";
       print_ptree l;
       Printf.printf "***RIGHTS\n";
-      print_ptree r
+      print_ptree r*)
 
 let rec pagetree_with_objnumbers toplevel old_pagetree_root_num objnumsource objnumbers parent =
   if length objnumbers < 10 then
