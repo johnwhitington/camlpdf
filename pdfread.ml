@@ -216,7 +216,6 @@ let lex_number i =
       | Pdfgenlex.LexReal f -> LexReal f
       | _ -> LexNone
     with
-    (* FIXME: Heed warning 52 *)
     | Failure x when x = "hd" -> LexNone
     | Pdf.PDFError _ (* can't cope with floats with leading point. *)
     | Failure _ (*"int_of_string"*) ->
@@ -841,7 +840,7 @@ and parse_array sofar = function
       parse_array (h::sofar) t
 
 (* Main function *)
-let rec parse_to_tree (sofar : partial_parse_element list) = function
+let rec parse_to_tree sofar = function
   | Lexeme LexLeftDict::t ->
       let dict, rest = parse_dictionary [] t in
         parse_to_tree (dict::sofar) rest
@@ -915,13 +914,7 @@ let parse ?(failure_is_ok = false) lexemes =
       if failure_is_ok then (max_int, Pdf.Null) else raise e
 
 let parse_single_object s =
-  snd (parse
-    (lex_object_at
-       true
-       (Pdfio.input_of_string s)
-       true
-       (fun _ -> (0, Pdf.Null))
-       (fun _ -> [])))
+  snd (parse (lex_object_at true (Pdfio.input_of_string s) true (fun _ -> (0, Pdf.Null)) (fun _ -> [])))
 
 (* Given an object stream pdfobject and a list of object indexes to extract,
  return an [(int * Pdf.objectdata) list] representing those object number,
@@ -999,8 +992,6 @@ let lex_stream_object
                            end;
                            incr index)
                         pairs;
-                      (* FIXME: Why does this make it null rather than actually
-                       * remove the object? *)
                       Pdf.addobj_given_num partial_pdf (obj, Pdf.Null);
                       !objects
                 with
@@ -1782,7 +1773,16 @@ let read_malformed_pdf_objects i =
         with
           e ->
             if !read_debug then Pdfe.log "Couldn't get object, moving on\n";
-            ignore (input_line i) (* Move on *)
+            (* 26/02/2024 advance only to any line beginning or ending with
+               'endobj'. Before, a runaway string read, for example, could
+               advance too far, perhaps into the middle of a stream, then no
+               more objects could be read. *)
+            i.seek_in c;
+            let fin = ref false in
+              while not !fin do
+                let l = String.trim (input_line i) in
+                  fin := starts_with "endobj" l || starts_with "jbodne" (implode (rev (explode l)))
+              done
     done;
     !objs
 
