@@ -339,7 +339,7 @@ let renumber_pages pdf pages =
   | [] -> []
   | pages ->
       let changes = make_changes pdf pages in
-        let rec lookup_option dictname page oldkey =
+        let lookup_option dictname page oldkey =
           tryfind changes (dictname, page, oldkey)
         and lookup dictname page oldkey =
           try
