@@ -559,6 +559,13 @@ let rec getbit b =
 let getbitint i =
   if getbit i then 1 else 0
 
+(* Get n bits at once *)
+let rec getbitsint i n =
+  if n < 0 then assert false else
+  if n = 0 then 0 else
+    let rest = getbitsint i (n - 1) lsl 1 in
+      getbitint i lor rest
+
 (* Align on a byte boundary. *)
 let align b =
   if b.bit > 0 then b.bitsread <- (b.bitsread / 8 + 1) * 8;
