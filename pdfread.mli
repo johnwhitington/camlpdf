@@ -49,10 +49,10 @@ val is_linearized : Pdfio.input -> bool
 (** Read a PDF header *)
 val read_header : Pdfio.input -> int * int
 
-(* Read characters until a PDF delimiter. *)
+(** Read characters until a PDF delimiter. *)
 val getuntil_white_or_delimiter : Pdfio.input -> char list
 
-(* Read characters until a PDF delimiter, returned as a string. *)
+(** Read characters until a PDF delimiter, returned as a string. *)
 val getuntil_white_or_delimiter_string : Pdfio.input -> string
 
 (** Read characters until a predicate is true. If the boolean is set, end of

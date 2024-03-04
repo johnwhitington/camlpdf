@@ -232,9 +232,6 @@ val getbit : bitstream -> bool
 (** Get a bit, but as an integer, 0 or 1. *)
 val getbitint : bitstream -> int
 
-(** Get multiple bits *)
-val getbitsint : bitstream -> int -> int
-
 (** Align the bitstream on a byte boundary *)
 val align : bitstream -> unit
 
