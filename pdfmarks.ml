@@ -236,7 +236,12 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
           match Pdf.lookup_direct pdf "/A" outline with
           | None -> Pdfdest.NullDestination
           | Some action ->
-              if preserve_actions then Pdfdest.Action (Pdf.direct pdf action) else
+              if preserve_actions then
+                (* 05/03/2024: Only preserve if there is a name or byte string. If it's a direct destination, don't preserve. *)
+                match Pdf.lookup_direct pdf "/D" action with
+                | Some ((Pdf.Array _) as dest) -> Pdfdest.read_destination pdf dest
+                | _ -> Pdfdest.Action (Pdf.direct pdf action)
+              else
                 match Pdf.lookup_direct pdf "/D" action with
                 | None -> Pdfdest.Action (Pdf.direct pdf action)
                 | Some dest -> Pdfdest.read_destination pdf dest
