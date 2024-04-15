@@ -548,8 +548,7 @@ let setify_simple l =
     setify_inner [] l
 
 (* The same, preserving the order of the first occurance of each distinct
-element in the input list. FIXME: This is still n^2, of course. How to improve?
-*)
+element in the input list. *)
 let setify_preserving_order l =
   setify_simple (rev l)
 
