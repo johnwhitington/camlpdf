@@ -1181,30 +1181,29 @@ let utf8_of_pdfdocstring s =
   utf8_of_codepoints (codepoints_of_pdfdocstring s)
 
 (* Build a PDFDocEncoding or UTF16BE string from a UTF8 encoded string *)
-let rec codepoints_of_utf8 = function
-  | [] -> []
+let rec codepoints_of_utf8 a = function
+  | [] -> rev a
   | c::cs
       when c lsr 7 = 0 ->
-        c::codepoints_of_utf8 cs
+        codepoints_of_utf8 (c::a) cs
   | c::c2::cs
       when c lsr 5 = 0b110 && c2 lsr 6 = 0b10 ->
-            ((c land 0b000_11111) lsl 6)
-        lor (c2 land 0b00_11_11_11)::codepoints_of_utf8 cs
+        codepoints_of_utf8
+          (((c land 0b000_11111) lsl 6) lor (c2 land 0b00_11_11_11)::a) cs
   | c::c2::c3::cs
       when c lsr 4 = 0b1110 && c2 lsr 6 = 0b10 && c3 lsr 6 = 0b10 ->
-            ((c land 0b0000_1111) lsl 12)
-        lor ((c2 land 0b00_11_11_11) lsl 6)
-        lor (c3 land 0b00_11_11_11)::codepoints_of_utf8 cs
+        codepoints_of_utf8
+          (((c land 0b0000_1111) lsl 12) lor ((c2 land 0b00_11_11_11) lsl 6) lor (c3 land 0b00_11_11_11)::a)
+          cs
   | c::c2::c3::c4::cs
       when c lsr 3 = 0b11110 && c2 lsr 6 = 0b10 && c3 lsr 6 = 0b10 && c4 lsr 6 = 0b10 ->
-            ((c land 0b00000_111) lsl 18)
-        lor ((c2 land 0b00_11_11_11) lsl 12)
-        lor ((c3 land 0b00_11_11_11) lsl 6)
-        lor (c4 land 0b00_11_11_11)::codepoints_of_utf8 cs
+        codepoints_of_utf8
+          (((c land 0b00000_111) lsl 18) lor ((c2 land 0b00_11_11_11) lsl 12) lor ((c3 land 0b00_11_11_11) lsl 6) lor (c4 land 0b00_11_11_11)::a)
+          cs
   | _ ->
       raise (Pdf.PDFError "Bad UTF8 in codepoints_of_utf8\n")
 
-let codepoints_of_utf8 s = codepoints_of_utf8 (map int_of_char (explode s))
+let codepoints_of_utf8 s = codepoints_of_utf8 [] (map int_of_char (explode s))
 
 (* Looks up each codepoint in the adobe glyphmap, and look up that name in
 name_to_pdf above, raising the exception only if we find something that can't
