@@ -365,7 +365,7 @@ let i64ofi32 = Int64.of_int32
 
 (* Sign extension for integer of number of bits l. *)
 let sign_extend l n =
-  let shift = Nativeint.size - 1 - l in
+  let shift = (if Nativeint.size = 32 then 33 else Nativeint.size) - 1 - l in (* 33 for js_of_ocaml *)
     (n lsl shift) asr shift
 
 (* Set each element of array [a] to value [v]. *)
