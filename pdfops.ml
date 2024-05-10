@@ -872,33 +872,32 @@ let parse_operators pdf resources streams =
     parse_stream pdf resources rawstreams
     
 (* Flattening *)
-          
+let whitespace = " " (* Change to "\n" if desired. May be user-settable in future. *)
+
 (* Give a bigarray representing a list of graphics operators. *)
 let stream_of_lexemes (oplists : lexeme list list) =
-  let strings =
-    map string_of_lexemes oplists
-  in
+  let strings = map string_of_lexemes oplists in
     (* Insert a space if the neither the last character of a string nor the
      * first character of the next is a delimiter *)
     let rec addspaces prev = function
       [] -> rev prev
-    | [x] -> addspaces (x :: prev) []
+    | [x] -> addspaces (x::prev) []
     | x::y::r ->
         if
              String.length x > 0 && Pdf.is_delimiter x.[String.length x - 1]
           || String.length y > 0 && Pdf.is_delimiter y.[0]
         then
-          addspaces (x :: prev) (y :: r)
+          addspaces (x::prev) (y::r)
         else
-          addspaces (" " :: x :: prev) (y :: r)
+          addspaces (whitespace::x::prev) (y::r)
     in
       let strings = addspaces [] strings in
         let total_length =
           let l = ref 0 in iter (fun s -> l := !l + String.length s) strings; !l
         in
-          let s = mkbytes total_length
-          in let strings = ref strings
-          in let pos = ref 0 in
+          let s = mkbytes total_length in
+          let strings = ref strings in
+          let pos = ref 0 in
             while !strings <> [] do
               let str = hd !strings in
                 let l = String.length str in

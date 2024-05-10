@@ -89,7 +89,7 @@ dictionary. *)
 val parse_stream :
   Pdf.t -> Pdf.pdfobject -> Pdfio.bytes list -> t list
 
-(** Concatenate a list bytes, padding with whitespace between. *)
+(** Concatenate a list of bytes, padding with whitespace between. *)
 val concat_bytess : Pdfio.bytes list -> Pdfio.bytes
 
 (** Given a pdf document, resource dictionary and list of streams representing
