@@ -1,6 +1,6 @@
 2.8 (to come)
 
-o Fix sign extension on js_of_ocaml
+o Fix sign extension in js_of_ocaml
 
 2.7 (February 2024)
 
