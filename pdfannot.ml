@@ -75,6 +75,26 @@ let rec read_annotation pdf annot =
         end
     | Some (Pdf.Name "/Stamp") -> Stamp
     | Some (Pdf.Name "/Link") -> Link
+    | Some (Pdf.Name "/Line") -> Line
+    | Some (Pdf.Name "/Square") -> Square
+    | Some (Pdf.Name "/Circle") -> Circle
+    | Some (Pdf.Name "/Polygon") -> Polygon
+    | Some (Pdf.Name "/PolyLine") -> PolyLine
+    | Some (Pdf.Name "/Highlight") -> Highlight
+    | Some (Pdf.Name "/Underline") -> Underline
+    | Some (Pdf.Name "/Squiggly") -> Squiggly
+    | Some (Pdf.Name "/StrikeOut") -> StrikeOut
+    | Some (Pdf.Name "/Caret") -> Caret
+    | Some (Pdf.Name "/Ink") -> Ink
+    | Some (Pdf.Name "/FileAttachment") -> FileAttachment
+    | Some (Pdf.Name "/Sound") -> Sound
+    | Some (Pdf.Name "/Movie") -> Movie
+    | Some (Pdf.Name "/Widget") -> Widget
+    | Some (Pdf.Name "/Screen") -> Screen
+    | Some (Pdf.Name "/PrinterMark") -> PrinterMark
+    | Some (Pdf.Name "/TrapNet") -> TrapNet
+    | Some (Pdf.Name "/Watermark") -> Watermark
+    | Some (Pdf.Name "/3D") -> ThreeDee
     | _ -> Unknown
   in let contents =
     match Pdf.lookup_direct pdf "/Contents" annot with
