@@ -169,7 +169,7 @@ let rec read_annotation pdf annot =
     | Pdf.Dictionary entries ->
         Pdf.Dictionary
           (lose
-            (fun (k, _) -> mem k ["/Subtype"; "/Contents"; "/Rect"; "/Border"])
+            (fun (k, _) -> mem k ["/Subtype"; "/Contents"; "/Rect"; "/Border"; "/Subj"; "/BS"; "/C"])
             entries)
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary")
   in
