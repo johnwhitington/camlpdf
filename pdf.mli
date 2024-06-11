@@ -130,6 +130,8 @@ val lookup_exception : exn -> t -> string -> pdfobject -> pdfobject
 (** [lookup_direct doc key dict] looks up the key returning an option type. *) 
 val lookup_direct : t -> string -> pdfobject -> pdfobject option
 
+val lookup_chain : t -> pdfobject -> string list -> pdfobject option
+
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
 val indirect_number : t -> string -> pdfobject -> int option
 

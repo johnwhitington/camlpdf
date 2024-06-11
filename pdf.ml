@@ -417,6 +417,14 @@ let lookup_direct pdf key dict =
       end
   | _ -> None
 
+let rec lookup_chain pdf obj = function
+  | [] -> raise (Invalid_argument "lookup_chain")
+  | [n] -> lookup_direct pdf n obj
+  | n::ns ->
+      match lookup_direct pdf n obj with
+      | Some obj' -> lookup_chain pdf obj' ns
+      | None -> None
+
 let indirect_number pdf key dict =
   match direct pdf dict with
   | Dictionary d | Stream {contents = (Dictionary d, _)} ->
