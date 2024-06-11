@@ -43,7 +43,7 @@ type subtype =
   | TrapNet
   | Watermark
   | ThreeDee
-  | Unknown
+  | Unknown of string
 
 (* Main type. 'rest' contains the raw annotation dictionary with the exception
 of the entries corresponding to the other items in the record. *)
@@ -69,7 +69,7 @@ let rec read_annotation pdf annot =
             begin match lookup "/Parent" d with
             | Some (Pdf.Indirect i) ->
                 Popup (read_annotation pdf (Pdf.Indirect i))
-            | _ -> Unknown
+            | _ -> Unknown ""
             end
         | _ -> raise (Pdf.PDFError "read_annotation failed")
         end
@@ -95,7 +95,8 @@ let rec read_annotation pdf annot =
     | Some (Pdf.Name "/TrapNet") -> TrapNet
     | Some (Pdf.Name "/Watermark") -> Watermark
     | Some (Pdf.Name "/3D") -> ThreeDee
-    | _ -> Unknown
+    | Some (Pdf.Name n) -> Unknown n
+    | _ -> Unknown ""
   in let contents =
     match Pdf.lookup_direct pdf "/Contents" annot with
     | Some (Pdf.String s) -> Some s
@@ -217,7 +218,7 @@ let string_of_subtype = function
   | Caret -> "/Caret" | Ink -> "/Ink" | FileAttachment -> "/FileAttachment" | Sound -> "/Sound"
   | Movie -> "/Movie" | Widget -> "/Widget" | Screen -> "/Screen"
   | PrinterMark -> "/PrinterMark" | TrapNet -> "/TrapNet" | Watermark -> "/Watermark"
-  | Unknown -> "/Unknown" | Popup _ -> "/Popup" | ThreeDee -> "/3D"
+  | Unknown _ -> "/Unknown" | Popup _ -> "/Popup" | ThreeDee -> "/3D"
 
 let obj_of_annot t =
   let d =

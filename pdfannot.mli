@@ -38,7 +38,7 @@ type subtype =
   | TrapNet
   | Watermark
   | ThreeDee
-  | Unknown
+  | Unknown of string
 
 (** Annotations. *)
 and t =
