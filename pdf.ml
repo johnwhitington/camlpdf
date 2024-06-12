@@ -437,6 +437,30 @@ let indirect_number pdf key dict =
       end
   | _ -> None
 
+(* Add an object, given an object number. *)
+let addobj_given_num doc (num, obj) =
+  doc.objects.maxobjnum <-
+    max doc.objects.maxobjnum num;
+  doc.objects.pdfobjects <-
+    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
+
+(* Follow a chain from the root, finding a dictionary entry to replace (or add).
+   Keep the same direct / indirect structure as is already present. *)
+let replace_chain_inner objnum dict pdf chain k v =
+  match chain with
+  | [] ->
+      (* End of chain. Make the new dictionary and replace the object. *)
+      addobj_given_num pdf (objnum, add_dict_entry dict k v) 
+  | _ ->
+      raise (PDFError "todo")
+      (* Implementation to be finished for deep editing when we have
+      a use case. *)
+
+let replace_chain pdf chain k v =
+  match indirect_number pdf "/Root" pdf.trailerdict with
+  | None -> raise (PDFError "replace_chain")
+  | Some i -> replace_chain_inner i (lookup_obj pdf i) pdf chain k v
+
 (* Look up under a key and its alternate. Return the value associated
 with the key that worked, or [None] if neither did. *)
 let lookup_direct_orelse pdf k k' d =
@@ -554,12 +578,6 @@ let list_of_objs doc =
     objiter (fun k v -> objs =| (k, Parsed v)) doc;
     !objs
 
-(* Add an object, given an object number. *)
-let addobj_given_num doc (num, obj) =
-  doc.objects.maxobjnum <-
-    max doc.objects.maxobjnum num;
-  doc.objects.pdfobjects <-
-    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
 
 (* Add an object. We use the first number larger than the maxobjnum,
 and update that. *)

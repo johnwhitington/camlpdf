@@ -132,6 +132,8 @@ val lookup_direct : t -> string -> pdfobject -> pdfobject option
 
 val lookup_chain : t -> pdfobject -> string list -> pdfobject option
 
+val replace_chain : t -> string list -> string -> pdfobject -> unit
+
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
 val indirect_number : t -> string -> pdfobject -> int option
 
