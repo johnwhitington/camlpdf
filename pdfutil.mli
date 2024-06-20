@@ -216,6 +216,9 @@ val setify : 'a list -> 'a list
 (** Same as [setify], but preserve order. *)
 val setify_preserving_order : 'a list -> 'a list
 
+(** Same as [setify] but with good performance for large lists. *)
+val setify_large : 'a list -> 'a list
+
 (** The set [setminus a b] contains all those elements which are in [a] but are
 do not appear in [b]. *)
 val setminus : 'a list -> 'a list -> 'a list

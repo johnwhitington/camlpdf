@@ -561,6 +561,11 @@ let rec sorted_setify prev = function
 let setify l =
   sorted_setify [] (List.sort compare l)
 
+let setify_large l =
+  let h = Hashtbl.create (length l) in
+    iter (fun k -> Hashtbl.replace h k ()) l;
+    Hashtbl.fold (fun k _ acc -> k::acc) h []
+
 (* Remove all elts of l' from l if l, l' sets. *)
 let setminus l l' =
   let rec setminus_inner r l l' =
