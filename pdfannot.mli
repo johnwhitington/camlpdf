@@ -67,3 +67,4 @@ val make : ?content:string ->
 (** Make an annotation of a given [subtype]. *)
 
 val transform_annotations : Pdf.t -> Pdftransform.transform_matrix -> Pdf.pdfobject -> unit
+(** Transform all annotations in a document, e.g [/Rect] and [/QuadPoints]. *)

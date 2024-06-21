@@ -130,9 +130,10 @@ val lookup_exception : exn -> t -> string -> pdfobject -> pdfobject
 (** [lookup_direct doc key dict] looks up the key returning an option type. *) 
 val lookup_direct : t -> string -> pdfobject -> pdfobject option
 
+(** [lookup_chain doc start keys] looks up the key in a nested dictionary. For
+    example [lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot";
+    "/RoleMap"]] *)
 val lookup_chain : t -> pdfobject -> string list -> pdfobject option
-
-val replace_chain : t -> string list -> string -> pdfobject -> unit
 
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
 val indirect_number : t -> string -> pdfobject -> int option
@@ -288,6 +289,9 @@ val deep_copy : t -> t
 val change_id : t -> string -> unit
 
 (**/**)
+
+(* Not finished yet. *)
+val replace_chain : t -> string list -> string -> pdfobject -> unit
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
 type toget_crypt =

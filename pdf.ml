@@ -417,6 +417,7 @@ let lookup_direct pdf key dict =
       end
   | _ -> None
 
+(* Follow a nested chain of dictionary entries. *)
 let rec lookup_chain pdf obj = function
   | [] -> raise (Invalid_argument "lookup_chain")
   | [n] -> lookup_direct pdf n obj
