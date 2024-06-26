@@ -2,7 +2,7 @@
 
 o Fix sign extension in js_of_ocaml
 o Pdfannot expanded to more annotation types
-o New Pdftree module. API in flux.
+o New Pdftree module. API to change.
 
 2.7 (February 2024)
 
