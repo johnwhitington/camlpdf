@@ -241,7 +241,8 @@ let endpage_fast pdf =
     | _ -> 0
 
 let _ =
-  Pdfread.endpage := endpage_fast
+  Pdfread.endpage := endpage;
+  Pdfst.endpage := endpage
 
 (* Make a collection of pages capable of being merged -- in other words rename
 their resources so as not to clash. *)
