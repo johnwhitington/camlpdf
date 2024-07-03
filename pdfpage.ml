@@ -1018,6 +1018,8 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
   in
     let pdf = Pdf.empty () in
       Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
+      (* Trim the structure tree in-place. *)
+      Pdfst.trim_structure_tree pdf range;
       let page_numbers = Pdf.page_reference_numbers basepdf in
         let pdf =
           {pdf with
