@@ -26,43 +26,55 @@ let trim_structure_tree pdf range =
         pdf;
       (* Any /K referencing these deleted objects is modifed to no longer reference
          it. We don't rely on nulls, but do the actual modification. *)
+      let replaceobjs = ref [] in
       while !del <> [] do
         iter (Pdf.removeobj pdf) (setify_large !del);
         del := [];
+        iter (Pdf.addobj_given_num pdf) (setify_large !replaceobjs);
+        replaceobjs := [];
         Pdf.objiter
           (fun n o ->
-             let process objs = None in
-             match Pdf.direct pdf o with
-             | Pdf.Dictionary d ->
-                 begin match List.assoc_opt "/K" d with
-                 | Some (Pdf.Indirect _ | Pdf.Integer _ as obj) ->
-                     (* Could be structelem or marked-content reference dictionary
-                     or object reference dictionary depending on /Type (no /Type =
-                     assume structelem *)
-                     begin match process [obj] with
-                     | None -> () (* no change *)
-                     | Some newlist ->
-                         (* update the value of /K and change the object in place *)
-                         ()
-                     end
-                 | Some (Pdf.Array objs) ->
-                     (* An array of indirects or integers. Empty arrays not allowed. *)
-                     begin match process objs with
-                     | None -> () (* no change *)
-                     | Some [] ->
-                         (* empty not allowed - we must now delete this object?
-                            But what if it chains up? Go until no more change? *)
-                         ()
-                     | Some newlist ->
-                         (* update the value of /K and change the object in place *)
-                         ()
-                     end
-                 | _ -> ()
-                 end
+             (* Takes a list of integers or indirects. Indirects could be
+                structelem or marked-content reference dictionary or object
+                reference dictionary depending on /Type (no /Type = assume
+                structelem). Returns the None if no change, or Some list with
+                all which point to hitherto deleted objects removed. *)
+             let process objs = 
+               let survives = function
+                 | Pdf.Indirect i -> Pdf.lookup_obj pdf i <> Pdf.Null
+                 | _ -> true
+               in
+                 if List.for_all survives objs then None else Some (keep survives objs)
+             in
+             let process_indirect d is =
+               begin match process is with
+               | None -> () (* no change *)
+               | Some [] ->
+                   (* empty not allowed - we must now delete this object *)
+                   del := n::!del
+               | Some newlist ->
+                   (* update the value of /K and change the object in place *)
+                   begin match newlist with
+                   | [e] ->
+                       replaceobjs =| (n, Pdf.replace_dict_entry (Pdf.Dictionary d) "/K" e)
+                   | e::es ->
+                       (* Make a new /K array, copying integers and indirects (noting them in replaceobjs) *)
+                       replaceobjs =| (n, Pdf.replace_dict_entry (Pdf.Dictionary d) "/K" (Pdf.Array (e::es)))
+                   | _ -> assert false
+                   end
+               end
+             in
+               match Pdf.direct pdf o with
+               | Pdf.Dictionary d ->
+                   begin match List.assoc_opt "/K" d with
+                   | Some (Pdf.Integer _) -> ()
+                   | Some (Pdf.Indirect i) -> process_indirect d [Pdf.Indirect i]
+                   | Some (Pdf.Array objs) -> process_indirect d objs
+                   | _ -> ()
+                   end
              | _ -> ())
           pdf
         done
-
 
 (* FIXME Are we sure no other objects can have /K or /Pg? Do we need to read
    the struct tree object list to restrict what we touch? *)
