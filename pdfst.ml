@@ -1,19 +1,17 @@
 (* Operations on structure trees. *)
 open Pdfutil
 
+(* Recursion between modules *)
 let endpage = ref (fun _ -> 0)
 
 (* Remove any structure tree node (and therefore its children) which has a page
    number pointing to a page not to be included in the output. This should be a
    reasonable first approximation to the required behaviour. *)
 let trim_structure_tree pdf range =
-  Printf.printf "trim_structure_tree\n";
   let page_objnums_to_remove =
     let objnums = Pdf.page_reference_numbers pdf in
-      Printf.printf "got %i page_reference_numbers\n" (length objnums);
       map (fun x -> List.nth objnums (x - 1)) (setminus (ilist 1 (!endpage pdf)) range)
   in
-    Printf.printf "page_objnums_to_remove: %i\n" (length page_objnums_to_remove);
     (* Any object with /Pg not in range is deleted. *)
     let del = ref [] in
       Pdf.objiter 
@@ -31,9 +29,13 @@ let trim_structure_tree pdf range =
          it. We don't rely on nulls, but do the actual modification. *)
       let replaceobjs = ref [] in
       while !del <> [] do
-        Printf.printf "Top of loop. %i to remove, %i to replace\n" (length (setify_large !del)) (length (setify_large !replaceobjs));
+        (*Printf.printf "Top of loop. %i to remove, %i to replace\n" (length (setify_large !del)) (length (setify_large !replaceobjs));
+        iter (fun x -> Printf.printf "Removing %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf x))) (setify_large !del);*)
         iter (Pdf.removeobj pdf) (setify_large !del);
         del := [];
+        (*iter
+          (fun (x, y) -> Printf.printf "Replacing %s with\n   %s\n" x y)
+          (map (fun (n, r) -> (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf n), Pdfwrite.string_of_pdf r)) (setify_large !replaceobjs));*)
         iter (Pdf.addobj_given_num pdf) (setify_large !replaceobjs);
         replaceobjs := [];
         Pdf.objiter
@@ -72,8 +74,12 @@ let trim_structure_tree pdf range =
                | Pdf.Dictionary d ->
                    begin match List.assoc_opt "/K" d with
                    | Some (Pdf.Integer _) -> ()
-                   | Some (Pdf.Indirect i) -> process_indirect d [Pdf.Indirect i]
-                   | Some (Pdf.Array objs) -> process_indirect d objs
+                   | Some (Pdf.Indirect i) ->
+                       (*Printf.printf "Process /K indirect %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary d));*)
+                       process_indirect d [Pdf.Indirect i]
+                   | Some (Pdf.Array objs) ->
+                       (*Printf.printf "Process /K array %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary d));*)
+                       process_indirect d objs
                    | _ -> ()
                    end
              | _ -> ())
