@@ -2,8 +2,8 @@
 
 o Fix sign extension in js_of_ocaml
 o Pdfannot expanded to more annotation types
-o New Pdftree module. API to change.
-o New Pdfst module for structure trees
+o Extract code to Pdftree module (API subject to change)
+o Structure tree optionally trimed on Pdf.pdf_of_pages
 
 2.7 (February 2024)
 
