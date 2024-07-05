@@ -10,8 +10,10 @@ let trim_structure_tree pdf range =
   Printf.printf "trim_structure_tree\n";
   let page_objnums_to_remove =
     let objnums = Pdf.page_reference_numbers pdf in
-      map (List.nth objnums) (setminus (ilist 1 (!endpage pdf)) range)
+      Printf.printf "got %i page_reference_numbers\n" (length objnums);
+      map (fun x -> List.nth objnums (x - 1)) (setminus (ilist 1 (!endpage pdf)) range)
   in
+    Printf.printf "page_objnums_to_remove: %i\n" (length page_objnums_to_remove);
     (* Any object with /Pg not in range is deleted. *)
     let del = ref [] in
       Pdf.objiter 
