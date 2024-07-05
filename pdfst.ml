@@ -7,6 +7,7 @@ let endpage = ref (fun _ -> 0)
    number pointing to a page not to be included in the output. This should be a
    reasonable first approximation to the required behaviour. *)
 let trim_structure_tree pdf range =
+  Printf.printf "trim_structure_tree\n";
   let page_objnums_to_remove =
     let objnums = Pdf.page_reference_numbers pdf in
       map (List.nth objnums) (setminus (ilist 1 (!endpage pdf)) range)
@@ -28,6 +29,7 @@ let trim_structure_tree pdf range =
          it. We don't rely on nulls, but do the actual modification. *)
       let replaceobjs = ref [] in
       while !del <> [] do
+        Printf.printf "Top of loop. %i to remove, %i to replace\n" (length (setify_large !del)) (length (setify_large !replaceobjs));
         iter (Pdf.removeobj pdf) (setify_large !del);
         del := [];
         iter (Pdf.addobj_given_num pdf) (setify_large !replaceobjs);

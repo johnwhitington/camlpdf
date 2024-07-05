@@ -968,7 +968,7 @@ let fixup_parents pdf =
       Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
     | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
 
-let pdf_of_pages ?(retain_numbering = false) basepdf range =
+let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) basepdf range =
   let page_labels =
     if length (Pdfpagelabels.read basepdf) = 0 then [] else
       if retain_numbering
@@ -1020,7 +1020,7 @@ let pdf_of_pages ?(retain_numbering = false) basepdf range =
     let pdf = Pdf.empty () in
       Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
       (* Trim the structure tree in-place. *)
-      Pdfst.trim_structure_tree pdf range;
+      if process_struct_tree then Pdfst.trim_structure_tree pdf range;
       let page_numbers = Pdf.page_reference_numbers basepdf in
         let pdf =
           {pdf with
