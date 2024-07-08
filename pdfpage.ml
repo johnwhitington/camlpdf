@@ -1029,8 +1029,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
              Pdf.trailerdict = basepdf.Pdf.trailerdict;
              Pdf.saved_encryption = basepdf.Pdf.saved_encryption}
         in
-                  (* Trim the structure tree in-place. *)
-                  if process_struct_tree then Pdfst.trim_structure_tree pdf range;
+          if process_struct_tree then Pdfst.trim_structure_tree pdf range;
           let existing_root_entries =
             try
               match Pdf.lookup_obj basepdf basepdf.Pdf.root with | Pdf.Dictionary d -> d | _ -> []
