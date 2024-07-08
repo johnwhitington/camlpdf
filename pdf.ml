@@ -445,22 +445,26 @@ let addobj_given_num doc (num, obj) =
   doc.objects.pdfobjects <-
     pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
 
-(* Follow a chain from the root, finding a dictionary entry to replace (or add).
-   Keep the same direct / indirect structure as is already present. *)
-let replace_chain_inner objnum dict pdf chain k v =
-  match chain with
-  | [] ->
-      (* End of chain. Make the new dictionary and replace the object. *)
-      addobj_given_num pdf (objnum, add_dict_entry dict k v) 
-  | _ ->
-      raise (PDFError "todo")
-      (* Implementation to be finished for deep editing when we have
-      a use case. *)
+(* Follow a chain from the root, finding a dictionary entry to replace.
+   Keep the same direct / indirect structure as is already present. NB this
+   cannot create a dictionary or tree of dictionaries which are not already
+   there, because the information about direct / indirect is not present. It
+   can, however, add a dictionary entry to a dictionary which already exists.
+   *)
+let find_final_indirect pdf obj objnum = function
+  | [] -> (objnum, [])
+  | k::ks -> (objnum, [])
 
-let replace_chain pdf chain k v =
-  match indirect_number pdf "/Root" pdf.trailerdict with
-  | None -> raise (PDFError "replace_chain")
-  | Some i -> replace_chain_inner i (lookup_obj pdf i) pdf chain k v
+let calculate_final_object last_indirect chain v = Null
+
+let replace_chain pdf chain v =
+  match chain with
+  | [] -> raise (PDFError "no chain")
+  | chain ->
+      let finalobjnum, remaining_chain = find_final_indirect pdf pdf.trailerdict 0 chain in
+        if finalobjnum = 0 then raise (PDFError "cannot use replace_chain to set trailer dictonary") else
+          let newobj = calculate_final_object finalobjnum remaining_chain v in
+            addobj_given_num pdf (finalobjnum, newobj)
 
 (* Look up under a key and its alternate. Return the value associated
 with the key that worked, or [None] if neither did. *)
