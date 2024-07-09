@@ -417,6 +417,11 @@ let lookup_direct pdf key dict =
       end
   | _ -> None
 
+let lookup_immediate pdf key dict =
+  match dict with
+  | Dictionary d | Stream {contents = (Dictionary d, _)} -> lookup_string_compare key d
+  | _ -> None
+
 (* Follow a nested chain of dictionary entries. *)
 let rec lookup_chain pdf obj = function
   | [] -> Some obj
@@ -449,11 +454,31 @@ let addobj_given_num doc (num, obj) =
    Keep the same direct / indirect structure as is already present. NB this
    cannot create a dictionary or tree of dictionaries which are not already
    there, because the information about direct / indirect is not present. *)
-let find_final_indirect pdf obj objnum = function
-  | [] -> (objnum, [])
-  | k::ks -> (objnum, [])
 
-let calculate_final_object last_indirect chain v = Null
+(* FIXME Unexpectedly complex! To be tested thoroughly before in public API. *)
+
+(* Find the final indirect object in the chain, returning its number and the
+   remaining (fully-direct) chain *)
+let rec find_final_indirect remaining_chain pdf obj objnum = function
+  | [] -> (objnum, rev remaining_chain)
+  | k::ks ->
+      match indirect_number pdf k obj with
+      | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
+      | None ->
+          match lookup_immediate pdf k obj with
+          | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
+          | None -> assert false (* chain pre-checked by lookup_chain *)
+
+(* The object number is now chosen. We follow what remains of the chain and insert
+the new key-value pair. *)
+let rec calculate_final_object pdf finalobj (k, v) chain =
+  match finalobj with
+  | Dictionary _ as d | Stream ({contents = (d, _)}) ->
+      begin match chain with
+      | [] -> add_dict_entry d k v
+      | c::cs -> add_dict_entry d c (calculate_final_object pdf finalobj (k, v) cs)
+      end
+  | _ -> assert false (* chain pre-checked by lookup_chain. *)
 
 let replace_chain pdf chain (k, v) =
   match lookup_chain pdf pdf.trailerdict chain with
@@ -462,9 +487,9 @@ let replace_chain pdf chain (k, v) =
       match chain with
       | [] -> raise (PDFError "no chain")
       | chain ->
-          let finalobjnum, remaining_chain = find_final_indirect pdf pdf.trailerdict 0 chain in
+          let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 chain in
             if finalobjnum = 0 then raise (PDFError "cannot use replace_chain to set trailer dictonary") else
-              let newobj = calculate_final_object finalobjnum remaining_chain v in
+              let newobj = calculate_final_object pdf (lookup_obj pdf finalobjnum) (k, v) remaining_chain in
                 addobj_given_num pdf (finalobjnum, newobj)
 
 (* Look up under a key and its alternate. Return the value associated
