@@ -291,7 +291,7 @@ val change_id : t -> string -> unit
 (**/**)
 
 (* Not finished yet. *)
-val replace_chain : t -> string list -> pdfobject -> unit
+val replace_chain : t -> string list -> string * pdfobject -> unit
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
 type toget_crypt =

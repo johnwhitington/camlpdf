@@ -14,7 +14,7 @@ let postprocess_parent_tree pdf =
   | Some t ->
       let pt = Pdftree.read_number_tree pdf t in
       let pt = lose (function (_, Pdf.Null) -> true | _ -> false) pt in
-        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"; "/ParentTree"] (Pdftree.build_name_tree true pdf pt)
+        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", (Pdftree.build_name_tree true pdf pt))
 
 (* FIXME Do we need to also process the /ParentTree to remove references to
    annots etc. which would othersie be deleted? This is not a correctness issue,
