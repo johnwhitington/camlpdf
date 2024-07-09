@@ -8,13 +8,24 @@ let endpage = ref (fun _ -> 0)
    exist (deleted pages), or which are referenced only from it (e.g annots and
    xobjects of now-deleted pages. Pdfpage.pdf_of_pages calls this when it is
    nearly finished. *)
+let remove_nulled_element pdf ((k : string), (v : Pdf.pdfobject)) =
+  match v with
+  | Pdf.Indirect i when Pdf.lookup_obj pdf i = Pdf.Null -> (k, Pdf.Null)
+  | Pdf.Array elts ->
+      begin match keep (function Pdf.Indirect i when Pdf.lookup_obj pdf i = Pdf.Null -> false | _ -> true) elts with
+      | [] -> (k, Pdf.Null)
+      | elts -> (k, Pdf.Array elts)
+      end
+  | _ -> (k, v)
+
 let postprocess_parent_tree pdf =
   match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
   | None -> ()
   | Some t ->
       let pt = Pdftree.read_number_tree pdf t in
-      let pt = lose (function (_, Pdf.Null) -> true | _ -> false) pt in
-        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", (Pdftree.build_name_tree true pdf pt))
+      let pt = map (remove_nulled_element pdf) pt in
+        (*iter (fun (n, v) -> Printf.printf "%s -> %s\n" n (Pdfwrite.string_of_pdf v)) pt;*)
+        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf pt)
 
 (* FIXME Do we need to also process the /ParentTree to remove references to
    annots etc. which would othersie be deleted? This is not a correctness issue,

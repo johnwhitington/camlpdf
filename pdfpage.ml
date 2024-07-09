@@ -1106,11 +1106,11 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
               let new_pagetree = pdf_of_pages_build_pagetree thetree objnumbers pdf in
                 Pdf.addobj_given_num pdf (old_pagetree_root_num, new_pagetree);
                   let pdf = add_root old_pagetree_root_num existing_root_entries pdf in
-
                   Pdfpagelabels.write pdf page_labels;
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
                     fixup_duplicate_pages pdf;
                     fixup_parents pdf;
+                    if process_struct_tree then Pdfst.postprocess_parent_tree pdf;
                     pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
