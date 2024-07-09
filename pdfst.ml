@@ -27,11 +27,6 @@ let postprocess_parent_tree pdf =
         (*iter (fun (n, v) -> Printf.printf "%s -> %s\n" n (Pdfwrite.string_of_pdf v)) pt;*)
         Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf pt)
 
-(* FIXME Do we need to also process the /ParentTree to remove references to
-   annots etc. which would othersie be deleted? This is not a correctness issue,
-   but is a size one - objects will end up in the output file only because they
-   are linked from the /ParentTree. *)
-
 (* Remove any structure tree node (and therefore its children) which has a page
    number pointing to a page not to be included in the output. This should be a
    reasonable first approximation to the required behaviour. Pdfpage.pdf_of_pages
@@ -117,7 +112,8 @@ let trim_structure_tree pdf range =
         done
 
 (* FIXME Are we sure no other objects can have /K or /Pg? Do we need to read
-   the struct tree object list to restrict what we touch? *)
+   the struct tree object list to restrict what we touch? Transparency can have
+   /K*)
 
 (* FIXME Eventually, will we need to repalace a proper model which parses
    the whole structure tree, modifies it as a tree and re-writes it? *)
@@ -126,5 +122,7 @@ let trim_structure_tree pdf range =
    no MCID remaining in the tree points to a now non-extant one? Does the
    verifier care? *)
 
-(* FIXME Do we need to rewrite /ParentTree to remove nulls after pdf_of_pages
-   is finished? For efficiency yes, but for correctness too? *)
+(* FIXME Do we need to also process the /ParentTree to remove references to
+   annots etc. which would otherwise be deleted? Does pdf_of_pages remove
+   those? This is not a correctness issue, but is a size one - objects will end
+   up in the output file only because they are linked from the /ParentTree. *)
