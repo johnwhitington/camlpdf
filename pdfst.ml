@@ -104,7 +104,7 @@ let trim_structure_tree pdf range =
                    | Some (Pdf.Integer _) -> ()
                    | Some (Pdf.Indirect i) -> process_indirect d [Pdf.Indirect i]
                    | Some (Pdf.Array objs) -> process_indirect d objs
-                   | _ -> ()
+                   | _ -> () (* /K can exist in transparency object, but is a boolean so ok. *)
                    end
              | _ -> ())
           pdf
