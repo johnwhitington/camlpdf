@@ -1116,7 +1116,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                     fixup_parents pdf;
                     (*Printf.eprintf "----BEFORE postprocess_parent_tree\n";
                     Pdfwrite.debug_whole_pdf pdf; *)
-                    if process_struct_tree then Pdfst.postprocess_parent_tree pdf;
+                    (*if process_struct_tree then Pdfst.postprocess_parent_tree pdf;*)
                     (*Printf.eprintf "----AFTER postprocess_parent_tree\n";
                     Pdfwrite.debug_whole_pdf pdf; *)
                     pdf
