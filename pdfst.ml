@@ -67,23 +67,18 @@ let trim_structure_tree pdf range =
         replaceobjs := [];
         Pdf.objiter
           (fun n o ->
-             (* Takes a list of integers or indirects. Indirects could be
-                structelem or marked-content reference dictionary or object
-                reference dictionary depending on /Type (no /Type = assume
-                structelem). Returns the None if no change, or Some list with
-                all which point to hitherto deleted objects removed. *)
              let process objs = 
                let survives = function
                  | Pdf.Indirect i ->
                      (* Must a) still exist in this file *)
                      Pdf.lookup_obj pdf i <> Pdf.Null  &&
-                     (* b) not be an object reference dictionary referencing a /Pg which is to be deleted *)
+                     (* b) not be an object reference dictionary or marked content reference dictionary referencing a /Pg which is to be deleted *)
                      (* c) not be an object reference dictionary with a /Obj which is a deleted page *)
                      begin match Pdf.indirect_number pdf "/Pg" (Pdf.Indirect i), Pdf.indirect_number pdf "/Obj" (Pdf.Indirect i) with
                      | Some i, _ when mem i page_objnums_to_remove -> false
                      | _, Some i when mem i page_objnums_to_remove -> false
                      | _ -> true
-                     end (* FIXME this was speculative. Check. *)
+                     end
                  | _ -> true
                in
                  if List.for_all survives objs then None else Some (keep survives objs)
