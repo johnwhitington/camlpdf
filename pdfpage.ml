@@ -1029,7 +1029,11 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
              Pdf.trailerdict = basepdf.Pdf.trailerdict;
              Pdf.saved_encryption = basepdf.Pdf.saved_encryption}
         in
+          (*Printf.eprintf "----BEFORE trim_structure_tree\n";
+          Pdfwrite.debug_whole_pdf pdf; *)
           if process_struct_tree then Pdfst.trim_structure_tree pdf range;
+          (*Printf.eprintf "----AFTER trim_structure_tree\n";
+          Pdfwrite.debug_whole_pdf pdf; *)
           let existing_root_entries =
             try
               match Pdf.lookup_obj basepdf basepdf.Pdf.root with | Pdf.Dictionary d -> d | _ -> []
@@ -1110,7 +1114,11 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
                     fixup_duplicate_pages pdf;
                     fixup_parents pdf;
+                    (*Printf.eprintf "----BEFORE postprocess_parent_tree\n";
+                    Pdfwrite.debug_whole_pdf pdf; *)
                     if process_struct_tree then Pdfst.postprocess_parent_tree pdf;
+                    (*Printf.eprintf "----AFTER postprocess_parent_tree\n";
+                    Pdfwrite.debug_whole_pdf pdf; *)
                     pdf
 
 let prepend_operators pdf ops ?(fast=false) page =

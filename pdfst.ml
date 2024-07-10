@@ -51,7 +51,7 @@ let trim_structure_tree pdf range =
         pdf;
       (* Any /K referencing these deleted objects is modifed to no longer reference it. *)
       let replaceobjs = ref [] in
-      while !del <> [] do
+      while !del <> [] || !replaceobjs <> [] do
         (*Printf.printf "Top of loop. %i to remove, %i to replace\n" (length (setify_large !del)) (length (setify_large !replaceobjs));
         iter (fun x -> Printf.printf "Removing %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf x))) (setify_large !del);*)
         iter (Pdf.removeobj pdf) (setify_large !del);
