@@ -109,3 +109,106 @@ let trim_structure_tree pdf range =
              | _ -> ())
           pdf
         done
+
+(* Merge structure hierarchy / tagged PDF.
+
+/IDTree                 name tree     merge
+/ParentTree             number tree   merge
+/ParentTreeNextKey      integer       delete for now, since optional and needs updating
+/RoleMap                dict          merge
+/ClassMap               dict          merge
+/NameSpaces             array         merge
+/PronunciationLexicon   array         merge
+/AF                     array         merge
+/K                      dict/array    merge
+*)
+let merge_structure_hierarchy pdf pdfs =
+  let get_all struct_tree_roots pdf name =
+    option_map
+      (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots
+  in
+  let merge_dicts dicts =
+    fold_left
+      (fun d (k, v) -> Pdf.add_dict_entry d k v)
+      (Pdf.Dictionary [])
+      (flatten
+        (option_map
+          (function
+           | Pdf.Dictionary d -> Some d
+           | _ -> Pdfe.log "merge_dicts: not a dict"; None) dicts))
+  in
+  let merge_arrays arrays =
+    Pdf.Array
+      (flatten
+        (option_map
+          (function
+           | Pdf.Array a -> Some a
+           | _ -> Pdfe.log "merge_array: not an array"; None) arrays))
+  in
+  let mkarray = function
+    | Pdf.Array a -> Pdf.Array a
+    | x -> Pdf.Array [x]
+  in
+  let struct_tree_roots, struct_tree_objnums =
+    split
+      (option_map
+        (fun pdf ->
+          let catalog = Pdf.catalog_of_pdf pdf in
+             match Pdf.lookup_direct pdf "/StructTreeRoot" catalog with
+             | None -> None
+             | Some str ->
+                Some
+                  (str,
+                   match catalog with
+                   | Pdf.Dictionary d ->
+                       begin match lookup "/StructTreeRoot" d with Some (Pdf.Indirect i) -> i | _ -> 0 end
+                   | _ -> raise (Pdf.PDFError "merge_structure_hierarchy: bad catalog")))
+        pdfs)
+  in
+    match struct_tree_roots with
+    | [] -> None
+    | [x] ->
+       Some (hd struct_tree_objnums) (* if only one, don't interfere, just preserve it. *)
+    | _ ->
+      let merged_idtree =
+        Pdftree.merge_name_trees_no_clash pdf (get_all struct_tree_roots pdf "/IDTree")
+      in
+      let merged_parenttree =
+        Pdftree.merge_number_trees_no_clash pdf (get_all struct_tree_roots pdf "/ParentTree")
+      in
+      let merged_rolemap =
+        merge_dicts (get_all struct_tree_roots pdf "/RoleMap") in
+      let merged_classmap =
+        merge_dicts (get_all struct_tree_roots pdf "/ClassMap") in
+      let merged_namespaces =
+        merge_arrays (get_all struct_tree_roots pdf "/NameSpaces") in
+      let merged_pronunciation_lexicon =
+        merge_arrays (get_all struct_tree_roots pdf "/PronunciationLexicon") in
+      let merged_af =
+        merge_arrays (get_all struct_tree_roots pdf "/AF") in
+      let struct_tree_objnum = Pdf.addobj pdf Pdf.Null in
+      let merged_k =
+        match merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K")) with
+        | Pdf.Array l ->
+            Pdf.Array (map (fun d -> Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)) (map (Pdf.direct pdf) l))
+        | _ -> assert false
+      in
+        let optional n = function
+        | Pdf.Dictionary [] -> []
+        | Pdf.Array [] -> []
+        | x -> [(n, Pdf.Indirect (Pdf.addobj pdf x))]
+        in
+        let new_dict =
+          Pdf.Dictionary
+            (["/Type", Pdf.Name "/StructTreeRoot"]
+             @ optional "/IDTree" merged_idtree
+             @ optional "/ParentTree" merged_parenttree
+             @ optional "/RoleMap" merged_rolemap
+             @ optional "/ClassMap" merged_classmap
+             @ optional "/NameSpaces" merged_namespaces
+             @ optional "/PronunciationLexicon" merged_pronunciation_lexicon
+             @ optional "/AF" merged_af
+             @ optional "/K" merged_k)
+        in
+          Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
+          Some struct_tree_objnum

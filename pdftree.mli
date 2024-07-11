@@ -11,3 +11,7 @@ val read_number_tree : Pdf.t -> Pdf.pdfobject -> (string * Pdf.pdfobject) list
 (** Build a name or number tree (bool: true if number, false otherwise) from
     flat (key, value) list *)
 val build_name_tree : bool -> Pdf.t -> (string * Pdf.pdfobject) list -> Pdf.pdfobject
+
+val merge_name_trees_no_clash : Pdf.t -> Pdf.pdfobject list -> Pdf.pdfobject
+
+val merge_number_trees_no_clash : Pdf.t -> Pdf.pdfobject list -> Pdf.pdfobject

@@ -89,3 +89,10 @@ let build_name_tree isnum pdf = function
   | ls ->
       let nt = build_nt_tree (sort compare ls) in
         name_tree_of_nt isnum true pdf nt
+
+(* Once we know there are no clashes *)
+let merge_name_trees_no_clash pdf trees =
+  build_name_tree false pdf (flatten (map (read_name_tree pdf) trees))
+
+let merge_number_trees_no_clash pdf trees =
+  build_name_tree true pdf (flatten (map (read_number_tree pdf) trees))
