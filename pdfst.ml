@@ -112,17 +112,21 @@ let trim_structure_tree pdf range =
 
 (* Merge structure hierarchy / tagged PDF.
 
-/IDTree                 name tree     merge
-/ParentTree             number tree   merge
-/ParentTreeNextKey      integer       delete for now, since optional and needs updating
-/RoleMap                dict          merge
-/ClassMap               dict          merge
-/NameSpaces             array         merge
-/PronunciationLexicon   array         merge
-/AF                     array         merge
-/K                      dict/array    merge
-*)
+/IDTree                 name tree      *rename and merge
+/ParentTree             number tree    *renumber and merge
+/ParentTreeNextKey      integer        *update
+/RoleMap                dict           *rename to be consistent if possible, if not degrade, and merge
+/ClassMap               dict           *rename and merge
+/NameSpaces             array          *rename and merge
+/PronunciationLexicon   array          concatenate
+/AF                     array          concatenate
+/K                      structure tree merge trees *)
+
+(* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
+let renumber_parent_trees pdfs = ()
+
 let merge_structure_hierarchy pdf pdfs =
+  renumber_parent_trees pdfs;
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots
