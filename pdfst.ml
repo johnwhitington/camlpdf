@@ -123,7 +123,12 @@ let trim_structure_tree pdf range =
 /K                      structure tree merge trees *)
 
 (* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
-let renumber_parent_trees pdfs = ()
+let renumber_parent_trees pdfs =
+  (* 1. get the parent trees *)
+  (* 2. calculate a renumbering mapping from 0 upwards *)
+  (* 3. process all the content streams and xobjects in each file to apply the numbering. *)
+  (* 4. write the new parent tree to each file *)
+  ()
 
 let merge_structure_hierarchy pdf pdfs =
   renumber_parent_trees pdfs;
