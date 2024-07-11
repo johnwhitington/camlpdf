@@ -1118,9 +1118,7 @@ let encrypt_pdf_AES256ISO =
 
 (* Is a file encrypted? *)
 let is_encrypted pdf =
-  match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
-  | Some _ -> true
-  | None -> false
+  some (Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict)
 
 (* recrypt_pdf pdf password re-encrypts a PDF document which was decrypted with
 the user or owner password given using that same user password *)
