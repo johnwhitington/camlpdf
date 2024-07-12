@@ -123,12 +123,58 @@ let trim_structure_tree pdf range =
 /K                      structure tree merge trees *)
 
 (* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
+
+let renumber_mcids pdf rs = function
+  | Pdfops.Op_BDC (s, d) as op ->
+      begin match Pdf.lookup_chain pdf d ["/P"; "/MCID"] with
+      | Some (Pdf.Integer i) ->
+          begin match Hashtbl.find_opt rs i with
+          | Some i' -> Pdfops.Op_BDC (s, Pdf.replace_chain_all_direct d ["/P"] ("/MCID", Pdf.Integer i'))
+          | None -> op
+          end
+      | _ -> op
+      end
+  | x -> x
+
 let renumber_parent_trees pdfs =
-  (* 1. get the parent trees *)
-  (* 2. calculate a renumbering mapping from 0 upwards *)
-  (* 3. process all the content streams and xobjects in each file to apply the numbering. *)
-  (* 4. write the new parent tree to each file *)
-  ()
+  (* Get the parent trees *)
+  let parent_trees =
+    map
+      (fun pdf ->
+         match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
+         | Some t -> Pdftree.read_number_tree pdf t
+         | None -> [])
+    pdfs
+  in
+  (* Calculate a renumbering mapping from 0 upwards *)
+  let rs =
+    Hashtbl.create 256
+  in
+  (* Process all the content streams and xobjects in each file to apply the numbering. *)
+  iter
+    (fun pdf -> Pdf.objiter
+      (fun n o ->
+         match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
+         | Some (Pdf.Name "/Page"), _ ->
+             (* We are allowed to smash /Contents in modern PDF, which a file with a /Parent should be. *)
+             ()
+         | _, Some (Pdf.Name "/Form") ->
+             (* Just do this stream. *)
+             ()
+         | x -> ())
+      pdf)
+    pdfs;
+  (* Write the new parent tree to each file *)
+  let renumbered_parent_trees =
+    map_lol (fun (k, v) -> match Hashtbl.find_opt rs k with Some k' -> (k', v) | None -> assert false) parent_trees
+  in
+    iter2
+      (fun pdf renumbered ->
+         match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
+         | None -> ()
+         | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf renumbered))
+      pdfs
+      renumbered_parent_trees
 
 let merge_structure_hierarchy pdf pdfs =
   renumber_parent_trees pdfs;
