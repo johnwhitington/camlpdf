@@ -124,11 +124,11 @@ let trim_structure_tree pdf range =
 
 (* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
 
-let renumber_mcids pdf rs = function
+let renumber_mcids pdf pdfnum rs = function
   | Pdfops.Op_BDC (s, d) as op ->
       begin match Pdf.lookup_chain pdf d ["/P"; "/MCID"] with
       | Some (Pdf.Integer i) ->
-          begin match Hashtbl.find_opt rs i with
+          begin match Hashtbl.find_opt rs (pdfnum, i) with
           | Some i' -> Pdfops.Op_BDC (s, Pdf.replace_chain_all_direct d ["/P"] ("/MCID", Pdf.Integer i'))
           | None -> op
           end
@@ -146,27 +146,55 @@ let renumber_parent_trees pdfs =
          | None -> [])
     pdfs
   in
-  (* Calculate a renumbering mapping from 0 upwards *)
-  let rs =
-    Hashtbl.create 256
-  in
+  (* Calculate a renumbering mapping from (pdf number, parent tree number) to 0,1,2.... *)
+  let num = ref 0 in
+  let rs = Hashtbl.create 256 in
+  iter2
+    (fun pt pdfn ->
+      iter (fun (k, _) -> Hashtbl.add rs (pdfn, int_of_string k) !num; num += 1) pt)
+    parent_trees
+    (ilist 1 (length pdfs));
   (* Process all the content streams and xobjects in each file to apply the numbering. *)
-  iter
-    (fun pdf -> Pdf.objiter
-      (fun n o ->
-         match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
-         | Some (Pdf.Name "/Page"), _ ->
-             (* We are allowed to smash /Contents in modern PDF, which a file with a /Parent should be. *)
-             ()
-         | _, Some (Pdf.Name "/Form") ->
-             (* Just do this stream. *)
-             ()
-         | x -> ())
-      pdf)
-    pdfs;
+  (* We are allowed to smash /Contents in modern PDF, which a file with a /ParentTree should be. *)
+  iter2
+    (fun pdf pdfnum ->
+      (* Cannot replace objects when inside objiter, so we collect them and apply at the end *)
+      let newobjs = ref [] in
+        Pdf.objiter
+          (fun n o ->
+             let resources = match Pdf.lookup_direct pdf "/Resources" o with | Some x -> x | None -> Pdf.Dictionary [] in
+             match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
+             | Some (Pdf.Name "/Page"), _ ->
+                 let contents = match Pdf.lookup_direct pdf "/Contents" o with Some (Pdf.Array a) -> a | _ -> [] in
+                 let ops = Pdfops.parse_operators pdf resources contents in
+                 let obj = Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) in
+                   newobjs =| (Pdf.(pdf.objects.maxobjnum) + 1, obj);
+                   pdf.Pdf.objects.Pdf.maxobjnum <- Pdf.(pdf.objects.maxobjnum) + 1
+             | _, Some (Pdf.Name "/Form") ->
+                 let ops = Pdfops.parse_operators pdf resources [o] in
+                   begin match Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) with
+                   | Pdf.Stream {contents = (_, Pdf.Got data)} ->
+                       begin match o with
+                       | Pdf.Stream ({contents = (d, _)} as r) ->
+                           r := (Pdf.add_dict_entry d "/Length" (Pdf.Integer (Pdfio.bytes_size data)), Pdf.Got data)
+                       | _ -> ()
+                       end
+                   | _ -> assert false
+                   end
+             | x -> ())
+          pdf;
+          (iter (Pdf.addobj_given_num pdf) !newobjs))
+    pdfs
+    (ilist 1 (length pdfs));
   (* Write the new parent tree to each file *)
   let renumbered_parent_trees =
-    map_lol (fun (k, v) -> match Hashtbl.find_opt rs k with Some k' -> (k', v) | None -> assert false) parent_trees
+    map2
+      (fun pt pdfnum ->
+         map
+           (fun (k, v) -> match Hashtbl.find_opt rs (pdfnum, int_of_string k) with Some k' -> (string_of_int k', v) | None -> assert false)
+           pt)
+      parent_trees
+      (ilist 1 (length pdfs))
   in
     iter2
       (fun pdf renumbered ->
