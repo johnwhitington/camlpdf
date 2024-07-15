@@ -292,6 +292,7 @@ let merge_structure_hierarchy pdf pdfs =
       let merged_af =
         merge_arrays (get_all struct_tree_roots pdf "/AF") in
       let struct_tree_objnum = Pdf.addobj pdf Pdf.Null in
+      (* FIXME merge_array is doing something wrong here. Is producing copy and losing stuff. *)
       let merged_k =
         match merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K")) with
         | Pdf.Array l ->
