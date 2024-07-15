@@ -136,8 +136,12 @@ let renumber_mcids pdf pdfnum rs = function
       end
   | x -> x
 
+
+let print_parent_tree = 
+  iter (fun (a, b) -> Printf.printf "%s -> %s\n" a (Pdfwrite.string_of_pdf b))
+
 let renumber_parent_trees pdfs =
-  (* Get the parent trees *)
+  if length pdfs = 1 then () else
   let parent_trees =
     map
       (fun pdf ->
@@ -146,6 +150,12 @@ let renumber_parent_trees pdfs =
          | None -> [])
     pdfs
   in
+  (*iter2
+    (fun pt n ->
+       Printf.printf "****************** PARENT TREE %i:\n" n;
+       print_parent_tree pt)
+    parent_trees
+    (ilist 1 (length pdfs));*)
   (* Calculate a renumbering mapping from (pdf number, parent tree number) to 0,1,2.... *)
   let num = ref 0 in
   let rs = Hashtbl.create 256 in
@@ -154,8 +164,9 @@ let renumber_parent_trees pdfs =
       iter (fun (k, _) -> Hashtbl.add rs (pdfn, int_of_string k) !num; num += 1) pt)
     parent_trees
     (ilist 1 (length pdfs));
-  (* Process all the content streams and xobjects in each file to apply the numbering. *)
-  (* We are allowed to smash /Contents in modern PDF, which a file with a /ParentTree should be. *)
+  (* Process all the content streams and xobjects in each file to apply the
+     numbering. We are allowed to smash /Contents in modern PDF, which a file
+     with a /ParentTree should be. *)
   iter2
     (fun pdf pdfnum ->
       (* Cannot replace objects when inside objiter, so we collect them and apply at the end *)
@@ -196,6 +207,12 @@ let renumber_parent_trees pdfs =
       parent_trees
       (ilist 1 (length pdfs))
   in
+    (*iter2
+      (fun pt n ->
+         Printf.printf "****************** FINAL PARENT TREE %i:\n" n;
+         print_parent_tree pt)
+      renumbered_parent_trees
+    (ilist 1 (length pdfs));*)
     iter2
       (fun pdf renumbered ->
          match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
@@ -203,6 +220,11 @@ let renumber_parent_trees pdfs =
          | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf renumbered))
       pdfs
       renumbered_parent_trees
+    (* Write the PDFs to file to check them *)
+    (*iter2
+      (fun n pdf -> Pdfwrite.pdf_to_file pdf (string_of_int n ^ ".pdf"))
+      (ilist 1 (length pdfs))
+      pdfs*)
 
 let merge_structure_hierarchy pdf pdfs =
   renumber_parent_trees pdfs;
@@ -283,7 +305,8 @@ let merge_structure_hierarchy pdf pdfs =
         in
         let new_dict =
           Pdf.Dictionary
-            (["/Type", Pdf.Name "/StructTreeRoot"]
+            (["/Type", Pdf.Name "/StructTreeRoot";
+              "/ThisIs", Pdf.Name "/TheNewOne"]
              @ optional "/IDTree" merged_idtree
              @ optional "/ParentTree" merged_parenttree
              @ optional "/RoleMap" merged_rolemap

@@ -37,6 +37,7 @@ let read_name_tree pdf tree =
         Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n";
         []
 
+(* FIXME This will split 11 not into 1 and 10, but add a whole new layer of 1s. Correct, but inefficient. *)
 let maxsize = 10 (* Must be at least two *)
 
 type ('k, 'v) nt =
@@ -80,6 +81,12 @@ let rec name_tree_of_nt isnum isroot pdf = function
        [("/Kids", Pdf.Array (map (fun x -> Pdf.Indirect x) indirects));
         ("/Limits", Pdf.Array [ll; rl])]
 
+let compare_any isnum a b =
+  if isnum then
+    compare (int_of_string (fst a)) (int_of_string (fst b))
+  else
+    compare a b
+
 let build_name_tree isnum pdf = function
   | [] ->
       if isnum then
@@ -87,8 +94,8 @@ let build_name_tree isnum pdf = function
       else
         Pdf.Dictionary [("/Names", Pdf.Array [])]
   | ls ->
-      let nt = build_nt_tree (sort compare ls) in
-        name_tree_of_nt isnum true pdf nt
+      let nt = build_nt_tree (sort (compare_any isnum) ls) in
+        Pdf.remove_dict_entry (name_tree_of_nt isnum true pdf nt) "/Limits"
 
 (* Once we know there are no clashes *)
 let merge_name_trees_no_clash pdf trees =
