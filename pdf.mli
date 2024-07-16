@@ -130,6 +130,8 @@ val lookup_exception : exn -> t -> string -> pdfobject -> pdfobject
 (** [lookup_direct doc key dict] looks up the key returning an option type. *) 
 val lookup_direct : t -> string -> pdfobject -> pdfobject option
 
+val lookup_immediate : string -> pdfobject -> pdfobject option
+
 (** [lookup_chain doc start keys] looks up the key in a nested dictionary. For
     example [lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot";
     "/RoleMap"]] *)

@@ -417,7 +417,7 @@ let lookup_direct pdf key dict =
       end
   | _ -> None
 
-let lookup_immediate pdf key dict =
+let lookup_immediate key dict =
   match dict with
   | Dictionary d | Stream {contents = (Dictionary d, _)} -> lookup_string_compare key d
   | _ -> None
@@ -465,7 +465,7 @@ let rec find_final_indirect remaining_chain pdf obj objnum = function
       match indirect_number pdf k obj with
       | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
       | None ->
-          match lookup_immediate pdf k obj with
+          match lookup_immediate k obj with
           | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
           | None -> assert false (* chain pre-checked by lookup_chain *)
 
