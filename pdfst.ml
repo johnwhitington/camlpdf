@@ -292,12 +292,27 @@ let merge_structure_hierarchy pdf pdfs =
       let merged_af =
         merge_arrays (get_all struct_tree_roots pdf "/AF") in
       let struct_tree_objnum = Pdf.addobj pdf Pdf.Null in
-      (* FIXME merge_array is doing something wrong here. Is producing copy and losing stuff. *)
       let merged_k =
-        match merge_arrays (map mkarray (get_all struct_tree_roots pdf "/K")) with
-        | Pdf.Array l ->
-            Pdf.Array (map (fun d -> Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)) (map (Pdf.direct pdf) l))
-        | _ -> assert false
+        (* 1. Get indirect references to each existing structure tree root object. They should be indirect, because /Ps will
+         need to point up to them, but may not be - so if not indirect, keep direct. *)
+        let existing_struct_tree_roots_as_mostly_indirects =
+          map
+            (function (o, n) -> if n > 0 then Pdf.Indirect n else o)
+            (combine struct_tree_roots struct_tree_objnums)
+        in
+        (* 2. Rewrite in-place each previous indirect struct tree root to have a /P pointing up to the new struct tree root. *)
+        mkarray
+          (Pdf.Array
+            (map
+              (function
+               | Pdf.Indirect i ->
+                   let d = Pdf.lookup_obj pdf i in
+                     Pdf.addobj_given_num pdf (i, Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum));
+                     Pdf.Indirect i
+               | Pdf.Dictionary _ as d ->
+                   Pdf.add_dict_entry d "/P" (Pdf.Indirect struct_tree_objnum)
+               | x -> x)
+              existing_struct_tree_roots_as_mostly_indirects))
       in
         let optional n = function
         | Pdf.Dictionary [] -> []
