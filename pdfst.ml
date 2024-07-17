@@ -123,18 +123,13 @@ let renumber_parent_trees pdfs =
     parent_trees
     (ilist 1 (length pdfs));
   (* Process all /StructParent(s) dictionary entries to point to new /ParentTree entries. *)
-  let replace_any_structparent n (k, v) =
-    match k, v with
-    | ("/StructParent" | "/StructParents"), Pdf.Integer i ->
+  let replace_any_structparent n = function
+    | ("/StructParent" | "/StructParents") as k, Pdf.Integer i ->
         begin match Hashtbl.find_opt rs (n, i) with
-        | Some i' ->
-            Printf.printf "%i -> %i\n" i i';
-            (k, Pdf.Integer i')
-        | None ->
-            Printf.printf "%i -> None\n" i;
-            (k, Pdf.Integer i)
+        | Some i' -> (k, Pdf.Integer i')
+        | None -> (k, Pdf.Integer i)
         end
-    | _ -> (k, v)
+    | x -> x
   in
   let rec f n = function
   | Pdf.Dictionary d ->
@@ -145,7 +140,10 @@ let renumber_parent_trees pdfs =
       Pdf.Stream {contents = (Pdf.recurse_dict (f n) (map (replace_any_structparent n) d), s)}
   | x -> x
   in
-  iter2 (fun pdf n -> Pdf.objselfmap (f n) pdf) pdfs (ilist 1 (length pdfs));
+  iter2
+    (fun pdf n ->
+      Pdf.objselfmap (f n) pdf)
+    pdfs (ilist 1 (length pdfs));
   (* Write the new parent tree to each file *)
   let renumbered_parent_trees =
     map2
@@ -176,7 +174,7 @@ let renumber_parent_trees pdfs =
       pdfs
 
 let merge_structure_hierarchy pdf pdfs =
-  renumber_parent_trees pdfs;
+  (*renumber_parent_trees pdfs;*)
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots
