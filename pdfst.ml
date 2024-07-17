@@ -8,7 +8,7 @@ let endpage = ref (fun _ -> 0)
    exist (deleted pages), or which are referenced only from it (e.g annots and
    xobjects of now-deleted pages. Pdfpage.pdf_of_pages calls this when it is
    nearly finished. *)
-let remove_nulled_element pdf ((k : string), (v : Pdf.pdfobject)) =
+(*let remove_nulled_element pdf ((k : string), (v : Pdf.pdfobject)) =
   match v with
   | Pdf.Indirect i when Pdf.lookup_obj pdf i = Pdf.Null -> (k, Pdf.Null)
   | Pdf.Array elts ->
@@ -29,7 +29,7 @@ let postprocess_parent_tree pdf =
       let pt = Pdftree.read_number_tree pdf t in
       let pt = map (remove_nulled_element pdf) pt in
         (*iter (fun (n, v) -> Printf.printf "%s -> %s\n" n (Pdfwrite.string_of_pdf v)) pt;*)
-        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf pt)
+        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf pt)*)  
 
 (* Remove any structure tree node (and therefore its children) which has a page
    number pointing to a page not to be included in the output. This should be a
@@ -123,7 +123,7 @@ let trim_structure_tree pdf range =
 /K                      structure tree merge trees *)
 
 (* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
-let renumber_mcids pdf pdfnum rs = function
+(*let renumber_mcids pdf pdfnum rs = function
   | Pdfops.Op_BDC (s, d) as op ->
       Printf.printf "BDC: %s\n" (Pdfops.string_of_op op);
       begin match d with
@@ -145,7 +145,7 @@ let renumber_mcids pdf pdfnum rs = function
                 d))
       | x -> op
       end
-  | x -> x
+  | x -> x*)
 
 let print_parent_tree = 
   iter (fun (a, b) -> Printf.printf "%s -> %s\n" a (Pdfwrite.string_of_pdf b))
@@ -174,46 +174,30 @@ let renumber_parent_trees pdfs =
       iter (fun (k, _) -> Hashtbl.add rs (pdfn, int_of_string k) !num; num += 1) pt)
     parent_trees
     (ilist 1 (length pdfs));
-  (* Process all the content streams and xobjects in each file to apply the
-     numbering. We are allowed to smash /Contents in modern PDF, which a file
-     with a /ParentTree should be. *)
-  iter2
-    (fun pdf pdfnum ->
-      (* Cannot replace objects when inside objiter, so we collect them and apply at the end *)
-      let newobjs = ref [] in
-        Pdf.objiter
-          (fun n o ->
-             let resources = match Pdf.lookup_direct pdf "/Resources" o with | Some x -> x | None -> Pdf.Dictionary [] in
-             match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
-             | Some (Pdf.Name "/Page"), _ ->
-                 flprint "Processing MCIDs for page...";
-                 let contents = match Pdf.lookup_direct pdf "/Contents" o with Some (Pdf.Array a) -> a | Some x -> [x] | None -> [] in
-                 Printf.printf "%i contents\n" (length contents);
-                 let ops = Pdfops.parse_operators pdf resources contents in
-                 Printf.printf "%i ops\n" (length ops);
-                 let obj = Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) in
-                   newobjs =| (Pdf.(pdf.objects.maxobjnum) + 1, obj);
-                   pdf.Pdf.objects.Pdf.maxobjnum <- Pdf.(pdf.objects.maxobjnum) + 1;
-                   flprint "Done\n"
-             | _, Some (Pdf.Name "/Form") ->
-                 flprint "Processing MCIDs for form...";
-                 let ops = Pdfops.parse_operators pdf resources [o] in
-                   Printf.printf "%i form operators\n" (length ops);
-                   begin match Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) with
-                   | Pdf.Stream {contents = (_, Pdf.Got data)} ->
-                       begin match o with
-                       | Pdf.Stream ({contents = (d, _)} as r) ->
-                           r := (Pdf.add_dict_entry d "/Length" (Pdf.Integer (Pdfio.bytes_size data)), Pdf.Got data)
-                       | _ -> ()
-                       end
-                   | _ -> assert false
-                   end;
-                   flprint "Done\n";
-             | x -> ())
-          pdf;
-          (iter (Pdf.addobj_given_num pdf) !newobjs))
-    pdfs
-    (ilist 1 (length pdfs));
+  (* Process all /StructParent(s) dictionary entries to point to new /ParentTree entries. *)
+  let replace_any_structparent n (k, v) =
+    match k, v with
+    | ("/StructParent" | "/StructParents"), Pdf.Integer i ->
+        begin match Hashtbl.find_opt rs (n, i) with
+        | Some i' ->
+            Printf.printf "%i -> %i\n" i i';
+            (k, Pdf.Integer i')
+        | None ->
+            Printf.printf "%i -> None\n" i;
+            (k, Pdf.Integer i)
+        end
+    | _ -> (k, v)
+  in
+  let rec f n = function
+  | Pdf.Dictionary d ->
+      Pdf.recurse_dict (f n) (map (replace_any_structparent n) d)
+  | Pdf.Array a ->
+      Pdf.recurse_array (f n) a
+  | Pdf.Stream {contents = (Pdf.Dictionary d, s)} ->
+      Pdf.Stream {contents = (Pdf.recurse_dict (f n) (map (replace_any_structparent n) d), s)}
+  | x -> x
+  in
+  iter2 (fun pdf n -> Pdf.objselfmap (f n) pdf) pdfs (ilist 1 (length pdfs));
   (* Write the new parent tree to each file *)
   let renumbered_parent_trees =
     map2
@@ -360,3 +344,40 @@ let merge_structure_hierarchy pdf pdfs =
         in
           Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
           Some struct_tree_objnum
+  (*iter2
+    (fun pdf pdfnum ->
+      (* Cannot replace objects when inside objiter, so we collect them and apply at the end *)
+      let newobjs = ref [] in
+        Pdf.objiter
+          (fun n o ->
+             let resources = match Pdf.lookup_direct pdf "/Resources" o with | Some x -> x | None -> Pdf.Dictionary [] in
+             match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
+             | Some (Pdf.Name "/Page"), _ ->
+                 flprint "Processing MCIDs for page...";
+                 let contents = match Pdf.lookup_direct pdf "/Contents" o with Some (Pdf.Array a) -> a | Some x -> [x] | None -> [] in
+                 Printf.printf "%i contents\n" (length contents);
+                 let ops = Pdfops.parse_operators pdf resources contents in
+                 Printf.printf "%i ops\n" (length ops);
+                 let obj = Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) in
+                   newobjs =| (Pdf.(pdf.objects.maxobjnum) + 1, obj);
+                   pdf.Pdf.objects.Pdf.maxobjnum <- Pdf.(pdf.objects.maxobjnum) + 1;
+                   flprint "Done\n"
+             | _, Some (Pdf.Name "/Form") ->
+                 flprint "Processing MCIDs for form...";
+                 let ops = Pdfops.parse_operators pdf resources [o] in
+                   Printf.printf "%i form operators\n" (length ops);
+                   begin match Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) with
+                   | Pdf.Stream {contents = (_, Pdf.Got data)} ->
+                       begin match o with
+                       | Pdf.Stream ({contents = (d, _)} as r) ->
+                           r := (Pdf.add_dict_entry d "/Length" (Pdf.Integer (Pdfio.bytes_size data)), Pdf.Got data)
+                       | _ -> ()
+                       end
+                   | _ -> assert false
+                   end;
+                   flprint "Done\n";
+             | x -> ())
+          pdf;
+          (iter (Pdf.addobj_given_num pdf) !newobjs))
+    pdfs
+    (ilist 1 (length pdfs));*)
