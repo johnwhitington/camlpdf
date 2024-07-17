@@ -4,33 +4,6 @@ open Pdfutil
 (* Recursion between modules *)
 let endpage = ref (fun _ -> 0)
 
-(* Rewrite the parent tree to remove references to objects which no longer
-   exist (deleted pages), or which are referenced only from it (e.g annots and
-   xobjects of now-deleted pages. Pdfpage.pdf_of_pages calls this when it is
-   nearly finished. *)
-(*let remove_nulled_element pdf ((k : string), (v : Pdf.pdfobject)) =
-  match v with
-  | Pdf.Indirect i when Pdf.lookup_obj pdf i = Pdf.Null -> (k, Pdf.Null)
-  | Pdf.Array elts ->
-      begin match keep (function Pdf.Indirect i when Pdf.lookup_obj pdf i = Pdf.Null -> false | _ -> true) elts with
-      | [] -> (k, Pdf.Null)
-      | elts -> (k, Pdf.Array elts)
-      end
-  | _ -> (k, v)
-
-(* FIXME Do we need to also process the /ParentTree to remove references to
-   annots etc. which would otherwise be deleted? Does pdf_of_pages remove
-   those? This is not a correctness issue, but is a size one - objects will end
-   up in the output file only because they are linked from the /ParentTree. *)
-let postprocess_parent_tree pdf =
-  match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
-  | None -> ()
-  | Some t ->
-      let pt = Pdftree.read_number_tree pdf t in
-      let pt = map (remove_nulled_element pdf) pt in
-        (*iter (fun (n, v) -> Printf.printf "%s -> %s\n" n (Pdfwrite.string_of_pdf v)) pt;*)
-        Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf pt)*)  
-
 (* Remove any structure tree node (and therefore its children) which has a page
    number pointing to a page not to be included in the output. This should be a
    reasonable first approximation to the required behaviour. Pdfpage.pdf_of_pages
@@ -122,31 +95,6 @@ let trim_structure_tree pdf range =
 /AF                     array          concatenate
 /K                      structure tree merge trees *)
 
-(* Preprocessing step. Renumber parent trees, and MCIDs pointing to them, not to clash. *)
-(*let renumber_mcids pdf pdfnum rs = function
-  | Pdfops.Op_BDC (s, d) as op ->
-      Printf.printf "BDC: %s\n" (Pdfops.string_of_op op);
-      begin match d with
-      | Pdf.Dictionary d ->
-           Pdfops.Op_BDC (s, 
-           Pdf.Dictionary
-             (map
-                (function
-                 | ("/MCID", Pdf.Integer i) ->
-                     begin match Hashtbl.find_opt rs (pdfnum, i) with
-                     | Some i' ->
-                         Printf.printf "Renumber in stream %i -> %i\n" i i';
-                         ("/MCID", Pdf.Integer i')
-                     | None ->
-                         Printf.printf "Could not renumber %i\n" i;
-                         ("/MCID", Pdf.Integer i)
-                     end
-                 | x -> x)
-                d))
-      | x -> op
-      end
-  | x -> x*)
-
 let print_parent_tree = 
   iter (fun (a, b) -> Printf.printf "%s -> %s\n" a (Pdfwrite.string_of_pdf b))
 
@@ -220,12 +168,12 @@ let renumber_parent_trees pdfs =
          | None -> ()
          | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf renumbered))
       pdfs
-      renumbered_parent_trees
+      renumbered_parent_trees;
     (* Write the PDFs to file to check them *)
-    (*iter2
+    iter2
       (fun n pdf -> Pdfwrite.pdf_to_file pdf (string_of_int n ^ ".pdf"))
       (ilist 1 (length pdfs))
-      pdfs*)
+      pdfs
 
 let merge_structure_hierarchy pdf pdfs =
   renumber_parent_trees pdfs;
@@ -344,40 +292,3 @@ let merge_structure_hierarchy pdf pdfs =
         in
           Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
           Some struct_tree_objnum
-  (*iter2
-    (fun pdf pdfnum ->
-      (* Cannot replace objects when inside objiter, so we collect them and apply at the end *)
-      let newobjs = ref [] in
-        Pdf.objiter
-          (fun n o ->
-             let resources = match Pdf.lookup_direct pdf "/Resources" o with | Some x -> x | None -> Pdf.Dictionary [] in
-             match Pdf.lookup_direct pdf "/Type" o, Pdf.lookup_direct pdf "/Subtype" o with
-             | Some (Pdf.Name "/Page"), _ ->
-                 flprint "Processing MCIDs for page...";
-                 let contents = match Pdf.lookup_direct pdf "/Contents" o with Some (Pdf.Array a) -> a | Some x -> [x] | None -> [] in
-                 Printf.printf "%i contents\n" (length contents);
-                 let ops = Pdfops.parse_operators pdf resources contents in
-                 Printf.printf "%i ops\n" (length ops);
-                 let obj = Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) in
-                   newobjs =| (Pdf.(pdf.objects.maxobjnum) + 1, obj);
-                   pdf.Pdf.objects.Pdf.maxobjnum <- Pdf.(pdf.objects.maxobjnum) + 1;
-                   flprint "Done\n"
-             | _, Some (Pdf.Name "/Form") ->
-                 flprint "Processing MCIDs for form...";
-                 let ops = Pdfops.parse_operators pdf resources [o] in
-                   Printf.printf "%i form operators\n" (length ops);
-                   begin match Pdfops.stream_of_ops (map (renumber_mcids pdf pdfnum rs) ops) with
-                   | Pdf.Stream {contents = (_, Pdf.Got data)} ->
-                       begin match o with
-                       | Pdf.Stream ({contents = (d, _)} as r) ->
-                           r := (Pdf.add_dict_entry d "/Length" (Pdf.Integer (Pdfio.bytes_size data)), Pdf.Got data)
-                       | _ -> ()
-                       end
-                   | _ -> assert false
-                   end;
-                   flprint "Done\n";
-             | x -> ())
-          pdf;
-          (iter (Pdf.addobj_given_num pdf) !newobjs))
-    pdfs
-    (ilist 1 (length pdfs));*)

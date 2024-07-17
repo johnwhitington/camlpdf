@@ -38,7 +38,7 @@ let read_name_tree pdf tree =
         []
 
 (* FIXME This will split 11 not into 1 and 10, but add a whole new layer of 1s. Correct, but inefficient. *)
-let maxsize = 10 (* Must be at least two *)
+let maxsize = 100 (* Must be at least two *)
 
 type ('k, 'v) nt =
   Br of 'k * ('k, 'v) nt list * 'k
