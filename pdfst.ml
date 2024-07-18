@@ -1,18 +1,13 @@
-(* Operations on structure trees. *)
+(** Operations on structure trees. *)
 open Pdfutil
 
-(* NB. This is very tightly integrated into pdfmerge.ml with all sorts of
-   phase-order intricacies. Beware. *)
+(* NB. This is very tightly integrated into pdfmerge.ml/pdfpage.ml with all
+   sorts of phase-order intricacies. Beware. *)
 
-(* Further structure tree merging/trimming work:
+(* Future structure tree merging/trimming work:
    
-   * Add Trimming before merging or fix
-
-   * Merging with multiple instances of same e.g cpdf A.pdf 1-5 B.pdf A.pdf
-   6-end -o out.pdf Fails to verify How does it relate to the admonishment in
-   pdfmerge.ml?
-
-   * Fix our number and name tree writer produce more compact results
+   o Stamping with -stamp-on, -stamp-under, -combine-pages needs to renumber
+   MCIDs on each page in some way.
 
    o What should we do with IDTree, RoleMap, ClassMap, NameSpaces? Simple
    mechanisms work for all known examples, but known examples are few.
