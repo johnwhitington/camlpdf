@@ -3,7 +3,8 @@
 o Fix sign extension in js_of_ocaml
 o Pdfannot expanded to more annotation types
 o Extract code to Pdftree module (API subject to change)
-o Structure tree optionally trimed on Pdf.pdf_of_pages
+o Structure tree optionally trimmed on Pdf.pdf_of_pages
+o Sturcture tree optionally trimmed & merged in Pdfmerge
 
 2.7 (February 2024)
 
