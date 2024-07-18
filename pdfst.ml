@@ -4,29 +4,23 @@ open Pdfutil
 (* NB. This is very tightly integrated into pdfmerge.ml with all sorts of
    phase-order intricacies. Beware. *)
 
-(* Further structure tree merging/trimming work
+(* Further structure tree merging/trimming work:
+   
+   * Add Trimming before merging or fix
 
-   o A regression from 2.5.1 to 2.6.1 with cpdf -merge hello.pdf PDFUA/02.pdf
-   -o out.pdf where Adobe Reader doesn't show the second page. Why?
+   * Merging with multiple instances of same e.g cpdf A.pdf 1-5 B.pdf A.pdf
+   6-end -o out.pdf Fails to verify How does it relate to the admonishment in
+   pdfmerge.ml?
 
-   o What should we do with IDTree, RoleMap, ClassMap, NameSpaces?
+   * Fix our number and name tree writer produce more compact results
 
-   o Test more merges, over our first correct one.
-
-   o Trimming before merging - does it happen automatically or do we need to
-   add it?
+   o What should we do with IDTree, RoleMap, ClassMap, NameSpaces? Simple
+   mechanisms work for all known examples, but known examples are few.
 
    o Do we need to resurrect nulling of references to deleted annots when
    trimming, for example, so they don't accidentally get included due to being
-   referenced from the parent tree?
-
-   o Merging with multiple instances of same e.g cpdf A.pdf 1-5 B.pdf A.pdf
-   6-end -o out.pdf Is this correct? Is it efficient? How does it relate to the
-   admonishment in pdfmerge.ml?
-
-   o Fix our number and name tree writer produce more compact results
-
-   o Check to see that stamping passes verification. *)
+   referenced from the parent tree? This is not a correctness issue, but a
+   space one. *)
 
 (* Recursion between modules *)
 let endpage = ref (fun _ -> 0)
@@ -110,14 +104,15 @@ let trim_structure_tree pdf range =
           pdf
         done
 
-(* Merge structure hierarchy / tagged PDF.
+(* Merge structure hierarchy / tagged PDF. Asterisked items will require
+   further work when we find good examples.
 
-/IDTree                 name tree       *rename and merge
+/IDTree                 name tree       *merge
 /ParentTree             number tree     renumber and merge
 /ParentTreeNextKey      integer         remove
-/RoleMap                dict            *rename to be consistent if possible, if not degrade, and merge
-/ClassMap               dict            *rename and merge
-/NameSpaces             array           *rename and merge
+/RoleMap                dict            *merge
+/ClassMap               dict            *merge
+/NameSpaces             array           *merge
 /PronunciationLexicon   array           concatenate
 /AF                     array           concatenate
 /K                      structure tree  merge trees *)
@@ -201,18 +196,20 @@ let merge_structure_hierarchy pdf pdfs =
       (fun d (k, v) -> Pdf.add_dict_entry d k v)
       (Pdf.Dictionary [])
       (flatten
-        (option_map
-          (function
-           | Pdf.Dictionary d -> Some d
-           | _ -> Pdfe.log "merge_dicts: not a dict"; None) dicts))
+        (setify
+          (option_map
+            (function
+             | Pdf.Dictionary d -> Some d
+             | _ -> Pdfe.log "merge_dicts: not a dict"; None) dicts)))
   in
   let merge_arrays arrays =
     Pdf.Array
       (flatten
-        (option_map
-          (function
-           | Pdf.Array a -> Some a
-           | _ -> Pdfe.log "merge_array: not an array"; None) arrays))
+        (setify
+          (option_map
+            (function
+             | Pdf.Array a -> Some a
+             | _ -> Pdfe.log "merge_array: not an array"; None) arrays)))
   in
   let mkarray = function
     | Pdf.Array a -> Pdf.Array a
