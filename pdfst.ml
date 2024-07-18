@@ -1,6 +1,33 @@
 (* Operations on structure trees. *)
 open Pdfutil
 
+(* NB. This is very tightly integrated into pdfmerge.ml with all sorts of
+   phase-order intricacies. Beware. *)
+
+(* Further structure tree merging/trimming work
+
+   o A regression from 2.5.1 to 2.6.1 with cpdf -merge hello.pdf PDFUA/02.pdf
+   -o out.pdf where Adobe Reader doesn't show the second page. Why?
+
+   o What should we do with IDTree, RoleMap, ClassMap, NameSpaces?
+
+   o Test more merges, over our first correct one.
+
+   o Trimming before merging - does it happen automatically or do we need to
+   add it?
+
+   o Do we need to resurrect nulling of references to deleted annots when
+   trimming, for example, so they don't accidentally get included due to being
+   referenced from the parent tree?
+
+   o Merging with multiple instances of same e.g cpdf A.pdf 1-5 B.pdf A.pdf
+   6-end -o out.pdf Is this correct? Is it efficient? How does it relate to the
+   admonishment in pdfmerge.ml?
+
+   o Fix our number and name tree writer produce more compact results
+
+   o Check to see that stamping passes verification. *)
+
 (* Recursion between modules *)
 let endpage = ref (fun _ -> 0)
 
@@ -85,15 +112,15 @@ let trim_structure_tree pdf range =
 
 (* Merge structure hierarchy / tagged PDF.
 
-/IDTree                 name tree      *rename and merge
-/ParentTree             number tree    *renumber and merge
-/ParentTreeNextKey      integer        *update
-/RoleMap                dict           *rename to be consistent if possible, if not degrade, and merge
-/ClassMap               dict           *rename and merge
-/NameSpaces             array          *rename and merge
-/PronunciationLexicon   array          concatenate
-/AF                     array          concatenate
-/K                      structure tree merge trees *)
+/IDTree                 name tree       *rename and merge
+/ParentTree             number tree     renumber and merge
+/ParentTreeNextKey      integer         remove
+/RoleMap                dict            *rename to be consistent if possible, if not degrade, and merge
+/ClassMap               dict            *rename and merge
+/NameSpaces             array           *rename and merge
+/PronunciationLexicon   array           concatenate
+/AF                     array           concatenate
+/K                      structure tree  merge trees *)
 
 let print_parent_tree = 
   iter (fun (a, b) -> Printf.printf "%s -> %s\n" a (Pdfwrite.string_of_pdf b))
@@ -108,12 +135,7 @@ let renumber_parent_trees pdfs =
          | None -> [])
     pdfs
   in
-  (*iter2
-    (fun pt n ->
-       Printf.printf "****************** PARENT TREE %i:\n" n;
-       print_parent_tree pt)
-    parent_trees
-    (ilist 1 (length pdfs));*)
+  (* iter2 (fun pt n -> Printf.printf "****************** PARENT TREE %i:\n" n; print_parent_tree pt) parent_trees (ilist 1 (length pdfs)); *)
   (* Calculate a renumbering mapping from (pdf number, parent tree number) to 0,1,2.... *)
   let num = ref 0 in
   let rs = Hashtbl.create 256 in
@@ -154,27 +176,22 @@ let renumber_parent_trees pdfs =
       parent_trees
       (ilist 1 (length pdfs))
   in
-    (*iter2
-      (fun pt n ->
-         Printf.printf "****************** FINAL PARENT TREE %i:\n" n;
-         print_parent_tree pt)
-      renumbered_parent_trees
-    (ilist 1 (length pdfs));*)
+    (* iter2 (fun pt n -> Printf.printf "****************** FINAL PARENT TREE %i:\n" n; print_parent_tree pt) renumbered_parent_trees (ilist 1 (length pdfs)); *)
     iter2
       (fun pdf renumbered ->
          match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
          | None -> ()
          | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf renumbered))
       pdfs
-      renumbered_parent_trees;
+      renumbered_parent_trees
+    (*;
     (* Write the PDFs to file to check them *)
     iter2
       (fun n pdf -> Pdfwrite.pdf_to_file pdf (string_of_int n ^ ".pdf"))
       (ilist 1 (length pdfs))
-      pdfs
+      pdfs*)
 
 let merge_structure_hierarchy pdf pdfs =
-  (*renumber_parent_trees pdfs;*)
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots
@@ -253,9 +270,6 @@ let merge_structure_hierarchy pdf pdfs =
                   | None -> [])
                struct_tree_roots)
         in
-        (*iter
-         (fun k -> Printf.printf "%S\n" (Pdfwrite.string_of_pdf k))
-         existing_ks_of_struct_tree_roots_as_mostly_indirects;*)
         (* 2. Rewrite in-place each previous indirect struct tree root /K member to have a /P pointing up to the new struct tree root. *)
         mkarray
           (Pdf.Array
