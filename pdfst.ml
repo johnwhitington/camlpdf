@@ -284,8 +284,7 @@ let merge_structure_hierarchy pdf pdfs =
         in
         let new_dict =
           Pdf.Dictionary
-            (["/Type", Pdf.Name "/StructTreeRoot";
-              "/ThisIs", Pdf.Name "/TheNewOne"]
+            (["/Type", Pdf.Name "/StructTreeRoot"]
              @ optional "/IDTree" merged_idtree
              @ optional "/ParentTree" merged_parenttree
              @ optional "/RoleMap" merged_rolemap

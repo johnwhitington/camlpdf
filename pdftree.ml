@@ -50,7 +50,7 @@ let rec build_nt_tree l =
   if length l = 0 then assert false;
   if length l <= maxsize
     then Lf (left l, l, right l)
-    else Br (left l, map build_nt_tree (splitinto (length l / 2) l), right l)
+    else Br (left l, map build_nt_tree (splitinto maxsize l), right l)
 
 let rec name_tree_of_nt isnum isroot pdf = function
   Lf (llimit, items, rlimit) ->
