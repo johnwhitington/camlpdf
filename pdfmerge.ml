@@ -531,6 +531,9 @@ let max_version_number pdfs =
     hd (sort compare (map (fun p -> (p.Pdf.major, p.Pdf.minor)) pdfs))
 
 let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(struct_hierarchy=true) names pdfs ranges =
+  if struct_hierarchy && length (setify names) < length names then
+    Pdfe.log "Warning: multiply-included files will not merge structure trees properly.\n";
+  if struct_hierarchy then iter2 Pdfst.trim_structure_tree pdfs ranges;
   let pdfs = merge_pdfs_renumber names pdfs in
     merge_pdfs_rename_name_trees names pdfs;
     Pdfst.renumber_parent_trees pdfs;

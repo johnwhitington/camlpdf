@@ -29,6 +29,7 @@ let trim_structure_tree pdf range =
     let objnums = Pdf.page_reference_numbers pdf in
       map (fun x -> List.nth objnums (x - 1)) (setminus (ilist 1 (!endpage pdf)) range)
   in
+    if page_objnums_to_remove = [] then () else
     (* Calculate initial deletions - any object with /Pg not in range. *)
     let del = ref [] in
       Pdf.objiter 
