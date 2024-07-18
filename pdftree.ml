@@ -37,8 +37,7 @@ let read_name_tree pdf tree =
         Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n";
         []
 
-(* FIXME This will split 11 not into 1 and 10, but add a whole new layer of 1s. Correct, but inefficient. *)
-let maxsize = 100 (* Must be at least two *)
+let maxsize = 10
 
 type ('k, 'v) nt =
   Br of 'k * ('k, 'v) nt list * 'k
@@ -51,7 +50,7 @@ let rec build_nt_tree l =
   if length l = 0 then assert false;
   if length l <= maxsize
     then Lf (left l, l, right l)
-    else Br (left l, map build_nt_tree (splitinto (length l / maxsize) l), right l)
+    else Br (left l, map build_nt_tree (splitinto (length l / 2) l), right l)
 
 let rec name_tree_of_nt isnum isroot pdf = function
   Lf (llimit, items, rlimit) ->
