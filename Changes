@@ -1,4 +1,4 @@
-2.8 (to come)
+2.7.1 (July 2024)
 
 o Fix sign extension in js_of_ocaml
 o Pdfannot expanded to more annotation types
