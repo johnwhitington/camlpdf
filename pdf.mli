@@ -127,9 +127,12 @@ val lookup_fail : string -> (t -> string -> pdfobject -> pdfobject)
 (** Same, but with customised exception. *)
 val lookup_exception : exn -> t -> string -> pdfobject -> pdfobject
 
-(** [lookup_direct doc key dict] looks up the key returning an option type. *) 
+(** [lookup_direct doc key dict] looks up the key, resolving indirections at
+    source and destination, returning an option type. *) 
 val lookup_direct : t -> string -> pdfobject -> pdfobject option
 
+(** [lookup_immediate key dict] looks up the key returning the value, without
+following indirects at either source or destination. *)
 val lookup_immediate : string -> pdfobject -> pdfobject option
 
 (** [lookup_chain doc start keys] looks up the key in a nested dictionary. For

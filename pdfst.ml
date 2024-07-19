@@ -182,7 +182,7 @@ let renumber_parent_trees pdfs =
       (ilist 1 (length pdfs))
       pdfs*)
 
-let merge_structure_hierarchy pdf pdfs =
+let merge_structure_trees pdf pdfs =
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots

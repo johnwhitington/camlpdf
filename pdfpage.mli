@@ -79,8 +79,10 @@ val change_pages :
   ?changes:((int * int) list) -> bool -> Pdf.t -> t list -> Pdf.t
 
 (** Return a pdf with a subset of pages, but nothing else changed - exactly the
-same page object numbers, so bookmarks etc still work. Also sorts out bookmarks
-so only those in the range are kept. *)
+same page object numbers, so bookmarks etc still work. Also modifies bookmarks
+so only those in the range are kept, and other ancillary structures. If
+[retain_numbering] is true, page numbers are kept from the original. If
+[process_struct_tree] is true, the structure tree is trimmed. *)
 val pdf_of_pages : ?retain_numbering:bool -> ?process_struct_tree:bool -> Pdf.t -> int list -> Pdf.t
 
 (** {2 Miscellaneous} *)
