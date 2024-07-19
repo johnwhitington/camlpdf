@@ -1,5 +1,5 @@
 (* pdfmergeexample a.pdf b.pdf c.pdf appends b.pdf to a.pdf and writes to
-c.pdf. This is written from scratch, rather than relying on the PdfMerge *)
+c.pdf. This is written from scratch, rather than relying on Pdfmerge *)
 open Pdfutil
 
 (* We read all the files, read their pages and concatenate them, dealing with
