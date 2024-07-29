@@ -855,6 +855,23 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
             | End_of_file -> bytes_of_write_bitstream output
             | _ -> raise (Failure "Bad CCITT Stream") 
 
+(* CCITT Group 4 encoder *)
+
+(* Data comes in as bytes, with each scanline padded with zeroes. In addition,
+   it is padded to bytes at the end. (Why though? Check for our case.)
+
+Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
+dictionary entries as default. i.e:
+
+/EndOfLine false
+/EncodedByteAlign false
+/Rows 0
+/EndOfBlock true
+/BlackIs1 false
+/DamagedRowsBeforeError 0 *)
+
+let encode_ccitt columns stream = stream
+
 (* PNG and TIFF Predictors *)
 
 (* Get the value at index i from an int array a, giving zero if the index is

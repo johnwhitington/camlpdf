@@ -3,7 +3,7 @@
 (**
 {b Currently supported:}
 - Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, LZWDecode, RunLengthDecode, CCITTFaxDecode.
-- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode.
+- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode. CCITTFaxEncode (Group 4 only)
 - Decode predictors: PNG (all), TIFF (8-bit only).
 *)
 
@@ -68,6 +68,9 @@ val encode_flate : Pdfio.bytes -> Pdfio.bytes
 
 (** Decode data in FlateDecode. *)
 val decode_flate : Pdfio.bytes -> Pdfio.bytes
+
+(** Encode data in CCITTDecode Group 4. *)
+val encode_ccitt : int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Setting this boolean prints some debug information. *)
 val debug : bool ref
