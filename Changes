@@ -1,3 +1,7 @@
+2.7.2
+
+o Process destination name tree in Pdfpage.pdf_of_pages
+
 2.7.1 (July 2024)
 
 o Fix sign extension in js_of_ocaml
