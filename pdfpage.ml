@@ -968,6 +968,35 @@ let fixup_parents pdf =
       Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
     | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
 
+(* Page-nulling will have left us with a /Dests tree with some destinations
+   pointing to null pages. This can be a problem when pulling apart and
+   re-assembling a single file, where we want destintations to match back up
+   upon merging - the null one might get chosen instead. So we rewrite the
+   /Dests name tree, removing any name which now points to a nulled page.
+   Hopefully a missing name is treated by viewers no worse than a name which
+   points to a missing page. *)
+
+(* FIXME /Dests could alternatively be in directly in document catalog, in very old PDFs. *)
+(* FIXME Dictionary instead of array in /Dests entry *)
+let was_nulled pdf (_, d) =
+  match Pdf.direct pdf d with
+  | Pdf.Array (Pdf.Indirect i::_) ->
+      begin match Pdf.lookup_obj pdf i with
+      | Pdf.Null | exception Not_found -> true
+      | _ -> false
+      end
+  | _ -> false
+
+let fixup_destinations pdf =
+  match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/Names"; "/Dests"] with
+  | Some t ->
+      let tree = Pdftree.read_name_tree pdf t in
+      let tree' = lose (was_nulled pdf) tree in
+      let tree'obj = Pdftree.build_name_tree false pdf tree' in
+        Pdf.replace_chain pdf ["/Root"; "/Names"] ("/Dests", tree'obj)
+  | None ->
+      ()
+
 let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) basepdf range =
   let page_labels =
     if length (Pdfpagelabels.read basepdf) = 0 then [] else
@@ -1114,12 +1143,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
                     fixup_duplicate_pages pdf;
                     fixup_parents pdf;
-                    (*Printf.eprintf "----BEFORE postprocess_parent_tree\n";
-                    Pdfwrite.debug_whole_pdf pdf; *)
-                    (* Disabled - verifier does not care for this presently... *)
-                    (*if process_struct_tree then Pdfst.postprocess_parent_tree pdf;*)
-                    (*Printf.eprintf "----AFTER postprocess_parent_tree\n";
-                    Pdfwrite.debug_whole_pdf pdf; *)
+                    fixup_destinations pdf;
                     pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
