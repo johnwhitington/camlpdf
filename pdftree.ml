@@ -69,7 +69,7 @@ let rec name_tree_of_nt isnum isroot pdf = function
 | Br (llimit, nts, rlimit) ->
     let indirects =
       let kids = map (name_tree_of_nt isnum false pdf) nts in
-        map (Pdf.addobj pdf) kids
+        map (function Pdf.Dictionary _ | Pdf.Stream _ | Pdf.Array _ as x -> Pdf.Indirect (Pdf.addobj pdf x) | x -> x) kids
     in
     let ll, rl =
       if isnum
@@ -77,7 +77,7 @@ let rec name_tree_of_nt isnum isroot pdf = function
         else Pdf.String llimit, Pdf.String rlimit
     in
       Pdf.Dictionary
-       [("/Kids", Pdf.Array (map (fun x -> Pdf.Indirect x) indirects));
+       [("/Kids", Pdf.Array indirects);
         ("/Limits", Pdf.Array [ll; rl])]
 
 let compare_any isnum a b =
