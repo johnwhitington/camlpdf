@@ -128,7 +128,7 @@ let string_of_lexeme = function
   | LexObj -> "obj"
   | LexEndObj -> "endobj"
   | LexR -> "R"
-  | LexComment -> "Comment"
+  | LexComment _ -> "Comment"
   | StopLexing -> "StopLexing"
   | LexNone -> "LexNone"
 
@@ -259,7 +259,7 @@ case of a CRLF, only the CR is consumed, but the LF will be consumed before the
 next token is read anyway, so this is fine. *)
 let lex_comment i =
   ignoreuntil false is_newline i;
-  LexComment
+  LexComment ""
 
 (* Lex a string. A string is between parenthesis. Unbalanced parenthesis in the
 string must be escaped, but balanced ones need not be. We convert escaped
@@ -630,7 +630,7 @@ let lex_object_at oneonly i opt p lexobj =
       match lexeme with
       | LexEndObj -> rev (lexeme::lexemes) 
       | StopLexing -> rev lexemes
-      | LexComment -> lex_object_at i (lexeme::lexemes)
+      | LexComment _ -> lex_object_at i (lexeme::lexemes)
       | LexRightSquare | LexRightDict ->
           if oneonly && !dictlevel = 0 && !arraylevel = 0
             then
@@ -774,7 +774,7 @@ let parse_R ts =
     | [] -> rev r
     | LexInt o::LexInt _::LexR::rest ->
         parse_R_inner (Parsed (Pdf.Indirect o)::r) rest
-    | LexComment::t -> parse_R_inner r t
+    | LexComment _::t -> parse_R_inner r t
     | LexNull::t -> parse_R_inner (Parsed Pdf.Null::r) t
     | LexBool b::t -> parse_R_inner (Parsed (Pdf.Boolean b)::r) t
     | LexInt i::t -> parse_R_inner (Parsed (Pdf.Integer i)::r) t

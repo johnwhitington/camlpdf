@@ -22,7 +22,7 @@ type t =
   | LexObj
   | LexEndObj
   | LexR
-  | LexComment
+  | LexComment of string
   | StopLexing
   | LexNone
 

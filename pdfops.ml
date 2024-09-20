@@ -2,6 +2,7 @@ open Pdfutil
 open Pdfio
 
 let debug = ref false
+let write_comments = ref false
 
 (* Graphics operators. *)
 type t =
@@ -79,13 +80,14 @@ type t =
   | Op_BX (* Start compatibility mode *)
   | Op_EX (* End compatibility mode *)
   | Op_Unknown of string (* Unknown operand / operator sequence *)
+  | Op_Comment of string (* Comments are silently ignored when reading, but can be written for debug. *)
 
 type lexeme =
   | Op of string
   | Obj of Pdfgenlex.t
   | PdfObj of Pdf.pdfobject
   | LexInlineImage of (Pdf.pdfobject * Pdf.pdfobject option * bytes)
-  | LexComment
+  | LexComment of string
   
 (* Lexing *)
 let lexemes_of_op f = function
@@ -217,6 +219,7 @@ let lexemes_of_op f = function
   | Op_BX -> f (Op "BX")
   | Op_EX -> f (Op "EX")
   | Op_Unknown _ -> ()
+  | Op_Comment s -> f (Obj (Pdfgenlex.LexComment s)) 
 
 let lexemes_of_ops ops =
   let ls = ref [] in
@@ -239,7 +242,7 @@ let rec filterspecial = function
 let b = Buffer.create 256
 
 let string_of_lexeme = function
-  | LexComment -> ""
+  | LexComment s -> if !write_comments then " %" ^ s ^ "\n" else ""
   | Obj o -> Pdfread.string_of_lexeme o 
   | Op op -> op
   | PdfObj obj -> Pdfwrite.string_of_pdf obj
@@ -601,7 +604,7 @@ let lex_next pdf resources i =
             | '<' -> get_dictionary i
             | _ -> lex_hexstring i
             end
-        | '%' -> ignore (Pdfread.lex_comment i); LexComment
+        | '%' -> ignore (Pdfread.lex_comment i); LexComment ""
         | _ -> raise (Pdf.PDFError "Lexing failure in content stream")
   with
     | Pdf.PDFError r -> 
@@ -624,7 +627,7 @@ let lex_stream pdf resources i =
     try
       while true do
         match lex_next pdf resources i with
-        | LexComment -> ()
+        | LexComment _ -> ()
         | lexeme -> lexemes := lexeme::!lexemes
       done;
       []

@@ -78,6 +78,7 @@ type t =
   | Op_BX
   | Op_EX
   | Op_Unknown of string
+  | Op_Comment of string
 
 (** Parse a single byte streams to an operator list given a document and resource
 dictionary. *)
@@ -120,3 +121,6 @@ val whitespace : string ref
 
 (** Add whitespace even where not lexically-required. *)
 val always_add_whitespace : bool ref
+
+(** If set, comments will be written. *)
+val write_comments : bool ref
