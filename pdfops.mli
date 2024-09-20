@@ -114,3 +114,9 @@ val components : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> int
 
 (** When this reference is set, some debug information is printed to Standard Output. *)
 val debug : bool ref
+
+(** Whitespace between operators *)
+val whitespace : string ref
+
+(** Add whitespace even where not lexically-required. *)
+val always_add_whitespace : bool ref
