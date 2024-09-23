@@ -128,7 +128,7 @@ let string_of_lexeme = function
   | LexObj -> "obj"
   | LexEndObj -> "endobj"
   | LexR -> "R"
-  | LexComment s -> "%" ^ s
+  | LexComment s -> "\n%" ^ s ^ "\n"
   | StopLexing -> "StopLexing"
   | LexNone -> "LexNone"
 

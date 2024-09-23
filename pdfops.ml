@@ -242,7 +242,7 @@ let rec filterspecial = function
 let b = Buffer.create 256
 
 let string_of_lexeme = function
-  | LexComment s -> if !write_comments then " %" ^ s ^ "\n" else ""
+  | LexComment s -> ""
   | Obj o -> Pdfread.string_of_lexeme o 
   | Op op -> op
   | PdfObj obj -> Pdfwrite.string_of_pdf obj
