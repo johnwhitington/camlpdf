@@ -140,6 +140,8 @@ val lookup_immediate : string -> pdfobject -> pdfobject option
     "/RoleMap"]] *)
 val lookup_chain : t -> pdfobject -> string list -> pdfobject option
 
+val replace_obj : t -> string -> pdfobject -> unit
+
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
 val indirect_number : t -> string -> pdfobject -> int option
 
