@@ -998,7 +998,7 @@ let encode_predictor pred colors bpc columns stream =
             for byte = 0 to columns * 3 - 1 do
               o.Pdfio.output_byte
                 ((get0 stream (scanline * columns + byte)) -
-                 (get0 stream (scanline * columns + byte - 3))
+                 (if byte < 3 then 0 else get0 stream (scanline * columns + byte - 3))
                  mod 256)
             done
           done;
