@@ -254,8 +254,9 @@ let string_of_lexeme = function
             (* Was there previously a predictor? *)
             let dict, data =
               match dp with
-              | None -> dict, data
-              | Some d ->
+              | _ -> dict, data
+              (* 13/10/2024: This is failing, removed until fixed: https://github.com/coherentgraphics/cpdf-binaries/issues/90 *)
+              (*| Some d ->
                   let colours = match Pdf.lookup_direct (Pdf.empty ()) "/Colors" d with Some (Pdf.Integer x) -> x | _ -> 1 in
                   let bpc = match Pdf.lookup_direct_orelse (Pdf.empty ()) "/BPC" "/BitsPerComponent" d with Some (Pdf.Integer x) -> x | _ -> 8 in
                   let columns = match Pdf.lookup_direct (Pdf.empty ()) "/Columns" d with Some (Pdf.Integer x) -> x | _ -> 1 in
@@ -269,7 +270,7 @@ let string_of_lexeme = function
                                              ("/Predictor", Pdf.Integer 11)])
                         in
                           dict, data
-                    | _, _ -> dict, data
+                    | _, _ -> dict, data*)
             in
               Pdf.add_dict_entry dict "/F" (Pdf.Name "/Fl"),
               Pdfcodec.encode_flate data
