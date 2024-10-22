@@ -3,6 +3,7 @@
 o Process destination name tree in Pdfpage.pdf_of_pages
 o Options to change the whitespace between operators
 o Allow writing of comments in streams
+o Allow addition of top-level Document in struct tree when merging
 
 2.7.1 (July 2024)
 
