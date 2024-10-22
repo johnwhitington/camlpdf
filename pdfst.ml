@@ -9,7 +9,7 @@ open Pdfutil
    o Stamping with -stamp-on, -stamp-under, -combine-pages needs to renumber
    MCIDs on each page in some way.
 
-   o What should we do with IDTree, RoleMap, ClassMap, NameSpaces? Simple
+   o What should we do with IDTree, RoleMap, ClassMap, Namespaces? Simple
    mechanisms work for all known examples, but known examples are few.
 
    o Do we need to resurrect nulling of references to deleted annots when
@@ -108,7 +108,7 @@ let trim_structure_tree pdf range =
 /ParentTreeNextKey      integer         remove
 /RoleMap                dict            *merge
 /ClassMap               dict            *merge
-/NameSpaces             array           *merge
+/Namespaces             array           *merge
 /PronunciationLexicon   array           concatenate
 /AF                     array           concatenate
 /K                      structure tree  merge trees *)
@@ -184,7 +184,6 @@ let renumber_parent_trees pdfs =
 
 (* If add_toplevel_document is true, we add a PDF/UA-2 top-level /Document at the top of the structure tree. *)
 let merge_structure_trees ?(add_toplevel_document=false) pdf pdfs =
-  Printf.printf "add_toplevel_document: %b\n" add_toplevel_document;
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots
@@ -245,7 +244,7 @@ let merge_structure_trees ?(add_toplevel_document=false) pdf pdfs =
       let merged_classmap =
         merge_dicts (get_all struct_tree_roots pdf "/ClassMap") in
       let merged_namespaces =
-        merge_arrays (get_all struct_tree_roots pdf "/NameSpaces") in
+        merge_arrays (get_all struct_tree_roots pdf "/Namespaces") in
       let merged_pronunciation_lexicon =
         merge_arrays (get_all struct_tree_roots pdf "/PronunciationLexicon") in
       let merged_af =
@@ -284,17 +283,41 @@ let merge_structure_trees ?(add_toplevel_document=false) pdf pdfs =
         | Pdf.Array [] -> []
         | x -> [(n, Pdf.Indirect (Pdf.addobj pdf x))]
         in
-        let new_dict =
-          Pdf.Dictionary
-            (["/Type", Pdf.Name "/StructTreeRoot"]
-             @ optional "/IDTree" merged_idtree
-             @ optional "/ParentTree" merged_parenttree
-             @ optional "/RoleMap" merged_rolemap
-             @ optional "/ClassMap" merged_classmap
-             @ optional "/NameSpaces" merged_namespaces
-             @ optional "/PronunciationLexicon" merged_pronunciation_lexicon
-             @ optional "/AF" merged_af
-             @ optional "/K" merged_k)
+        let standard_entries =
+          ["/Type", Pdf.Name "/StructTreeRoot"]
+           @ optional "/IDTree" merged_idtree
+           @ optional "/ParentTree" merged_parenttree
+           @ optional "/RoleMap" merged_rolemap
+           @ optional "/ClassMap" merged_classmap
+           @ optional "/PronunciationLexicon" merged_pronunciation_lexicon
+           @ optional "/AF" merged_af
         in
-          Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
-          Some struct_tree_objnum
+        if add_toplevel_document then
+          begin
+            let merged_namespaces, pdf2_namespace_dictionary =
+              let namespace_objnum = Pdf.addobj pdf (Pdf.Dictionary [("/NS", Pdf.String "http://iso.org/pdf2/ssn")]) in
+              let merged_namespaces =
+                match merged_namespaces with
+                | Pdf.Array a -> Pdf.Array (Pdf.Indirect namespace_objnum::a)
+                | x -> x
+              in
+                (merged_namespaces, namespace_objnum)
+            in
+            let top_level_objnum =
+              Pdf.addobj pdf
+                (Pdf.Dictionary
+                  [("/NS", Pdf.Indirect pdf2_namespace_dictionary);
+                   ("/S", Pdf.Name "/Document");
+                   ("/P", Pdf.Indirect struct_tree_objnum);
+                   ("/K", merged_k)])
+            in
+            let new_dict = Pdf.Dictionary (standard_entries @ optional "/Namespaces" merged_namespaces @ [("/K", Pdf.Indirect top_level_objnum)]) in
+              Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
+              Some struct_tree_objnum
+          end
+        else
+          begin
+            let new_dict = Pdf.Dictionary (standard_entries @ optional "/Namespaces" merged_namespaces @ optional "/K" merged_k) in
+              Pdf.addobj_given_num pdf (struct_tree_objnum, new_dict);
+              Some struct_tree_objnum
+          end
