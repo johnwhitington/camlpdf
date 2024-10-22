@@ -182,7 +182,9 @@ let renumber_parent_trees pdfs =
       (ilist 1 (length pdfs))
       pdfs*)
 
-let merge_structure_trees pdf pdfs =
+(* If add_toplevel_document is true, we add a PDF/UA-2 top-level /Document at the top of the structure tree. *)
+let merge_structure_trees ?(add_toplevel_document=false) pdf pdfs =
+  Printf.printf "add_toplevel_document: %b\n" add_toplevel_document;
   let get_all struct_tree_roots pdf name =
     option_map
       (fun str -> Pdf.lookup_direct pdf name str) struct_tree_roots

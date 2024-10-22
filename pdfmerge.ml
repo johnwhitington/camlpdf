@@ -530,7 +530,7 @@ let max_version_number pdfs =
   if pdfs = [] then raise (Invalid_argument "max_version_number") else
     hd (sort compare (map (fun p -> (p.Pdf.major, p.Pdf.minor)) pdfs))
 
-let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(process_struct_trees=true) names pdfs ranges =
+let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(process_struct_trees=true) ?(add_toplevel_document=false) names pdfs ranges =
   if process_struct_trees && length (setify names) < length names then
     Pdfe.log "Warning: multiply-included files will not merge structure trees properly.\n";
   if process_struct_trees then iter2 Pdfst.trim_structure_tree pdfs ranges;
@@ -584,7 +584,7 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(process_struct_trees
             in
             let extra_catalog_entries =
               if not process_struct_trees then extra_catalog_entries else
-                match Pdfst.merge_structure_trees pdf pdfs with
+                match Pdfst.merge_structure_trees ~add_toplevel_document pdf pdfs with
                 | None -> extra_catalog_entries
                 | exception e ->
                     Pdfe.log (Printf.sprintf "Warning: failed to merge structure tree roots (%s)\n" (Printexc.to_string e));
