@@ -490,7 +490,6 @@ let replace_chain_exists pdf chain (k, v) =
               let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
                 addobj_given_num pdf (finalobjnum, newobj)
 
-(* Empty string is trailerdict. Begins with / and it's a chain separated by commas. *)
 let replace_chain pdf chain obj =
   let rec find_max_existing to_fake chain =
     if chain = [] then (chain, to_fake) else

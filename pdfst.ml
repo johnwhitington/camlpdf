@@ -108,7 +108,7 @@ let trim_structure_tree pdf range =
 /ParentTreeNextKey      integer         remove
 /RoleMap                dict            *merge
 /ClassMap               dict            *merge
-/Namespaces             array           *merge
+/Namespaces             array           merge
 /PronunciationLexicon   array           concatenate
 /AF                     array           concatenate
 /K                      structure tree  merge trees *)
