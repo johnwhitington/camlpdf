@@ -172,7 +172,7 @@ let renumber_parent_trees pdfs =
       (fun pdf renumbered ->
          match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/StructTreeRoot"; "/ParentTree"] with
          | None -> ()
-         | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"] ("/ParentTree", Pdftree.build_name_tree true pdf renumbered))
+         | Some t -> Pdf.replace_chain pdf ["/Root"; "/StructTreeRoot"; "/ParentTree"] (Pdftree.build_name_tree true pdf renumbered))
       pdfs
       renumbered_parent_trees
     (*;

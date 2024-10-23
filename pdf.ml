@@ -455,8 +455,6 @@ let addobj_given_num doc (num, obj) =
    cannot create a dictionary or tree of dictionaries which are not already
    there, because the information about direct / indirect is not present. *)
 
-(* FIXME Unexpectedly complex! To be tested thoroughly before in public API. *)
-
 (* Find the final indirect object in the chain, returning its number and the
    remaining (fully-direct) chain *)
 let rec find_final_indirect remaining_chain pdf obj objnum = function
@@ -480,7 +478,7 @@ let rec replace_chain_all_direct finalobj chain (k, v) =
       end
   | _ -> raise (PDFError "replace_chain_all_direct: bad chain")
 
-let replace_chain pdf chain (k, v) =
+let replace_chain_exists pdf chain (k, v) =
   match lookup_chain pdf pdf.trailerdict chain with
   | None -> raise (PDFError "chain must already exist")
   | Some _ ->
@@ -492,10 +490,8 @@ let replace_chain pdf chain (k, v) =
               let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
                 addobj_given_num pdf (finalobjnum, newobj)
 
-let split_chain str = map (fun x -> "/" ^ x) (tl (String.split_on_char '/' str))
-
 (* Empty string is trailerdict. Begins with / and it's a chain separated by commas. *)
-let replace_obj pdf objspec obj =
+let replace_chain pdf chain obj =
   let rec find_max_existing to_fake chain =
     if chain = [] then (chain, to_fake) else
       match lookup_chain pdf pdf.trailerdict chain with
@@ -506,7 +502,7 @@ let replace_obj pdf objspec obj =
   | [] -> obj
   | h::t -> Dictionary [(h, wrap_obj obj t)]
   in
-    let chain, to_fake = find_max_existing [] (split_chain objspec) in
+    let chain, to_fake = find_max_existing [] chain in
       let chain, key, obj =
         match to_fake with
         | [] -> (rev (tl (rev chain)), hd (rev chain), obj)
@@ -515,7 +511,7 @@ let replace_obj pdf objspec obj =
         if chain = [] then
           pdf.trailerdict <- add_dict_entry pdf.trailerdict key obj
         else
-          replace_chain pdf chain (key, obj)
+          replace_chain_exists pdf chain (key, obj)
 
 (* Look up under a key and its alternate. Return the value associated
 with the key that worked, or [None] if neither did. *)

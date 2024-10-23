@@ -993,7 +993,7 @@ let fixup_destinations pdf =
       let tree = Pdftree.read_name_tree pdf t in
       let tree' = lose (was_nulled pdf) tree in
       let tree'obj = Pdftree.build_name_tree false pdf tree' in
-        Pdf.replace_chain pdf ["/Root"; "/Names"] ("/Dests", tree'obj)
+        Pdf.replace_chain pdf ["/Root"; "/Names"; "/Dests"] tree'obj
   | None ->
       ()
 

@@ -140,7 +140,7 @@ val lookup_immediate : string -> pdfobject -> pdfobject option
     "/RoleMap"]] *)
 val lookup_chain : t -> pdfobject -> string list -> pdfobject option
 
-val replace_obj : t -> string -> pdfobject -> unit
+val replace_chain : t -> string list -> pdfobject -> unit
 
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
 val indirect_number : t -> string -> pdfobject -> int option
@@ -297,7 +297,7 @@ val change_id : t -> string -> unit
 
 (**/**)
 
-val replace_chain : t -> string list -> string * pdfobject -> unit
+
 
 (* This is only for the use of Pdfread for when the /Length is incorrect. *)
 type toget_crypt =
