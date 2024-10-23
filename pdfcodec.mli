@@ -3,7 +3,7 @@
 (**
 {b Currently supported:}
 - Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, LZWDecode, RunLengthDecode, CCITTFaxDecode.
-- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode. CCITTFaxEncode (Group 4 only)
+- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode.
 - Decode predictors: PNG (all), TIFF (8-bit only).
 *)
 

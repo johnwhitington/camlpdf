@@ -140,6 +140,9 @@ val lookup_immediate : string -> pdfobject -> pdfobject option
     "/RoleMap"]] *)
 val lookup_chain : t -> pdfobject -> string list -> pdfobject option
 
+(** [replace_chain doc chain obj] sets the object at the given chain from the
+    trailer dictionary to the given object. If the final part of the chain does
+    not exist, it is created as direct, nested, dictionaries. *)
 val replace_chain : t -> string list -> pdfobject -> unit
 
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
