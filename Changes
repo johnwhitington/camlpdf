@@ -1,9 +1,11 @@
-2.7.2 (to come)
+2.7.2 (October 2024)
 
 o Process destination name tree in Pdfpage.pdf_of_pages
 o Options to change the whitespace between operators
 o Allow writing of comments in streams
 o Allow addition of top-level Document in struct tree when merging
+o New lookup_chain / replace_chain functions in Pdf
+o Revert 2.7 "Remember and reapply inline image decode parameters"
 
 2.7.1 (July 2024)
 
