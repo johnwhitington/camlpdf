@@ -5,7 +5,9 @@ type t =
   {level : int;
    text : string;
    target : Pdfdest.t;
-   isopen : bool}
+   isopen : bool;
+   colour : float * float * float;
+   flags : int}
 
 (** Debug string from a bookmark. *)
 val string_of_bookmark : t -> string

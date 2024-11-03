@@ -5,7 +5,9 @@ type t =
   {level : int;
    text : string;
    target : Pdfdest.t;
-   isopen : bool}
+   isopen : bool;
+   colour : float * float * float;
+   flags : int}
 
 let string_of_bookmark m =
    Printf.sprintf "%i %s %s %b\n"
@@ -164,12 +166,14 @@ let rec add_prev (Br (i, obj, children, isopen)) =
 
 (* Make a node from a given title, destination page number in a given PDF ond
 open flag. *)
-let node_of_line pdf title target =
+let node_of_line pdf title target colour flags =
   Pdf.Dictionary
     (("/Title", Pdf.String title)::
      let dest = Pdfdest.pdfobject_of_destination target in
        if dest = Pdf.Null then [] else
-         (match target with Pdfdest.Action a -> [("/A", a)] | _ -> [("/Dest", dest)]))
+         (match target with Pdfdest.Action a -> [("/A", a)] | _ -> [("/Dest", dest)])
+     @ (match colour with (0., 0., 0.) -> [] | (r, g, b) -> [("/C", Pdf.Array [Pdf.Real r; Pdf.Real g; Pdf.Real b])])
+     @ (match flags with 0 -> [] | _ -> [("/F", Pdf.Integer flags)]))
 
 (* Make an ntree list from a list of parsed bookmark lines. *)
 let rec make_outline_ntree source pdf = function
@@ -177,7 +181,7 @@ let rec make_outline_ntree source pdf = function
   | h::t ->
       let lower, rest = cleavewhile (fun {level = n'} -> n' > h.level) t in
         (*Printf.printf "make_outline_ntree: %s\n" h.text;*)
-        let node = node_of_line pdf h.text h.target in
+        let node = node_of_line pdf h.text h.target h.colour h.flags in
           Br (fresh source pdf, node, make_outline_ntree source pdf lower, h.isopen)
             ::make_outline_ntree source pdf rest
 
@@ -250,7 +254,21 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
       | Some (Pdf.Integer i) when i > 0 -> true
       | _ -> false
     in
-      output {level = !indent_lb; text = title; target = page; isopen = opn}
+    let colour =
+      try
+        begin match Pdf.lookup_direct pdf "/C" outline with
+        | Some (Pdf.Array [a; b; c]) -> (Pdf.getnum pdf a, Pdf.getnum pdf b, Pdf.getnum pdf c)
+        | _ -> (0., 0., 0.)
+        end
+      with _ -> (0., 0., 0.)
+    in
+    let flags =
+      match Pdf.lookup_direct pdf "/F" outline with
+      | Some (Pdf.Integer i) -> i
+      | _ -> 0
+    in
+      output
+        {level = !indent_lb; text = title; target = page; isopen = opn; colour; flags}
     end;
     incr indent_lb;
     traverse_outlines_lb ~preserve_actions indent_lb pdf outline output;
