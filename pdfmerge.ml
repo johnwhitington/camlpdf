@@ -534,9 +534,9 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(process_struct_trees
   if process_struct_trees && length (setify names) < length names then
     Pdfe.log "Warning: multiply-included files will not merge structure trees properly.\n";
   if process_struct_trees then iter2 Pdfst.trim_structure_tree pdfs ranges;
+  if process_struct_trees then Pdfst.renumber_parent_trees pdfs;
   let pdfs = merge_pdfs_renumber names pdfs in
     merge_pdfs_rename_name_trees names pdfs;
-    if process_struct_trees then Pdfst.renumber_parent_trees pdfs;
     let major', minor' = max_version_number pdfs in
       let pagelists = map Pdfpage.pages_of_pagetree pdfs
       in let pdf = Pdf.empty () in
