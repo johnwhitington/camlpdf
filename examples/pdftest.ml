@@ -26,4 +26,3 @@ let _ =
       err ->
         Printf.printf "Test failed:\n%s\n\n" (Printexc.to_string err);
         exit 1
-

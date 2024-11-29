@@ -33,4 +33,3 @@ let _ =
       err ->
         Printf.printf "Failed to merge files.\n%s\n\n" (Printexc.to_string err);
         exit 1
-

@@ -872,6 +872,9 @@ dictionary entries as default. i.e:
 
 let encode_ccitt columns stream = stream
 
+let _ =
+  Printf.printf "Running test_encode_ccitt\n"
+ 
 (* PNG and TIFF Predictors *)
 
 (* Get the value at index i from an int array a, giving zero if the index is

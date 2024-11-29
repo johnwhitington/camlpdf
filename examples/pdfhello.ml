@@ -22,4 +22,3 @@ in
     let pdf, pageroot = Pdfpage.add_pagetree [page] (Pdf.empty ()) in
       let pdf = Pdfpage.add_root pageroot [] pdf in
         Pdfwrite.pdf_to_file pdf "hello.pdf"
-

@@ -24,4 +24,3 @@ let _ =
         Printf.printf "Failed to produce output.\n%s\n\n" (Printexc.to_string err);
         exit 1
     end
-

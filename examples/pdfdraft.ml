@@ -95,4 +95,3 @@ let _ =
       end
   | _ ->
       print_string "Syntax: pdfdraft <input> <output>\n\n"; exit 1
-
