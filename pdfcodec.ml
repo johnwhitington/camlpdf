@@ -872,8 +872,14 @@ dictionary entries as default. i.e:
 
 let encode_ccitt columns stream = stream
 
-let _ =
-  Printf.printf "Running test_encode_ccitt\n"
+(* Tester. *)
+(*let _ =
+  Printf.printf "Running test_encode_ccitt\n";
+  let data = contents_of_file "/Users/john/Desktop/CCITT/out.dat" in
+  let g4 = encode_ccitt 2592 (Pdfio.bytes_of_string data) in
+  let fh = open_out_bin "/Users/john/Desktop/CCITT/g4.dat" in
+    output_string fh (Pdfio.string_of_bytes g4);
+    close_out fh*)
  
 (* PNG and TIFF Predictors *)
 
