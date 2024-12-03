@@ -156,17 +156,16 @@ let rec find_pages pages pdf resources mediabox rotate =
             (match contents with
             | None -> []
             | Some (Pdf.Array cs) ->
-                map
+                option_map
                   (function x ->
                      match Pdf.direct pdf x with
-                     | Pdf.Stream _ -> x
-                     | x ->
-                         raise (Pdf.PDFError ("Bad /Contents 1")))
+                     | Pdf.Stream _ -> Some x
+                     | x -> Pdfe.log "Page /Contents not a stream: ignoring.\n"; None)
                   cs;
             | Some pdfobject ->
                 begin match Pdf.direct pdf pdfobject with
                 | Pdf.Stream _ -> [pdfobject]
-                | _ -> raise (Pdf.PDFError "Bad /Contents 2")
+                | _ -> Pdfe.log "Page /Contents not a stream: ignoring.\n"; []
                 end);
           mediabox =
             (match mediabox with
