@@ -1,9 +1,8 @@
-2.7.3 (to come)
+2.8 (December 2024)
 
 o Read and write bookmark colour and flags
 o Fixed a bug in Pdfst.renumber_parent_trees
 o Only call renumber_parent_trees when processing struct trees
-o Add CCITT Group 4 encoder
 
 2.7.2 (October 2024)
 
