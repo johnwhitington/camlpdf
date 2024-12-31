@@ -422,12 +422,22 @@ let lookup_immediate key dict =
   | Dictionary d | Stream {contents = (Dictionary d, _)} -> lookup_string_compare key d
   | _ -> None
 
+let lookup_direct_or_array pdf name obj =
+  match explode name with
+  | '/'::'['::num ->
+      let digits, _ = cleavewhile isdigit num in
+        begin match obj with
+        | Array a -> Some (direct pdf (List.nth a (int_of_string (implode digits))))
+        | _ -> None
+        end
+  | _ -> lookup_direct pdf name obj
+
 (* Follow a nested chain of dictionary entries. *)
 let rec lookup_chain pdf obj = function
   | [] -> Some obj
-  | [n] -> lookup_direct pdf n obj
+  | [n] -> lookup_direct_or_array pdf n obj
   | n::ns ->
-      match lookup_direct pdf n obj with
+      match lookup_direct_or_array pdf n obj with
       | Some obj' -> lookup_chain pdf obj' ns
       | None -> None
 

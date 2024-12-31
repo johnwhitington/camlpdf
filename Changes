@@ -1,3 +1,7 @@
+2.9 (to come)
+
+o Pdf.lookup_chain can look within arrays
+
 2.8 (December 2024)
 
 o Read and write bookmark colour and flags
