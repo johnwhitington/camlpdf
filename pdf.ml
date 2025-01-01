@@ -461,9 +461,9 @@ let addobj_given_num doc (num, obj) =
     pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
 
 (* Follow a chain from the root, finding a dictionary entry to replace (or add).
-   Keep the same direct / indirect structure as is already present. NB this
-   cannot create a dictionary or tree of dictionaries which are not already
-   there, because the information about direct / indirect is not present. *)
+   Keep the same direct / indirect structure as is already present - any
+   terminal chain of previously-absent dictionaries will be created in direct
+   form. *)
 
 (* Find the final indirect object in the chain, returning its number and the
    remaining (fully-direct) chain *)
