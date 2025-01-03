@@ -496,11 +496,25 @@ let rec find_final_indirect remaining_chain pdf obj objnum = function
 (* The object number is now chosen. We follow what remains of the chain and insert
 the new key-value pair. *)
 let rec replace_chain_all_direct finalobj chain (k, v) =
+  Printf.printf "replace_chain_all_direct, finalobj = %s\n" (!string_of_pdf finalobj);
+  Printf.printf "chain is: "; print_chain chain;
+  Printf.printf "key = %s, value = %s\n" k (!string_of_pdf v);
   match finalobj with
   | Dictionary _ as d | Stream ({contents = (d, _)}) ->
       begin match chain with
       | [] -> add_dict_entry d k v
       | c::cs -> add_dict_entry d c (replace_chain_all_direct finalobj cs (k, v))
+      end
+  | Array a ->
+      begin match chain with
+      | [] -> raise (PDFError "replace_chain_all_direct: nothing to put in array")
+      | c::cs ->
+          match explode c with
+          | '/'::'['::num ->
+              let digits, _ = cleavewhile isdigit num in
+              let n = int_of_string (implode digits) in
+                Array (List.mapi (fun n' e -> if n' = n then (replace_chain_all_direct finalobj cs (k, v)) else e) a)
+          | _ -> raise (PDFError "replace_chain_all_direct: bad array chain")
       end
   | _ -> raise (PDFError "replace_chain_all_direct: bad chain")
 
@@ -514,9 +528,8 @@ let replace_chain_exists pdf chain (k, v) =
           Printf.printf "About to call find_final_indirect\n";
           let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 chain in
             Printf.printf "finalobjnum = %i, remaining chain: " finalobjnum; print_chain remaining_chain;
-            if finalobjnum = 0 then raise (PDFError "cannot use replace_chain to set trailer dictonary") else
-              let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
-                addobj_given_num pdf (finalobjnum, newobj)
+            let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
+              if finalobjnum = 0 then pdf.trailerdict <- newobj else addobj_given_num pdf (finalobjnum, newobj)
 
 let replace_chain pdf chain obj =
   print_string "replace_chain: "; print_chain chain;
