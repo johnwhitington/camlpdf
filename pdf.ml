@@ -474,27 +474,24 @@ let print_chain c =
 let rec find_final_indirect remaining_chain pdf obj objnum = function
   | [] -> (objnum, rev remaining_chain)
   | k::ks ->
-      let result =
-        match explode k with
-        | '/'::'['::num ->
-            let digits, _ = cleavewhile isdigit num in
-              begin match obj with
-              | Array a ->
-                  begin match List.nth a (int_of_string (implode digits)) with
-                  | Indirect i -> Some i
-                  | _ -> None
-                  end
-              | _ -> assert false (* chain pre-checked by lookup_chain *)
-              end
-        | _ ->
-           indirect_number pdf k obj
-      in
-        match result with
-        | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
-        | None ->
-            match lookup_immediate k obj with
-            | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
-            | None -> assert false (* chain pre-checked by lookup_chain *)
+      match explode k with
+      | '/'::'['::num ->
+          let digits, _ = cleavewhile isdigit num in
+            begin match obj with
+            | Array a ->
+                begin match List.nth a (int_of_string (implode digits)) with
+                | Indirect i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
+                | newobj -> find_final_indirect (k::remaining_chain) pdf newobj objnum ks
+                end
+            | _ -> assert false (* chain pre-checked by lookup_chain *)
+            end
+      | _ ->
+         match indirect_number pdf k obj with
+         | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
+         | None ->
+             match lookup_immediate k obj with
+             | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
+             | None -> assert false (* chain pre-checked by lookup_chain *)
 
 (* The object number is now chosen. We follow what remains of the chain and insert
 the new key-value pair. *)
@@ -514,6 +511,7 @@ let replace_chain_exists pdf chain (k, v) =
       match chain with
       | [] -> raise (PDFError "no chain")
       | chain ->
+          Printf.printf "About to call find_final_indirect\n";
           let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 chain in
             Printf.printf "finalobjnum = %i, remaining chain: " finalobjnum; print_chain remaining_chain;
             if finalobjnum = 0 then raise (PDFError "cannot use replace_chain to set trailer dictonary") else
