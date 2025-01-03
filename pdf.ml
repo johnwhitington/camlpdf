@@ -465,17 +465,36 @@ let addobj_given_num doc (num, obj) =
    terminal chain of previously-absent dictionaries will be created in direct
    form. *)
 
+let print_chain c =
+  List.iter (Printf.printf "%s") c;
+  print_endline ""
+
 (* Find the final indirect object in the chain, returning its number and the
    remaining (fully-direct) chain *)
 let rec find_final_indirect remaining_chain pdf obj objnum = function
   | [] -> (objnum, rev remaining_chain)
   | k::ks ->
-      match indirect_number pdf k obj with
-      | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
-      | None ->
-          match lookup_immediate k obj with
-          | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
-          | None -> assert false (* chain pre-checked by lookup_chain *)
+      let result =
+        match explode k with
+        | '/'::'['::num ->
+            let digits, _ = cleavewhile isdigit num in
+              begin match obj with
+              | Array a ->
+                  begin match List.nth a (int_of_string (implode digits)) with
+                  | Indirect i -> Some i
+                  | _ -> None
+                  end
+              | _ -> assert false (* chain pre-checked by lookup_chain *)
+              end
+        | _ ->
+           indirect_number pdf k obj
+      in
+        match result with
+        | Some i -> find_final_indirect [] pdf (lookup_obj pdf i) i ks
+        | None ->
+            match lookup_immediate k obj with
+            | Some obj -> find_final_indirect (k::remaining_chain) pdf obj objnum ks
+            | None -> assert false (* chain pre-checked by lookup_chain *)
 
 (* The object number is now chosen. We follow what remains of the chain and insert
 the new key-value pair. *)
@@ -496,11 +515,13 @@ let replace_chain_exists pdf chain (k, v) =
       | [] -> raise (PDFError "no chain")
       | chain ->
           let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 chain in
+            Printf.printf "finalobjnum = %i, remaining chain: " finalobjnum; print_chain remaining_chain;
             if finalobjnum = 0 then raise (PDFError "cannot use replace_chain to set trailer dictonary") else
               let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
                 addobj_given_num pdf (finalobjnum, newobj)
 
 let replace_chain pdf chain obj =
+  print_string "replace_chain: "; print_chain chain;
   let rec find_max_existing to_fake chain =
     if chain = [] then (chain, to_fake) else
       match lookup_chain pdf pdf.trailerdict chain with
@@ -512,11 +533,15 @@ let replace_chain pdf chain obj =
   | h::t -> Dictionary [(h, wrap_obj obj t)]
   in
     let chain, to_fake = find_max_existing [] chain in
+      print_string "chain after find_max_existing: "; print_chain chain;
+      print_string "to_fake after find_max_existing: "; print_chain to_fake;
       let chain, key, obj =
         match to_fake with
         | [] -> (rev (tl (rev chain)), hd (rev chain), obj)
         | h::t -> (chain, h, wrap_obj obj t)
       in
+        print_string "final chain for replace_chain_exists: "; print_chain chain;
+        Printf.printf "key = %s, obj = %s\n" key (!string_of_pdf obj);
         if chain = [] then
           pdf.trailerdict <- add_dict_entry pdf.trailerdict key obj
         else
