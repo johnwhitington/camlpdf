@@ -496,14 +496,14 @@ let rec find_final_indirect remaining_chain pdf obj objnum = function
 (* The object number is now chosen. We follow what remains of the chain and insert
 the new key-value pair. *)
 let rec replace_chain_all_direct finalobj chain (k, v) =
-  Printf.printf "replace_chain_all_direct, finalobj = %s\n" (!string_of_pdf finalobj);
+  (*Printf.printf "replace_chain_all_direct, finalobj = %s\n" (!string_of_pdf finalobj);
   Printf.printf "chain is: "; print_chain chain;
-  Printf.printf "key = %s, value = %s\n" k (!string_of_pdf v);
+  Printf.printf "key = %s, value = %s\n" k (!string_of_pdf v);*)
   match finalobj with
-  | Dictionary _ as d | Stream ({contents = (d, _)}) ->
+  | Dictionary dd as d | Stream ({contents = (Dictionary dd as d, _)}) ->
       begin match chain with
       | [] -> add_dict_entry d k v
-      | c::cs -> add_dict_entry d c (replace_chain_all_direct finalobj cs (k, v))
+      | c::cs -> add_dict_entry d c (replace_chain_all_direct (unopt (lookup c dd)) cs (k, v))
       end
   | Array a ->
       begin match chain with
@@ -513,7 +513,7 @@ let rec replace_chain_all_direct finalobj chain (k, v) =
           | '/'::'['::num ->
               let digits, _ = cleavewhile isdigit num in
               let n = int_of_string (implode digits) in
-                Array (List.mapi (fun n' e -> if n' = n then (replace_chain_all_direct finalobj cs (k, v)) else e) a)
+                Array (List.mapi (fun n' e -> if n' = n then (replace_chain_all_direct e cs (k, v)) else e) a) (* This should not be finalobj *)
           | _ -> raise (PDFError "replace_chain_all_direct: bad array chain")
       end
   | _ -> raise (PDFError "replace_chain_all_direct: bad chain")
@@ -525,14 +525,16 @@ let replace_chain_exists pdf chain (k, v) =
       match chain with
       | [] -> raise (PDFError "no chain")
       | chain ->
-          Printf.printf "About to call find_final_indirect\n";
+          (*Printf.printf "About to call find_final_indirect\n";*)
           let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 chain in
-            Printf.printf "finalobjnum = %i, remaining chain: " finalobjnum; print_chain remaining_chain;
-            let newobj = replace_chain_all_direct (lookup_obj pdf finalobjnum) remaining_chain (k, v) in
+            (*Printf.printf "finalobjnum = %i, remaining chain: " finalobjnum; print_chain remaining_chain;*)
+            let newobj =
+              replace_chain_all_direct (if finalobjnum = 0 then pdf.trailerdict else lookup_obj pdf finalobjnum) remaining_chain (k, v)
+            in
               if finalobjnum = 0 then pdf.trailerdict <- newobj else addobj_given_num pdf (finalobjnum, newobj)
 
 let replace_chain pdf chain obj =
-  print_string "replace_chain: "; print_chain chain;
+  (*print_string "replace_chain: "; print_chain chain;*)
   let rec find_max_existing to_fake chain =
     if chain = [] then (chain, to_fake) else
       match lookup_chain pdf pdf.trailerdict chain with
@@ -544,15 +546,15 @@ let replace_chain pdf chain obj =
   | h::t -> Dictionary [(h, wrap_obj obj t)]
   in
     let chain, to_fake = find_max_existing [] chain in
-      print_string "chain after find_max_existing: "; print_chain chain;
-      print_string "to_fake after find_max_existing: "; print_chain to_fake;
+      (*print_string "chain after find_max_existing: "; print_chain chain;
+      print_string "to_fake after find_max_existing: "; print_chain to_fake;*)
       let chain, key, obj =
         match to_fake with
         | [] -> (rev (tl (rev chain)), hd (rev chain), obj)
         | h::t -> (chain, h, wrap_obj obj t)
       in
-        print_string "final chain for replace_chain_exists: "; print_chain chain;
-        Printf.printf "key = %s, obj = %s\n" key (!string_of_pdf obj);
+        (*print_string "final chain for replace_chain_exists: "; print_chain chain;
+        Printf.printf "key = %s, obj = %s\n" key (!string_of_pdf obj);*)
         if chain = [] then
           pdf.trailerdict <- add_dict_entry pdf.trailerdict key obj
         else
