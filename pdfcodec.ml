@@ -1087,6 +1087,7 @@ dictionary entries as default. i.e:
 /DamagedRowsBeforeError 0 *)
 
 let encode_ccitt columns stream = stream
+let encode_ccittg4 columns stream = stream
 
 (* Tester. *)
 (*let _ =

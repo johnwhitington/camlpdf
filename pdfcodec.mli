@@ -69,8 +69,11 @@ val encode_flate : Pdfio.bytes -> Pdfio.bytes
 (** Decode data in FlateDecode. *)
 val decode_flate : Pdfio.bytes -> Pdfio.bytes
 
-(** Encode data in CCITTDecode Group 4. *)
+(** Encode data in CCITTDecode Group 3. *)
 val encode_ccitt : int -> Pdfio.bytes -> Pdfio.bytes
+
+(** Encode data in CCITTDecode Group 4. *)
+val encode_ccittg4 : int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Setting this boolean prints some debug information. *)
 val debug : bool ref
