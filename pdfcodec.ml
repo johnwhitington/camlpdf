@@ -1086,7 +1086,7 @@ dictionary entries as default. i.e:
 /BlackIs1 false
 /DamagedRowsBeforeError 0 *)
 
-let encode_ccitt columns stream = stream
+let encode_ccitt columns stream = mkbytes 0
 let encode_ccittg4 columns stream = stream
 
 (* Tester. *)
