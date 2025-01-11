@@ -1071,22 +1071,47 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
             | End_of_file -> bytes_of_write_bitstream output
             | _ -> raise (Failure "Bad CCITT Stream") 
 
+(* CCITT Group 3 encoder *)
+
+(* Data comes in as bytes, with each scanline padded with zeroes. In addition,
+   it is padded to bytes at the end. (Why though? Check for our case.)
+
+Output is suitable for /CCITTFaxDecode /Columns <columns> /K 0 with all other
+dictionary entries as default. i.e: *)
+
+(* Return colour of run, and non-zero length of run (must make progress) *)
+let read_run maxcols i =
+  let nbits = ref 0 in
+  let iswhite = ref false in
+    while !nbits < maxcols do
+      nbits += 1;
+      iswhite := Pdfio.getbit i
+    done;
+    (!iswhite, !nbits)
+
+let encode_ccitt columns stream =
+  let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
+  let o = Pdfio.make_write_bitstream () in
+    try
+      let cols_left = ref columns in
+        while true do
+          let iswhite, length = read_run !cols_left i in 
+            cols_left -= length;
+            if !cols_left = 0 then cols_left := columns;
+            let bits = (if iswhite then write_white_code else write_black_code) length in
+              iter (Pdfio.putbit o) bits
+        done
+    with
+      End_of_file -> bytes_of_write_bitstream o
+
 (* CCITT Group 4 encoder *)
 
 (* Data comes in as bytes, with each scanline padded with zeroes. In addition,
    it is padded to bytes at the end. (Why though? Check for our case.)
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
-dictionary entries as default. i.e:
+dictionary entries as default. *)
 
-/EndOfLine false
-/EncodedByteAlign false
-/Rows 0
-/EndOfBlock true
-/BlackIs1 false
-/DamagedRowsBeforeError 0 *)
-
-let encode_ccitt columns stream = mkbytes 0
 let encode_ccittg4 columns stream = stream
 
 (* Tester. *)
