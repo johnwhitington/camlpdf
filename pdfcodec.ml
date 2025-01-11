@@ -1081,11 +1081,13 @@ dictionary entries as default. i.e: *)
 
 (* Return colour of run, and non-zero length of run (must make progress) *)
 let read_run maxcols i =
-  let nbits = ref 0 in
-  let iswhite = ref false in
-    while !nbits < maxcols do
-      nbits += 1;
-      iswhite := Pdfio.getbit i
+  let nbits = ref 1 in
+  let iswhite = ref (Pdfio.getbit i) in
+  let fin = ref false in
+    while !nbits < maxcols || not !fin do
+      let pos = ref (Pdfio.bitstream_pos i) in
+      let newbit = Pdfio.getbit i in
+      if newbit = !iswhite then nbits += 1 else (Pdfio.bitstream_seek i !pos; set fin)
     done;
     (!iswhite, !nbits)
 
@@ -1095,11 +1097,13 @@ let encode_ccitt columns stream =
     try
       let cols_left = ref columns in
         while true do
-          let iswhite, length = read_run !cols_left i in 
-            cols_left -= length;
-            if !cols_left = 0 then cols_left := columns;
+          let iswhite, length = read_run !cols_left i in
+            Printf.printf "Run: (%b, %i)\n" iswhite length;
             let bits = (if iswhite then write_white_code else write_black_code) length in
-              iter (Pdfio.putbit o) bits
+              iter (Pdfio.putbit o) bits;
+              if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_black_code 0);
+              cols_left -= length;
+              if !cols_left = 0 then cols_left := columns;
         done
     with
       End_of_file -> bytes_of_write_bitstream o
