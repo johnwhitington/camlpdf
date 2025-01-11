@@ -1084,7 +1084,7 @@ let read_run maxcols i =
   let nbits = ref 1 in
   let iswhite = ref (Pdfio.getbit i) in
   let fin = ref false in
-    while !nbits < maxcols || not !fin do
+    while !nbits < maxcols && not !fin do
       let pos = ref (Pdfio.bitstream_pos i) in
       let newbit = Pdfio.getbit i in
       if newbit = !iswhite then nbits += 1 else (Pdfio.bitstream_seek i !pos; set fin)
@@ -1098,7 +1098,6 @@ let encode_ccitt columns stream =
       let cols_left = ref columns in
         while true do
           let iswhite, length = read_run !cols_left i in
-            Printf.printf "Run: (%b, %i)\n" iswhite length;
             let bits = (if iswhite then write_white_code else write_black_code) length in
               iter (Pdfio.putbit o) bits;
               if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_black_code 0);
@@ -1106,7 +1105,11 @@ let encode_ccitt columns stream =
               if !cols_left = 0 then cols_left := columns;
         done
     with
-      End_of_file -> bytes_of_write_bitstream o
+      End_of_file ->
+        iter (Pdfio.putbit o) (write_white_code ~-1);
+        iter (Pdfio.putbit o) (write_white_code ~-1);
+        Pdfio.align_write o;
+        bytes_of_write_bitstream o
 
 (* CCITT Group 4 encoder *)
 
