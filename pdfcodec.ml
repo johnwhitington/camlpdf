@@ -1103,7 +1103,8 @@ let encode_ccitt columns stream =
               if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_black_code 0);
               cols_left -= length;
               if !cols_left = 0 then cols_left := columns;
-        done
+        done;
+        mkbytes 0
     with
       End_of_file ->
         iter (Pdfio.putbit o) (write_white_code ~-1);
