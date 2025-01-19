@@ -133,3 +133,5 @@ val process_xobjects : Pdf.t ->
 val combine_pdf_resources : Pdf.t -> Pdf.pdfobject -> Pdf.pdfobject -> Pdf.pdfobject
 
 val ppstub : ('a -> 'b -> 'c) -> 'a -> 'b -> 'c * 'a * Pdftransform.transform_matrix
+
+val replace_inherit : Pdf.t -> int list -> unit

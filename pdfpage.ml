@@ -996,6 +996,42 @@ let fixup_destinations pdf =
   | None ->
       ()
 
+(* For all pages in objnumbers, make sure they have no inherited attribues. *)
+let replace_inherit pdf objnumbers =
+  iter
+    (function objnum ->
+       let replace_inherit objnum entry =
+         let obj = Pdf.lookup_obj pdf objnum in
+           (* Find the first parent entry we can which has the correct attribute. *)
+           let rec find_attribute obj =
+             (* Only replace if not there! *)
+             match Pdf.lookup_direct pdf entry obj with
+             | Some _ -> None
+             | _ ->
+               match Pdf.lookup_direct pdf "/Parent" obj with
+               | Some (Pdf.Dictionary parent) ->
+                   (* Does this one have the attribute? If yes,
+                   return, if no carry on looking... Don't use a
+                   direct lookup, because we want to retain the
+                   indirect reference to resources, for example. *)
+                   begin match lookup entry parent with
+                   | Some pdfobj -> Some pdfobj
+                   | None -> find_attribute (Pdf.Dictionary parent)
+                   end
+               | _ -> None (* Got to top, couldn't find anything *)
+           in
+             match find_attribute obj with
+             | None -> ()
+             | Some replacement_attr ->
+                (* Replace the attribute with replacement_attr, updating the page object in place. *)
+                Pdf.addobj_given_num pdf (objnum, Pdf.add_dict_entry obj entry replacement_attr)
+       in
+         replace_inherit objnum "/MediaBox";
+         replace_inherit objnum "/CropBox";
+         replace_inherit objnum "/Rotate";
+         replace_inherit objnum "/Resources")
+    objnumbers
+
 let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) basepdf range =
   let page_labels =
     if length (Pdfpagelabels.read basepdf) = 0 then [] else
@@ -1083,39 +1119,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
             may fail to exist, leaving pages without Media boxes or
             resources! Inheritable entries are /MediaBox /CropBox /Rotate
             /Resources *)
-            iter
-              (function objnum ->
-                 let replace_inherit objnum entry =
-                   let obj = Pdf.lookup_obj pdf objnum in
-                     (* Find the first parent entry we can which has the correct attribute. *)
-                     let rec find_attribute obj =
-                       (* Only replace if not there! *)
-                       match Pdf.lookup_direct pdf entry obj with
-                       | Some _ -> None
-                       | _ ->
-                         match Pdf.lookup_direct pdf "/Parent" obj with
-                         | Some (Pdf.Dictionary parent) ->
-                             (* Does this one have the attribute? If yes,
-                             return, if no carry on looking... Don't use a
-                             direct lookup, because we want to retain the
-                             indirect reference to resources, for example. *)
-                             begin match lookup entry parent with
-                             | Some pdfobj -> Some pdfobj
-                             | None -> find_attribute (Pdf.Dictionary parent)
-                             end
-                         | _ -> None (* Got to top, couldn't find anything *)
-                     in
-                       match find_attribute obj with
-                       | None -> ()
-                       | Some replacement_attr ->
-                          (* Replace the attribute with replacement_attr, updating the page object in place. *)
-                          Pdf.addobj_given_num pdf (objnum, Pdf.add_dict_entry obj entry replacement_attr)
-                 in
-                   replace_inherit objnum "/MediaBox";
-                   replace_inherit objnum "/CropBox";
-                   replace_inherit objnum "/Rotate";
-                   replace_inherit objnum "/Resources")
-              objnumbers;
+            replace_inherit pdf objnumbers;
             let thetree = pagetree_with_objnumbers true old_pagetree_root_num (source pdf.Pdf.objects.Pdf.maxobjnum) objnumbers 0 in
             (* 2. Kill the old page tree, excepting pages which will appear in the new
             PDF. It will link, via /Parent entries etc, to the new page tree. To do
