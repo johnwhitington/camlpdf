@@ -216,6 +216,9 @@ val objselfmap : (pdfobject -> pdfobject) -> t -> unit
 (** Iterate over just the stream objects in a document. *)
 val iter_stream : (pdfobject -> unit) -> t -> unit
 
+(** Select objects matching a predicate, and return their object numbers. *)
+val objselect : (pdfobject -> bool) -> t -> int list
+
 (** {2 Garbage collection} *)
 
 (** Garbage-collect a pdf document. *)

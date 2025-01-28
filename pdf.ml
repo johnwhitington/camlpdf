@@ -611,6 +611,11 @@ let objiter f doc =
   in
     pdfobjmap_iter f' doc.objects.pdfobjects
 
+let objselect p doc =
+  let ns = ref [] in
+    objiter (fun n obj -> if p obj then ns =| n) doc;
+    !ns
+
 let objselfmap f doc =
   resolve_all_delayed_object_streams doc;
   let rec f' k v =
