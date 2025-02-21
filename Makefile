@@ -2,8 +2,8 @@
 PDFMODS = pdfe pdfutil pdfio pdftransform pdfunits pdfpaper \
   pdfcryptprimitives pdf pdfcrypt pdfflate pdfcodec pdfwrite pdfgenlex \
   pdfread pdfjpeg pdfops pdfdest pdfmarks pdfpagelabels pdftree pdfst pdfpage \
-  pdfannot pdffun pdfspace pdfimage pdfafm pdfafmdata pdfglyphlist pdftext \
-  pdfstandard14 pdfdate pdfocg pdfmerge
+  pdfannot pdffun pdfspace pdfimage pdfafm pdfafmdata pdfglyphlist pdfcmap \
+  pdftext pdfstandard14 pdfdate pdfocg pdfmerge
 
 SOURCES = flatestubs.c rijndael-alg-fst.c stubs-aes.c sha2.c stubs-sha2.c \
 	  $(foreach x,$(PDFMODS),$(x).ml $(x).mli)
