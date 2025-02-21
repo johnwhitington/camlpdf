@@ -147,21 +147,58 @@ let pairs_of_section = function
           Not_found -> rev !results
         end
 
+let extract_specifics data =
+  let wmode = ref None in
+  let usecmap = ref None in
+  let supplement = ref None in
+  let read_number t =
+    let h, t = cleavewhile isdigit t in
+      int_of_string (implode h), t
+  in
+  let read_reversed_name t =
+    let h, t = cleavewhile (neq '/') t in
+      implode ('/'::rev h), t
+  in
+  let rec find = function
+    | [] -> ()
+    | '/'::'S'::'u'::'p'::'p'::'l'::'e'::'m'::'e'::'n'::'t'::' '::t ->
+        let n, t = read_number t in
+          supplement := Some n;
+          find t
+    | '/'::'W'::'M'::'o'::'d'::'e'::' '::t ->
+        let n, t = read_number t in
+          wmode := Some n;
+          find t
+    | 'p'::'a'::'m'::'c'::'e'::'s'::'U'::' '::t ->
+        let n, t = read_reversed_name t in
+          usecmap := Some n;
+          find t
+    | h::t -> find t
+  in
+    let chars = charlist_of_bytes data in
+      find chars;
+      find (rev chars);
+      Printf.printf "WMode: %s\n" (match !wmode with None -> "None" | Some n -> string_of_int n);
+      Printf.printf "Usecmap: %s\n" (match !usecmap with None -> "None" | Some n -> n);
+      Printf.printf "Supplement: %s\n" (match !supplement with None -> "None" | Some n -> string_of_int n);
+      (!wmode, !usecmap, !supplement)
+
 let rec parse_cmap pdf cmap =
   match cmap with
   | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
       Pdfcodec.decode_pdfstream pdf cmap;
       begin match cmap with
       | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
+          let wmode, usecmap, supplement = extract_specifics data in
           begin try
             {map =
                flatten
                  (map pairs_of_section
                    (get_sections
                       (lose Pdf.is_whitespace (charlist_of_bytes data))));
-            wmode = None;
-            usecmap = None;
-            supplement = None}
+            wmode;
+            usecmap;
+            supplement}
           with
             e ->
               Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
