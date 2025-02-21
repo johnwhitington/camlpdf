@@ -572,7 +572,7 @@ let add_tounicode pdf font fontdict =
     match Pdf.lookup_direct pdf "/ToUnicode" fontdict with
     | Some tounicode ->
         begin try
-          Some (hashtable_of_dictionary <| (Pdfcmap.parse_tounicode pdf tounicode).map)
+          Some (hashtable_of_dictionary <| (Pdfcmap.parse_cmap pdf tounicode).map)
         with
           e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n" (Printexc.to_string e)); None
         end

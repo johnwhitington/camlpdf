@@ -147,11 +147,11 @@ let pairs_of_section = function
           Not_found -> rev !results
         end
 
-let rec parse_tounicode pdf tounicode =
-  match tounicode with
+let rec parse_cmap pdf cmap =
+  match cmap with
   | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
-      Pdfcodec.decode_pdfstream pdf tounicode;
-      begin match tounicode with
+      Pdfcodec.decode_pdfstream pdf cmap;
+      begin match cmap with
       | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
           begin try
             {map =
@@ -170,7 +170,6 @@ let rec parse_tounicode pdf tounicode =
       | _ -> assert false
       end
   | Pdf.Stream {contents = (_, Pdf.ToGet _)} ->
-      Pdf.getstream tounicode;
-      parse_tounicode pdf tounicode
+      Pdf.getstream cmap;
+      parse_cmap pdf cmap
   | e -> raise (Pdf.PDFError (Printf.sprintf "Bad /ToUnicode %s" (Pdfwrite.string_of_pdf e)))
-
