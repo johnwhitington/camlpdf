@@ -4,7 +4,6 @@ open Pdfio
 type cmap =
   {map : (int * string) list;
    wmode : int option;
-   usecmap : string option;
    supplement : int option}
 
 (* Parse a /ToUnicode CMap to extract font mapping. *)
@@ -149,15 +148,10 @@ let pairs_of_section = function
 
 let extract_specifics data =
   let wmode = ref None in
-  let usecmap = ref None in
   let supplement = ref None in
   let read_number t =
     let h, t = cleavewhile isdigit t in
       int_of_string (implode h), t
-  in
-  let read_reversed_name t =
-    let h, t = cleavewhile (neq '/') t in
-      implode ('/'::rev h), t
   in
   let rec find = function
     | [] -> ()
@@ -169,19 +163,13 @@ let extract_specifics data =
         let n, t = read_number t in
           wmode := Some n;
           find t
-    | 'p'::'a'::'m'::'c'::'e'::'s'::'U'::' '::t ->
-        let n, t = read_reversed_name t in
-          usecmap := Some n;
-          find t
     | h::t -> find t
   in
     let chars = charlist_of_bytes data in
       find chars;
-      find (rev chars);
       Printf.printf "WMode: %s\n" (match !wmode with None -> "None" | Some n -> string_of_int n);
-      Printf.printf "Usecmap: %s\n" (match !usecmap with None -> "None" | Some n -> n);
       Printf.printf "Supplement: %s\n" (match !supplement with None -> "None" | Some n -> string_of_int n);
-      (!wmode, !usecmap, !supplement)
+      (!wmode, !supplement)
 
 let rec parse_cmap pdf cmap =
   match cmap with
@@ -189,7 +177,7 @@ let rec parse_cmap pdf cmap =
       Pdfcodec.decode_pdfstream pdf cmap;
       begin match cmap with
       | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
-          let wmode, usecmap, supplement = extract_specifics data in
+          let wmode, supplement = extract_specifics data in
           begin try
             {map =
                flatten
@@ -197,7 +185,6 @@ let rec parse_cmap pdf cmap =
                    (get_sections
                       (lose Pdf.is_whitespace (charlist_of_bytes data))));
             wmode;
-            usecmap;
             supplement}
           with
             e ->
