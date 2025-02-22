@@ -3,10 +3,7 @@ open Pdfio
 
 type cmap =
   {map : (int * string) list;
-   wmode : int option;
-   supplement : int option;
-   ordering : string option;
-   registry : string option}
+   wmode : int option}
 
 (* Parse a /ToUnicode CMap to extract font mapping. *)
 type section =
@@ -150,31 +147,12 @@ let pairs_of_section = function
 
 let extract_specifics data =
   let wmode = ref None in
-  let supplement = ref None in
-  let ordering = ref None in
-  let registry = ref None in
   let read_number t =
     let h, t = cleavewhile isdigit t in
       int_of_string (implode h), t
   in
-  let read_string t =
-    let h, t = cleavewhile (notpred Pdf.is_whitespace) t in
-      implode (rev (tl (rev (tl h)))), t
-  in
   let rec find = function
     | [] -> ()
-    | '/'::'R'::'e'::'g'::'i'::'s'::'t'::'r'::'y'::' '::t ->
-        let s, t = read_string t in
-          registry := Some s;
-          find t
-    | '/'::'O'::'r'::'d'::'e'::'r'::'i'::'n'::'g'::' '::t ->
-        let s, t = read_string t in
-          ordering := Some s;
-          find t
-    | '/'::'S'::'u'::'p'::'p'::'l'::'e'::'m'::'e'::'n'::'t'::' '::t ->
-        let n, t = read_number t in
-          supplement := Some n;
-          find t
     | '/'::'W'::'M'::'o'::'d'::'e'::' '::t ->
         let n, t = read_number t in
           wmode := Some n;
@@ -183,11 +161,7 @@ let extract_specifics data =
   in
     let chars = charlist_of_bytes data in
       begin try find chars with _ -> () end;
-      Printf.printf "WMode: %s\n" (match !wmode with None -> "None" | Some n -> string_of_int n);
-      Printf.printf "Supplement: %s\n" (match !supplement with None -> "None" | Some n -> string_of_int n);
-      Printf.printf "Ordering: %s\n" (match !ordering with None -> "None" | Some n -> n);
-      Printf.printf "Registry: %s\n" (match !registry with None -> "None" | Some n -> n);
-      (!wmode, !supplement, !ordering, !registry)
+      !wmode
 
 let rec parse_cmap pdf cmap =
   match cmap with
@@ -195,17 +169,14 @@ let rec parse_cmap pdf cmap =
       Pdfcodec.decode_pdfstream pdf cmap;
       begin match cmap with
       | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
-          let wmode, supplement, ordering, registry = extract_specifics data in
+          let wmode = extract_specifics data in
           begin try
             {map =
                flatten
                  (map pairs_of_section
                    (get_sections
                       (lose Pdf.is_whitespace (charlist_of_bytes data))));
-            wmode;
-            supplement;
-            ordering;
-            registry}
+            wmode}
           with
             e ->
               Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
