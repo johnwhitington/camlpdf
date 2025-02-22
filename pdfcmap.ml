@@ -166,7 +166,7 @@ let extract_specifics data =
     | h::t -> find t
   in
     let chars = charlist_of_bytes data in
-      find chars;
+      begin try find chars with _ -> () end;
       Printf.printf "WMode: %s\n" (match !wmode with None -> "None" | Some n -> string_of_int n);
       Printf.printf "Supplement: %s\n" (match !supplement with None -> "None" | Some n -> string_of_int n);
       (!wmode, !supplement)
