@@ -124,3 +124,7 @@ val always_add_whitespace : bool ref
 
 (** If set, comments will be written. *)
 val write_comments : bool ref
+
+val begin_artifact : t
+
+val end_artifact : t

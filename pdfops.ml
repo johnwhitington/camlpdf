@@ -930,3 +930,7 @@ let stream_of_ops ops =
       (ref
         (Pdf.Dictionary
           [("/Length", Pdf.Integer (bytes_size data))], Pdf.Got data))
+
+let begin_artifact = Op_BMC "/Artifact"
+
+let end_artifact = Op_EMC
