@@ -555,6 +555,8 @@ let replace_chain pdf chain obj =
         else
           replace_chain_exists pdf chain (key, obj)
 
+(* FIXME When the final item in the chain is indirect, shouldn't it be kept indirect and the object just replaced? *)
+ 
 (* Look up under a key and its alternate. Return the value associated
 with the key that worked, or [None] if neither did. *)
 let lookup_direct_orelse pdf k k' d =
