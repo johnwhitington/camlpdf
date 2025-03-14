@@ -278,7 +278,7 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
     | Some outline -> do_until_no_next_lb ~preserve_actions indent_lb pdf outline output
     end
 
-let read_bookmarks ?(preserve_actions=false) pdf =
+let read_bookmarks ~preserve_actions pdf =
   match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
   | None -> raise (Pdf.PDFError "read_bookmarks - Bad PDF: no root")
   | Some catalog ->

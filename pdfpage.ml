@@ -655,7 +655,7 @@ let change_pages_process_bookmarks mattable refnumstable pdf =
       (fun m ->
          let tr = change_pages_find_matrix m.Pdfmarks.target mattable refnumstable in
            if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
-      (Pdfmarks.read_bookmarks pdf)
+      (Pdfmarks.read_bookmarks ~preserve_actions:false pdf)
   in
     Pdfmarks.add_bookmarks bookmarks pdf 
 
@@ -1045,7 +1045,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
     let firstindex = ref ~-1 in
     let firstindexlevel = ref ~-1 in
     let index = ref ~-1 in
-    let marks = Pdfmarks.read_bookmarks basepdf in
+    let marks = Pdfmarks.read_bookmarks ~preserve_actions:false basepdf in
     let r =
       option_map
         (function m ->

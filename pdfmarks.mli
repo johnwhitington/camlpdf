@@ -13,7 +13,7 @@ type t =
 val string_of_bookmark : t -> string
 
 (** Read the bookmarks from a document. *)
-val read_bookmarks : ?preserve_actions:bool -> Pdf.t -> t list
+val read_bookmarks : preserve_actions:bool -> Pdf.t -> t list
 
 (** Remove the bookmarks from a document. *)
 val remove_bookmarks : Pdf.t -> Pdf.t
