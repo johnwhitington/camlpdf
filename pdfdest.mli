@@ -10,7 +10,7 @@ type targetpage =
 type t =
   | Action of Pdf.pdfobject
   | NullDestination
-  | NamedDestinationElsewhere of string
+  | NamedDestination of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
   | FitH of targetpage * float option
@@ -20,7 +20,7 @@ type t =
   | FitBH of targetpage * float option
   | FitBV of targetpage * float option
 
-(** Read a destination given a PDF and destionation object. *)
+(** Read a destination given a PDF and destination object. *)
 val read_destination : Pdf.t -> Pdf.pdfobject -> t
 
 (** Write a destination to a [Pdf.pdfobject]. *)

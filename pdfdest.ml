@@ -8,7 +8,7 @@ type targetpage =
 type t =
   | Action of Pdf.pdfobject
   | NullDestination
-  | NamedDestinationElsewhere of string
+  | NamedDestination of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
   | FitH of targetpage * float option
@@ -77,9 +77,9 @@ let rec read_destination pdf pdfobject =
           | Some dests ->
               begin match Pdf.lookup_direct pdf n dests with
               | Some dest' -> read_destination pdf dest'
-              | None -> NamedDestinationElsewhere n
+              | None -> NamedDestination n
               end
-          | None -> NamedDestinationElsewhere n
+          | None -> NamedDestination n
           end
       | None -> raise (Pdf.PDFError "read_destination: no catalog")
       end
@@ -92,12 +92,12 @@ let rec read_destination pdf pdfobject =
                 begin match
                   Pdf.nametree_lookup pdf (Pdf.String s) destsdict
                 with
-                | None -> NamedDestinationElsewhere s
+                | None -> NamedDestination s
                 | Some dest -> read_destination pdf (Pdf.direct pdf dest)
                 end
-            | _ -> NamedDestinationElsewhere s
+            | _ -> NamedDestination s
             end
-        | _ -> NamedDestinationElsewhere s 
+        | _ -> NamedDestination s 
         end
     | p ->
         Pdfe.log (Printf.sprintf "Warning: Could not read destination %s\n" (Pdfwrite.string_of_pdf p));
@@ -114,7 +114,7 @@ let pos_null = function
 let pdfobject_of_destination = function
   | Action a -> a
   | NullDestination -> Pdf.Null
-  | NamedDestinationElsewhere s -> Pdf.String s
+  | NamedDestination s -> Pdf.String s
   | XYZ (p, left, top, zoom) ->
       Pdf.Array [pdf_of_targetpage p; Pdf.Name "/XYZ"; pos_null left; pos_null top; pos_null zoom]
   | Fit p ->

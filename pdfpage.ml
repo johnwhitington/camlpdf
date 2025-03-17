@@ -598,7 +598,7 @@ let add_root pageroot extras pdf =
  * previous call to Pdf.page_reference_numbers *)
 let rec pagenumber_of_target ?fastrefnums pdf = function
  | Pdfdest.NullDestination -> 0
- | Pdfdest.NamedDestinationElsewhere _ -> 0
+ | Pdfdest.NamedDestination _ -> 0
  | Pdfdest.Action a ->
      begin match Pdf.lookup_direct pdf "/S" a, Pdf.lookup_direct pdf "/D" a with
      | Some (Pdf.Name "/GoTo"), Some dest ->
