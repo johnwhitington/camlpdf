@@ -3,6 +3,7 @@
 o Pdf.lookup_chain can look within arrays
 o Pdf.replace_chain can replace within arrays
 o Repair name/number trees with duplicate keys
+o Pdfpage.pagenumber_of_target works on GoTo actions
 
 2.8 (December 2024)
 
