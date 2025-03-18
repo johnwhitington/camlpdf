@@ -25,7 +25,7 @@ let read_targetpage = function
   | Pdf.Integer i -> OtherDocPageNumber i
   | _ -> assert false (* ruled out in read_destination *)
 
-let rec read_destination pdf pdfobject =
+let rec read_destination ?(shallow=false) pdf pdfobject =
   let option_getnum = function
   | Pdf.Null -> None
   | x -> Some (Pdf.getnum pdf x)
@@ -35,7 +35,7 @@ let rec read_destination pdf pdfobject =
         begin
           (* We're discarding any other dictionary entries here... *)
           match Pdf.lookup_direct pdf "/D" (Pdf.Dictionary d) with
-          | Some dest -> read_destination pdf dest
+          | Some dest -> read_destination ~shallow pdf dest
           | None -> NullDestination
         end
     | Pdf.Array
@@ -71,34 +71,36 @@ let rec read_destination pdf pdfobject =
     | Pdf.Array [(Pdf.Indirect _ | Pdf.Integer _) as p; Pdf.Name "/FitBV"; l] ->
         FitBV (read_targetpage p, option_getnum l)
     | Pdf.Name n ->
-      begin match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
-      | Some catalog ->
-          begin match Pdf.lookup_direct pdf "/Dests" catalog with
-          | Some dests ->
-              begin match Pdf.lookup_direct pdf n dests with
-              | Some dest' -> read_destination pdf dest'
+        if shallow then NamedDestination n else
+          begin match Pdf.lookup_direct pdf "/Root" pdf.Pdf.trailerdict with
+          | Some catalog ->
+              begin match Pdf.lookup_direct pdf "/Dests" catalog with
+              | Some dests ->
+                  begin match Pdf.lookup_direct pdf n dests with
+                  | Some dest' -> read_destination ~shallow pdf dest'
+                  | None -> NamedDestination n
+                  end
               | None -> NamedDestination n
               end
-          | None -> NamedDestination n
+          | None -> raise (Pdf.PDFError "read_destination: no catalog")
           end
-      | None -> raise (Pdf.PDFError "read_destination: no catalog")
-      end
     | Pdf.String s ->
-      let rootdict = Pdf.lookup_obj pdf pdf.Pdf.root in
-        begin match Pdf.lookup_direct pdf "/Names" rootdict with
-        | Some namedict ->
-            begin match Pdf.lookup_direct pdf "/Dests" namedict with
-            | Some destsdict ->
-                begin match
-                  Pdf.nametree_lookup pdf (Pdf.String s) destsdict
-                with
-                | None -> NamedDestination s
-                | Some dest -> read_destination pdf (Pdf.direct pdf dest)
+        if shallow then NamedDestination s else
+          let rootdict = Pdf.lookup_obj pdf pdf.Pdf.root in
+            begin match Pdf.lookup_direct pdf "/Names" rootdict with
+            | Some namedict ->
+                begin match Pdf.lookup_direct pdf "/Dests" namedict with
+                | Some destsdict ->
+                    begin match
+                      Pdf.nametree_lookup pdf (Pdf.String s) destsdict
+                    with
+                    | None -> NamedDestination s
+                    | Some dest -> read_destination ~shallow pdf (Pdf.direct pdf dest)
+                    end
+                | _ -> NamedDestination s
                 end
-            | _ -> NamedDestination s
+            | _ -> NamedDestination s 
             end
-        | _ -> NamedDestination s 
-        end
     | p ->
         Pdfe.log (Printf.sprintf "Warning: Could not read destination %s\n" (Pdfwrite.string_of_pdf p));
         NullDestination

@@ -21,7 +21,7 @@ type t =
   | FitBV of targetpage * float option
 
 (** Read a destination given a PDF and destination object. *)
-val read_destination : Pdf.t -> Pdf.pdfobject -> t
+val read_destination : ?shallow:bool -> Pdf.t -> Pdf.pdfobject -> t
 
 (** Write a destination to a [Pdf.pdfobject]. *)
 val pdfobject_of_destination : t -> Pdf.pdfobject
