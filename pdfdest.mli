@@ -11,6 +11,7 @@ type t =
   | Action of Pdf.pdfobject
   | NullDestination
   | NamedDestination of string
+  | StringDestination of string
   | XYZ of targetpage * float option * float option * float option
   | Fit of targetpage
   | FitH of targetpage * float option

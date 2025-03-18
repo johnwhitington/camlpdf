@@ -235,7 +235,7 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
       | Some (Pdf.String stringdest) when preserve_actions ->
           Pdfdest.NamedDestination stringdest
       | Some dest ->
-          Pdfdest.read_destination pdf dest
+          Pdfdest.read_destination ~shallow:preserve_actions pdf dest
       | None ->
           match Pdf.lookup_direct pdf "/A" outline with
           | None -> Pdfdest.NullDestination
@@ -243,12 +243,12 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
               if preserve_actions then
                 (* 05/03/2024: Only preserve if there is a name or byte string. If it's a direct destination, don't preserve. *)
                 match Pdf.lookup_direct pdf "/D" action with
-                | Some ((Pdf.Array _) as dest) -> Pdfdest.read_destination pdf dest
+                | Some ((Pdf.Array _) as dest) -> Pdfdest.read_destination ~shallow:preserve_actions pdf dest
                 | _ -> Pdfdest.Action (Pdf.direct pdf action)
               else
                 match Pdf.lookup_direct pdf "/D" action with
                 | None -> Pdfdest.Action (Pdf.direct pdf action)
-                | Some dest -> Pdfdest.read_destination pdf dest
+                | Some dest -> Pdfdest.read_destination ~shallow:preserve_actions pdf dest
     in let opn =
       match Pdf.lookup_direct pdf "/Count" outline with
       | Some (Pdf.Integer i) when i > 0 -> true

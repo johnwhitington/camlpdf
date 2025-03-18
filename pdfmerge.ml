@@ -175,10 +175,11 @@ let merge_bookmarks changes pdfs ranges pdf =
         in
         match t with
         | Pdfdest.NullDestination -> 0
-        | Pdfdest.NamedDestination s -> pagenumber_of_target_string s 
+        | Pdfdest.NamedDestination s -> pagenumber_of_target_string s
+        | Pdfdest.StringDestination s -> pagenumber_of_target_string s
         | Pdfdest.Action a ->
             (* Look for a /GoTo and find the page number. If /S /GoTo then read /D destination string.
-            By the time this is called, we have the new merged PDF name tree done, so this should
+            By the time this is called; we have the new merged PDF name tree done, so this should
             all be correct. *)
             begin match Pdf.lookup_direct pdf "/S" a with
             | Some (Pdf.Name "/GoTo") ->
@@ -209,6 +210,7 @@ let merge_bookmarks changes pdfs ranges pdf =
                       Pdfdest.Action a
                   | Pdfdest.NullDestination -> Pdfdest.NullDestination
                   | Pdfdest.NamedDestination s -> Pdfdest.NamedDestination s
+                  | Pdfdest.StringDestination s -> Pdfdest.StringDestination s
                   | Pdfdest.XYZ (t, a, b, c) -> Pdfdest.XYZ (change_targetpage t, a, b, c)
                   | Pdfdest.Fit t -> Pdfdest.Fit (change_targetpage t)
                   | Pdfdest.FitH (t, a) -> Pdfdest.FitH (change_targetpage t, a)
