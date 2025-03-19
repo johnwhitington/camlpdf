@@ -1051,7 +1051,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
     let firstindex = ref ~-1 in
     let firstindexlevel = ref ~-1 in
     let index = ref ~-1 in
-    let marks = Pdfmarks.read_bookmarks ~preserve_actions:false basepdf in
+    let marks = Pdfmarks.read_bookmarks ~preserve_actions:true basepdf in
     let r =
       option_map
         (function m ->
