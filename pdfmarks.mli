@@ -22,4 +22,4 @@ val remove_bookmarks : Pdf.t -> Pdf.t
 val add_bookmarks : t list -> Pdf.t -> Pdf.t
 
 (** Transform a bookmark's destination *)
-val transform_bookmark : Pdftransform.transform_matrix -> t -> t
+val transform_bookmark : Pdf.t -> Pdftransform.transform_matrix -> t -> t

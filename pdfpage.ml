@@ -660,7 +660,7 @@ let change_pages_process_bookmarks mattable refnumstable pdf =
     map
       (fun m ->
          let tr = change_pages_find_matrix m.Pdfmarks.target mattable refnumstable in
-           if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark tr m else m)
+           if tr <> Pdftransform.i_matrix then Pdfmarks.transform_bookmark pdf tr m else m)
       (Pdfmarks.read_bookmarks ~preserve_actions:true pdf)
   in
     Pdfmarks.add_bookmarks bookmarks pdf 
@@ -670,7 +670,7 @@ let rewrite_dest pdf mattable refnumstable dest =
   let tr = change_pages_find_matrix parsed_dest mattable refnumstable in
     (*Printf.printf "tr is %s\n" (Pdftransform.string_of_matrix tr);*)
     if tr <> Pdftransform.i_matrix then
-      let transformed = Pdfdest.transform_destination tr parsed_dest in
+      let transformed = Pdfdest.transform_destination pdf tr parsed_dest in
       let new_dest = Pdfdest.pdfobject_of_destination transformed in
         Some (Pdf.addobj pdf new_dest)
     else

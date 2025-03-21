@@ -153,7 +153,7 @@ let clip_pair (a, b) =
   in
     (clip a, clip b) 
 
-let transform_destination t = function
+let rec transform_destination pdf t = function
   | FitH (PageObject _ as p, Some top) ->
       let (_, top) = clip_pair (Pdftransform.transform_matrix t (0., top)) in
         FitH (p, Some top)
@@ -179,4 +179,10 @@ let transform_destination t = function
       let left, top = clip_pair (Pdftransform.transform_matrix t (left, top)) in
       let right, bottom = clip_pair (Pdftransform.transform_matrix t (right, bottom)) in
         FitR (p, left, bottom, right, top)
+  | Action a ->
+      begin match Pdf.lookup_direct pdf "/S" a, Pdf.lookup_direct pdf "/D" a with
+      | Some (Pdf.Name "/GoTo"), Some d ->
+          Action (Pdf.add_dict_entry a "/D" (pdfobject_of_destination (transform_destination pdf t (read_destination ~shallow:false pdf d))))
+      | _ -> Action a
+      end
   | x -> x

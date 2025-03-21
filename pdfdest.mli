@@ -28,4 +28,4 @@ val read_destination : ?shallow:bool -> Pdf.t -> Pdf.pdfobject -> t
 val pdfobject_of_destination : t -> Pdf.pdfobject
 
 (** Transform a destination by a matrix *)
-val transform_destination : Pdftransform.transform_matrix -> t -> t
+val transform_destination : Pdf.t -> Pdftransform.transform_matrix -> t -> t

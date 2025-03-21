@@ -8,14 +8,14 @@ API, which is available at [http://www.coherentpdf.com/](http://www.coherentpdf.
 License
 ---
 
-Copyright Coherent Graphics Ltd 2007 - 2024. Released under the LGPL with
+Copyright Coherent Graphics Ltd 2007 - 2025. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 To Build
 ---
 
 If downloading from Github, obtain the correct source. This means choosing the
-tag for a particular version, such as "v2.8". The head of the master branch is
+tag for a particular version, such as "v2.8.1". The head of the master branch is
 unstable.
 
 1. Run "make". This will build camlpdf.a, camlpdf.cma, camlpdf.cmxa and the
