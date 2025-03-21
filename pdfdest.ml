@@ -182,7 +182,7 @@ let rec transform_destination pdf t = function
   | Action a ->
       begin match Pdf.lookup_direct pdf "/S" a, Pdf.lookup_direct pdf "/D" a with
       | Some (Pdf.Name "/GoTo"), Some d ->
-          Action (Pdf.add_dict_entry a "/D" (pdfobject_of_destination (transform_destination pdf t (read_destination ~shallow:false pdf d))))
+          Action (Pdf.add_dict_entry a "/D" (pdfobject_of_destination (transform_destination pdf t (read_destination ~shallow:true pdf d))))
       | _ -> Action a
       end
   | x -> x
