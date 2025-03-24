@@ -123,7 +123,12 @@ let b = Buffer.create 30
 
 let make_pdf_name n =
   if needs_processing n then
-    if n = "" || String.unsafe_get n 0 <> '/' then raise (Pdf.PDFError "bad name") else
+    if n = "" || String.unsafe_get n 0 <> '/' then
+      begin
+        Pdfe.log "warning: bad name";
+        "/"
+      end
+    else
       begin
         Buffer.clear b;
         Buffer.add_char b '/';

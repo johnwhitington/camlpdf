@@ -6,6 +6,7 @@ o Repair name/number trees with duplicate keys
 o Pdfpage.pagenumber_of_target works on GoTo actions
 o Allow optional shallow reading of destinations
 o Ensure that shallow destinations are transformed
+o Empty name now a warning not an error (written as /)
 
 2.8 (December 2024)
 
