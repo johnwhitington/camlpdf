@@ -35,7 +35,7 @@ let read_number_tree pdf tree =
       map (function (Pdf.Integer i, x) -> (string_of_int i, x) | _ -> raise Exit) r
     with
       Exit ->
-        Pdfe.log "Pdfmerge.read_number_tree: skipping malformed name tree\n";
+        Pdfe.log "Pdftree.read_number_tree: skipping malformed number tree\n";
         []
 
 let read_name_tree pdf tree =
@@ -44,7 +44,7 @@ let read_name_tree pdf tree =
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with
       Exit ->
-        Pdfe.log "Pdfmerge.read_name_tree: skipping malformed name tree\n";
+        Pdfe.log "Pdftree.read_name_tree: skipping malformed name tree\n";
         []
 
 let maxsize = 10
