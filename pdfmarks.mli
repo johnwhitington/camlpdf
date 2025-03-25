@@ -12,7 +12,9 @@ type t =
 (** Debug string from a bookmark. *)
 val string_of_bookmark : t -> string
 
-(** Read the bookmarks from a document. *)
+(** Read the bookmarks from a document. If [preserve_actions] is set, the
+    [target] preserves actions rather than extracting the resultant rectangle.
+    See discussion of [shallow] in [Pdfdest]. *)
 val read_bookmarks : preserve_actions:bool -> Pdf.t -> t list
 
 (** Remove the bookmarks from a document. *)

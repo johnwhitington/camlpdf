@@ -125,6 +125,8 @@ val always_add_whitespace : bool ref
 (** If set, comments will be written. *)
 val write_comments : bool ref
 
+(** The operation which begins an artifact in PDF/UA *)
 val begin_artifact : t
 
+(** The operation which ends an artifact in PDF/UA *)
 val end_artifact : t

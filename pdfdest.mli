@@ -21,7 +21,9 @@ type t =
   | FitBH of targetpage * float option
   | FitBV of targetpage * float option
 
-(** Read a destination given a PDF and destination object. *)
+(** Read a destination given a PDF and destination object. If [shallow] is
+    true, actions will be kept in PDF form, rather than followed to their
+    destinations.  *)
 val read_destination : ?shallow:bool -> Pdf.t -> Pdf.pdfobject -> t
 
 (** Write a destination to a [Pdf.pdfobject]. *)
