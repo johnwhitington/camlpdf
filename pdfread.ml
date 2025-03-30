@@ -1878,7 +1878,12 @@ let read_pdf revision upw opw opt i =
           if !error_on_malformed then raise e else
             begin
               Pdfe.log (Printf.sprintf "Because of error %s, will read as malformed.\n" (Printexc.to_string e));
-              try read_malformed_pdf upw opw i with e' ->
+              try
+                let r = read_malformed_pdf upw opw i in
+                (* As above, but this time it triggers checks for cyclic page trees etc. *)
+                ignore (!endpage r);
+                r
+              with e' ->
                 report_read_error i e e'
              end
   in

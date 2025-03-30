@@ -191,7 +191,8 @@ let pages_of_pagetree pdf =
     in
       find_pages pages pdf None None Rotate0
 
-let rec find_pages_quick pages pdf =
+let rec find_pages_quick count pages pdf =
+  match count with 10000 -> raise (Pdf.PDFError "cycle in page tree") | _ -> 
   match pages with Pdf.Null -> 0 | _ ->
   match Pdf.lookup_direct pdf "/Type" pages with
   | Some (Pdf.Name "/Pages") | None ->
@@ -209,7 +210,7 @@ let rec find_pages_quick pages pdf =
                | x -> raise (Pdf.PDFError "malformed kid\n"))
               kids
           in
-            sum (map (fun k -> find_pages_quick k pdf) kids)
+            sum (map (fun k -> find_pages_quick (count + 1) k pdf) kids)
       | _ -> raise (Pdf.PDFError "Malformed /Kids in page tree node")
       end
   | Some _ -> 1
@@ -222,7 +223,7 @@ let pages_of_pagetree_quick pdf =
     let pages =
       Pdf.lookup_fail "No or malformed /Pages" pdf "/Pages" document_catalog
     in
-      find_pages_quick pages pdf
+      find_pages_quick 0 pages pdf
 
 let endpage pdf =
   pages_of_pagetree_quick pdf
