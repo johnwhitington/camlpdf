@@ -1077,7 +1077,7 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
    it is padded to bytes at the end. (Why though? Check for our case.)
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K 0 with all other
-dictionary entries as default. i.e: *)
+dictionary entries as default. *)
 
 (* Return colour of run, and non-zero length of run (must make progress) *)
 let read_run maxcols i =
