@@ -1119,14 +1119,26 @@ let encode_ccitt columns stream =
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
-
-let encode_ccittg4 columns stream = stream
+let encode_ccittg4 columns stream =
+  let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
+  let o = Pdfio.make_write_bitstream () in
+    try
+      let cols_left = ref columns in
+        while true do
+          let iswhite, length = read_run !cols_left i in
+            ()
+        done;
+      mkbytes 0
+    with
+      End_of_file ->
+        Pdfio.align_write o;
+        bytes_of_write_bitstream o
 
 (* Tester. *)
 (*let _ =
   Printf.printf "Running test_encode_ccitt\n";
   let data = contents_of_file "/Users/john/Desktop/CCITT/out.dat" in
-  let g4 = encode_ccitt 2592 (Pdfio.bytes_of_string data) in
+  let g4 = encode_ccittg4 2592 (Pdfio.bytes_of_string data) in
   let fh = open_out_bin "/Users/john/Desktop/CCITT/g4.dat" in
     output_string fh (Pdfio.string_of_bytes g4);
     close_out fh*)
