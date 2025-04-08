@@ -1099,10 +1099,10 @@ let encode_ccitt columns stream =
         while true do
           let iswhite, length = read_run !cols_left i in
             let bits = (if iswhite then write_white_code else write_black_code) length in
+              if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_white_code 0);
               iter (Pdfio.putbit o) bits;
-              if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_black_code 0);
               cols_left -= length;
-              if !cols_left = 0 then cols_left := columns;
+              if !cols_left = 0 then (Pdfio.align i; cols_left := columns);
         done;
         mkbytes 0
     with
