@@ -2,7 +2,6 @@
 
 o Add cycle detection in find_pages_quick for malformed files
 o CCITT Group 3 and Group 4 encoders
-o Faster CCITT decoding
 
 2.8.1 (April 2025)
 
