@@ -1122,27 +1122,25 @@ dictionary entries as default. *)
 let encode_ccittg4 columns stream =
   let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
   let o = Pdfio.make_write_bitstream () in
+  let white, black = false, true in
+  let rl = Array.make columns white in
+  let cl = Array.make columns white in
     try
-      let cols_left = ref columns in
-        while true do
-          let iswhite, length = read_run !cols_left i in
-            ()
-        done;
+      while true do
+        (* Move current line to reference line *)
+        Array.blit cl 0 rl 0 columns;
+        (* Read new current line from input *)
+        for x = 0 to columns - 1 do
+          cl.(x) <- Pdfio.getbit i 
+        done
+        (* Decide what to output *)
+      done;
       mkbytes 0
     with
       End_of_file ->
         Pdfio.align_write o;
         bytes_of_write_bitstream o
 
-(* Tester. *)
-(*let _ =
-  Printf.printf "Running test_encode_ccitt\n";
-  let data = contents_of_file "/Users/john/Desktop/CCITT/out.dat" in
-  let g4 = encode_ccittg4 2592 (Pdfio.bytes_of_string data) in
-  let fh = open_out_bin "/Users/john/Desktop/CCITT/g4.dat" in
-    output_string fh (Pdfio.string_of_bytes g4);
-    close_out fh*)
- 
 (* PNG and TIFF Predictors *)
 
 (* Get the value at index i from an int array a, giving zero if the index is
