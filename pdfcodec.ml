@@ -1641,6 +1641,8 @@ type encoding =
   | ASCII85
   | RunLength
   | Flate
+  | CCITT of int
+  | CCITTG4 of int
 
 type predictor =
     TIFF2
@@ -1657,6 +1659,7 @@ let name_of_encoding = function
   | ASCII85 -> "/ASCII85Decode"
   | RunLength -> "/RunLengthDecode"
   | Flate -> "/FlateDecode"
+  | CCITT _ | CCITTG4 _ -> "/CCITTFaxDecode"
 
 (* Add an encoding to the dictionary d. *)
 let add_encoding length pdf encoding d =
@@ -1679,6 +1682,8 @@ let encoder_of_encoding = function
   | ASCII85 -> encode_ASCII85
   | RunLength -> encode_runlength
   | Flate -> encode_flate
+  | CCITT cols -> encode_ccitt cols
+  | CCITTG4 cols -> encode_ccittg4 cols
 
 (* For now, just for xref streams *)
 let process_prediction_data predictor predictor_columns d =

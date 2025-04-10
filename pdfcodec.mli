@@ -15,6 +15,8 @@ type encoding =
   | ASCII85
   | RunLength
   | Flate
+  | CCITT of int
+  | CCITTG4 of int
 
 (** Predictors. *)
 type predictor =
