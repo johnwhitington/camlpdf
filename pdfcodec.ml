@@ -1130,10 +1130,47 @@ let encode_ccittg4 columns stream =
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
         (* Read new current line from input *)
-        for x = 0 to columns - 1 do
-          cl.(x) <- Pdfio.getbit i 
+        for x = 0 to columns - 1 do cl.(x) <- Pdfio.getbit i done;
+        let a0 = ref 0 in
+        let a1 = ref 0 in
+        let a2 = ref 0 in
+        let b1 = ref 0 in
+        let b2 = ref 0 in
+        let find_different pos thisline readline =
+          0
+        in
+        let read_spans () =
+          (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
+          a1 := find_different !a0 cl cl;
+          (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
+          a2 := find_different !a1 cl cl;
+          (* Find b1, the first position (in reference line) after a0 (in coding line) which has a different colour from a0 (in coding line) *)
+          b1 := find_different !a0 rl cl;
+          (* Find b2, the first position (in reference line) after b1 (in reference line) which has a different colour from b1 (in reference line) *)
+          b2 := find_different !b1 rl rl
+        in
+        let print_spans () =
+          Printf.printf "a0 %i a1 %i a2 %i b1 %i b2 %i\n" !a0 !a1 !a2 !b1 !b2
+        in
+        while !a0 <= columns - 1 do
+          read_spans ();
+          print_spans ();
+          if !b2 < !a1 then
+            begin
+              Printf.printf "Pass mode coding\n";
+              a0 := !b2
+            end
+          else if abs (!b1 - !a1) <= 3 then
+            begin
+              Printf.printf "Pass mode coding\n";
+              a0 := !a1
+            end
+          else
+            begin
+              Printf.printf "Pass mode coding\n";
+              a0 := !a2
+            end
         done
-        (* Decide what to output *)
       done;
       mkbytes 0
     with
