@@ -2,7 +2,7 @@
 
 (**
 {b Currently supported:}
-- Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, LZWDecode, RunLengthDecode, CCITTFaxDecode.
+- Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode, LZWDecode.
 - Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode.
 - Decode predictors: PNG (all), TIFF (8-bit only).
 *)

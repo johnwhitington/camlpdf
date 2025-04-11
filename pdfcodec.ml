@@ -1137,7 +1137,13 @@ let encode_ccittg4 columns stream =
         let b1 = ref 0 in
         let b2 = ref 0 in
         let find_different pos thisline readline =
-          0
+          (* Scan in thisline from pos+1 to possibly the end (or end+1?). *)
+          let pos = ref (pos + 1) in
+            try
+              let colour = readline.(!pos - 1) in 
+                while thisline.(!pos) = colour do pos += 1 done; !pos
+            with
+              Invalid_argument _ -> !pos
         in
         let read_spans () =
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
@@ -1158,16 +1164,30 @@ let encode_ccittg4 columns stream =
           if !b2 < !a1 then
             begin
               Printf.printf "Pass mode coding\n";
+              iter (Pdfio.putbit o) [0; 0; 0; 1];
               a0 := !b2
             end
           else if abs (!b1 - !a1) <= 3 then
             begin
-              Printf.printf "Pass mode coding\n";
+              Printf.printf "Vertical mode coding\n";
+              begin match !b1 - !a1 with
+              | 0 -> iter (Pdfio.putbit o) [1]
+              | -1 -> iter (Pdfio.putbit o) [0; 1; 1]
+              | -2 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 1; 1]
+              | -3 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 0; 1; 1]
+              | 1 -> iter (Pdfio.putbit o) [0; 1; 0]
+              | 2 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 1; 0]
+              | 3 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 0; 1; 0]
+              | _ -> raise (Pdf.PDFError "Bad vertical mode in CCITT G4 encoding")
+              end;
               a0 := !a1
             end
           else
             begin
-              Printf.printf "Pass mode coding\n";
+              Printf.printf "Horizontal mode coding\n";
+              iter (Pdfio.putbit o) [0; 0; 1];
+              begin try iter (Pdfio.putbit o) (if cl.(!a0) then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
+              begin try iter (Pdfio.putbit o) (if cl.(!a1) then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
               a0 := !a2
             end
         done
