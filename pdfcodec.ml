@@ -1122,11 +1122,12 @@ dictionary entries as default. *)
 let encode_ccittg4 columns stream =
   let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
   let o = Pdfio.make_write_bitstream () in
-  let white, black = false, true in
+  let white, black = true, false in
   let rl = Array.make columns white in
   let cl = Array.make columns white in
     try
       while true do
+        Printf.printf "------------------------\n";
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
         (* Read new current line from input *)
@@ -1186,8 +1187,10 @@ let encode_ccittg4 columns stream =
             begin
               Printf.printf "Horizontal mode coding\n";
               iter (Pdfio.putbit o) [0; 0; 1];
-              begin try iter (Pdfio.putbit o) (if cl.(!a0) then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
-              begin try iter (Pdfio.putbit o) (if cl.(!a1) then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
+              begin try iter (Pdfio.putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
+              begin try iter (Pdfio.putbit o) (if cl.(!a1) = black then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
+              begin try Printf.printf "%s %i, " (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
+              begin try Printf.printf "%s %i\n" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
               a0 := !a2
             end
         done
