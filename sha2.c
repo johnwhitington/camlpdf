@@ -1,9 +1,7 @@
 /*
  * FIPS 180-2 SHA-224/256/384/512 implementation
- * Last update: 02/02/2007
- * Issue date:  04/30/2005
  *
- * Copyright (C) 2005, 2007 Olivier Gay <olivier.gay@a3.epfl.ch>
+ * Copyright (C) 2005-2023 Olivier Gay <olivier.gay@a3.epfl.ch>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,8 +38,8 @@
 #include "sha2.h"
 
 #define SHFR(x, n)    (x >> n)
-#define ROTR(x, n)   ((x >> n) | (x << ((sizeof(x) << 3) - n)))
-#define ROTL(x, n)   ((x << n) | (x >> ((sizeof(x) << 3) - n)))
+#define ROTR(x, n)   ((x >> n) | (x << ((sizeof (x) << 3) - n)))
+#define ROTL(x, n)   ((x << n) | (x >> ((sizeof (x) << 3) - n)))
 #define CH(x, y, z)  ((x & y) ^ (~x & z))
 #define MAJ(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 
@@ -57,42 +55,42 @@
 
 #define UNPACK32(x, str)                      \
 {                                             \
-    *((str) + 3) = (unsigned char) ((x)      );       \
-    *((str) + 2) = (unsigned char) ((x) >>  8);       \
-    *((str) + 1) = (unsigned char) ((x) >> 16);       \
-    *((str) + 0) = (unsigned char) ((x) >> 24);       \
+    *((str) + 3) = (uint8) ((x)      );       \
+    *((str) + 2) = (uint8) ((x) >>  8);       \
+    *((str) + 1) = (uint8) ((x) >> 16);       \
+    *((str) + 0) = (uint8) ((x) >> 24);       \
 }
 
 #define PACK32(str, x)                        \
 {                                             \
-    *(x) =   ((unsigned int) *((str) + 3)      )    \
-           | ((unsigned int) *((str) + 2) <<  8)    \
-           | ((unsigned int) *((str) + 1) << 16)    \
-           | ((unsigned int) *((str) + 0) << 24);   \
+    *(x) =   ((uint32) *((str) + 3)      )    \
+           | ((uint32) *((str) + 2) <<  8)    \
+           | ((uint32) *((str) + 1) << 16)    \
+           | ((uint32) *((str) + 0) << 24);   \
 }
 
 #define UNPACK64(x, str)                      \
 {                                             \
-    *((str) + 7) = (unsigned char) ((x)      );       \
-    *((str) + 6) = (unsigned char) ((x) >>  8);       \
-    *((str) + 5) = (unsigned char) ((x) >> 16);       \
-    *((str) + 4) = (unsigned char) ((x) >> 24);       \
-    *((str) + 3) = (unsigned char) ((x) >> 32);       \
-    *((str) + 2) = (unsigned char) ((x) >> 40);       \
-    *((str) + 1) = (unsigned char) ((x) >> 48);       \
-    *((str) + 0) = (unsigned char) ((x) >> 56);       \
+    *((str) + 7) = (uint8) ((x)      );       \
+    *((str) + 6) = (uint8) ((x) >>  8);       \
+    *((str) + 5) = (uint8) ((x) >> 16);       \
+    *((str) + 4) = (uint8) ((x) >> 24);       \
+    *((str) + 3) = (uint8) ((x) >> 32);       \
+    *((str) + 2) = (uint8) ((x) >> 40);       \
+    *((str) + 1) = (uint8) ((x) >> 48);       \
+    *((str) + 0) = (uint8) ((x) >> 56);       \
 }
 
 #define PACK64(str, x)                        \
 {                                             \
-    *(x) =   ((unsigned long long) *((str) + 7)      )    \
-           | ((unsigned long long) *((str) + 6) <<  8)    \
-           | ((unsigned long long) *((str) + 5) << 16)    \
-           | ((unsigned long long) *((str) + 4) << 24)    \
-           | ((unsigned long long) *((str) + 3) << 32)    \
-           | ((unsigned long long) *((str) + 2) << 40)    \
-           | ((unsigned long long) *((str) + 1) << 48)    \
-           | ((unsigned long long) *((str) + 0) << 56);   \
+    *(x) =   ((uint64) *((str) + 7)      )    \
+           | ((uint64) *((str) + 6) <<  8)    \
+           | ((uint64) *((str) + 5) << 16)    \
+           | ((uint64) *((str) + 4) << 24)    \
+           | ((uint64) *((str) + 3) << 32)    \
+           | ((uint64) *((str) + 2) << 40)    \
+           | ((uint64) *((str) + 1) << 48)    \
+           | ((uint64) *((str) + 0) << 56);   \
 }
 
 /* Macros used for loops unrolling */
@@ -127,27 +125,27 @@
     wv[h] = t1 + t2;                                        \
 }
 
-unsigned int sha224_h0[8] =
+static const uint32 sha224_h0[8] =
             {0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939,
              0xffc00b31, 0x68581511, 0x64f98fa7, 0xbefa4fa4};
 
-unsigned int sha256_h0[8] =
+static const uint32 sha256_h0[8] =
             {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
              0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
-unsigned long long sha384_h0[8] =
+static const uint64 sha384_h0[8] =
             {0xcbbb9d5dc1059ed8ULL, 0x629a292a367cd507ULL,
              0x9159015a3070dd17ULL, 0x152fecd8f70e5939ULL,
              0x67332667ffc00b31ULL, 0x8eb44a8768581511ULL,
              0xdb0c2e0d64f98fa7ULL, 0x47b5481dbefa4fa4ULL};
 
-unsigned long long sha512_h0[8] =
+static const uint64 sha512_h0[8] =
             {0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL,
              0x3c6ef372fe94f82bULL, 0xa54ff53a5f1d36f1ULL,
              0x510e527fade682d1ULL, 0x9b05688c2b3e6c1fULL,
              0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL};
 
-unsigned int sha256_k[64] =
+static const uint32 sha256_k[64] =
             {0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
              0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
              0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
@@ -165,7 +163,7 @@ unsigned int sha256_k[64] =
              0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
              0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-unsigned long long sha512_k[80] =
+static const uint64 sha512_k[80] =
             {0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL,
              0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
              0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL,
@@ -207,22 +205,22 @@ unsigned long long sha512_k[80] =
              0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL,
              0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL};
 
-/* SHA-256 functions */
+/* SHA-2 internal function */
 
-void camlpdf_sha256_transf(sha256_ctx *ctx, const unsigned char *message,
-                   unsigned int block_nb)
+static void camlpdf_sha256_transf(sha256_ctx *ctx, const uint8 *message,
+    uint64 block_nb)
 {
-    unsigned int w[64];
-    unsigned int wv[8];
-    unsigned int t1, t2;
-    const unsigned char *sub_block;
-    int i;
+    uint32 w[64];
+    uint32 wv[8];
+    uint32 t1, t2;
+    const uint8 *sub_block;
+    uint64 i;
 
 #ifndef UNROLL_LOOPS
     int j;
 #endif
 
-    for (i = 0; i < (int) block_nb; i++) {
+    for (i = 0; i < block_nb; i++) {
         sub_block = message + (i << 6);
 
 #ifndef UNROLL_LOOPS
@@ -324,117 +322,17 @@ void camlpdf_sha256_transf(sha256_ctx *ctx, const unsigned char *message,
     }
 }
 
-void camlpdf_sha256(const unsigned char *message, unsigned int len, unsigned char *digest)
+static void sha512_transf(sha512_ctx *ctx, const uint8 *message,
+    uint64 block_nb)
 {
-    sha256_ctx ctx;
+    uint64 w[80];
+    uint64 wv[8];
+    uint64 t1, t2;
+    const uint8 *sub_block;
+    uint64 i;
+    int j;
 
-    camlpdf_sha256_init(&ctx);
-    camlpdf_sha256_update(&ctx, message, len);
-    camlpdf_sha256_final(&ctx, digest);
-}
-
-void camlpdf_sha256_init(sha256_ctx *ctx)
-{
-#ifndef UNROLL_LOOPS
-    int i;
-    for (i = 0; i < 8; i++) {
-        ctx->h[i] = sha256_h0[i];
-    }
-#else
-    ctx->h[0] = sha256_h0[0]; ctx->h[1] = sha256_h0[1];
-    ctx->h[2] = sha256_h0[2]; ctx->h[3] = sha256_h0[3];
-    ctx->h[4] = sha256_h0[4]; ctx->h[5] = sha256_h0[5];
-    ctx->h[6] = sha256_h0[6]; ctx->h[7] = sha256_h0[7];
-#endif /* !UNROLL_LOOPS */
-
-    ctx->len = 0;
-    ctx->tot_len = 0;
-}
-
-void camlpdf_sha256_update(sha256_ctx *ctx, const unsigned char *message,
-                   unsigned int len)
-{
-    unsigned int block_nb;
-    unsigned int new_len, rem_len, tmp_len;
-    const unsigned char *shifted_message;
-
-    tmp_len = SHA256_BLOCK_SIZE - ctx->len;
-    rem_len = len < tmp_len ? len : tmp_len;
-
-    memcpy(&ctx->block[ctx->len], message, rem_len);
-
-    if (ctx->len + len < SHA256_BLOCK_SIZE) {
-        ctx->len += len;
-        return;
-    }
-
-    new_len = len - rem_len;
-    block_nb = new_len / SHA256_BLOCK_SIZE;
-
-    shifted_message = message + rem_len;
-
-    camlpdf_sha256_transf(ctx, ctx->block, 1);
-    camlpdf_sha256_transf(ctx, shifted_message, block_nb);
-
-    rem_len = new_len % SHA256_BLOCK_SIZE;
-
-    memcpy(ctx->block, &shifted_message[block_nb << 6],
-           rem_len);
-
-    ctx->len = rem_len;
-    ctx->tot_len += (block_nb + 1) << 6;
-}
-
-void camlpdf_sha256_final(sha256_ctx *ctx, unsigned char *digest)
-{
-    unsigned int block_nb;
-    unsigned int pm_len;
-    unsigned int len_b;
-
-#ifndef UNROLL_LOOPS
-    int i;
-#endif
-
-    block_nb = (1 + ((SHA256_BLOCK_SIZE - 9)
-                     < (ctx->len % SHA256_BLOCK_SIZE)));
-
-    len_b = (ctx->tot_len + ctx->len) << 3;
-    pm_len = block_nb << 6;
-
-    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
-    ctx->block[ctx->len] = 0x80;
-    UNPACK32(len_b, ctx->block + pm_len - 4);
-
-    camlpdf_sha256_transf(ctx, ctx->block, block_nb);
-
-#ifndef UNROLL_LOOPS
-    for (i = 0 ; i < 8; i++) {
-        UNPACK32(ctx->h[i], &digest[i << 2]);
-    }
-#else
-   UNPACK32(ctx->h[0], &digest[ 0]);
-   UNPACK32(ctx->h[1], &digest[ 4]);
-   UNPACK32(ctx->h[2], &digest[ 8]);
-   UNPACK32(ctx->h[3], &digest[12]);
-   UNPACK32(ctx->h[4], &digest[16]);
-   UNPACK32(ctx->h[5], &digest[20]);
-   UNPACK32(ctx->h[6], &digest[24]);
-   UNPACK32(ctx->h[7], &digest[28]);
-#endif /* !UNROLL_LOOPS */
-}
-
-/* SHA-512 functions */
-
-void camlpdf_sha512_transf(sha512_ctx *ctx, const unsigned char *message,
-                   unsigned int block_nb)
-{
-    unsigned long long w[80];
-    unsigned long long wv[8];
-    unsigned long long t1, t2;
-    const unsigned char *sub_block;
-    int i, j;
-
-    for (i = 0; i < (int) block_nb; i++) {
+    for (i = 0; i < block_nb; i++) {
         sub_block = message + (i << 7);
 
 #ifndef UNROLL_LOOPS
@@ -520,210 +418,9 @@ void camlpdf_sha512_transf(sha512_ctx *ctx, const unsigned char *message,
     }
 }
 
-void camlpdf_sha512(const unsigned char *message, unsigned int len,
-            unsigned char *digest)
-{
-    sha512_ctx ctx;
-
-    camlpdf_sha512_init(&ctx);
-    camlpdf_sha512_update(&ctx, message, len);
-    camlpdf_sha512_final(&ctx, digest);
-}
-
-void camlpdf_sha512_init(sha512_ctx *ctx)
-{
-#ifndef UNROLL_LOOPS
-    int i;
-    for (i = 0; i < 8; i++) {
-        ctx->h[i] = sha512_h0[i];
-    }
-#else
-    ctx->h[0] = sha512_h0[0]; ctx->h[1] = sha512_h0[1];
-    ctx->h[2] = sha512_h0[2]; ctx->h[3] = sha512_h0[3];
-    ctx->h[4] = sha512_h0[4]; ctx->h[5] = sha512_h0[5];
-    ctx->h[6] = sha512_h0[6]; ctx->h[7] = sha512_h0[7];
-#endif /* !UNROLL_LOOPS */
-
-    ctx->len = 0;
-    ctx->tot_len = 0;
-}
-
-void camlpdf_sha512_update(sha512_ctx *ctx, const unsigned char *message,
-                   unsigned int len)
-{
-    unsigned int block_nb;
-    unsigned int new_len, rem_len, tmp_len;
-    const unsigned char *shifted_message;
-
-    tmp_len = SHA512_BLOCK_SIZE - ctx->len;
-    rem_len = len < tmp_len ? len : tmp_len;
-
-    memcpy(&ctx->block[ctx->len], message, rem_len);
-
-    if (ctx->len + len < SHA512_BLOCK_SIZE) {
-        ctx->len += len;
-        return;
-    }
-
-    new_len = len - rem_len;
-    block_nb = new_len / SHA512_BLOCK_SIZE;
-
-    shifted_message = message + rem_len;
-
-    camlpdf_sha512_transf(ctx, ctx->block, 1);
-    camlpdf_sha512_transf(ctx, shifted_message, block_nb);
-
-    rem_len = new_len % SHA512_BLOCK_SIZE;
-
-    memcpy(ctx->block, &shifted_message[block_nb << 7],
-           rem_len);
-
-    ctx->len = rem_len;
-    ctx->tot_len += (block_nb + 1) << 7;
-}
-
-void camlpdf_sha512_final(sha512_ctx *ctx, unsigned char *digest)
-{
-    unsigned int block_nb;
-    unsigned int pm_len;
-    unsigned int len_b;
-
-#ifndef UNROLL_LOOPS
-    int i;
-#endif
-
-    block_nb = 1 + ((SHA512_BLOCK_SIZE - 17)
-                     < (ctx->len % SHA512_BLOCK_SIZE));
-
-    len_b = (ctx->tot_len + ctx->len) << 3;
-    pm_len = block_nb << 7;
-
-    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
-    ctx->block[ctx->len] = 0x80;
-    UNPACK32(len_b, ctx->block + pm_len - 4);
-
-    camlpdf_sha512_transf(ctx, ctx->block, block_nb);
-
-#ifndef UNROLL_LOOPS
-    for (i = 0 ; i < 8; i++) {
-        UNPACK64(ctx->h[i], &digest[i << 3]);
-    }
-#else
-    UNPACK64(ctx->h[0], &digest[ 0]);
-    UNPACK64(ctx->h[1], &digest[ 8]);
-    UNPACK64(ctx->h[2], &digest[16]);
-    UNPACK64(ctx->h[3], &digest[24]);
-    UNPACK64(ctx->h[4], &digest[32]);
-    UNPACK64(ctx->h[5], &digest[40]);
-    UNPACK64(ctx->h[6], &digest[48]);
-    UNPACK64(ctx->h[7], &digest[56]);
-#endif /* !UNROLL_LOOPS */
-}
-
-/* SHA-384 functions */
-
-void camlpdf_sha384(const unsigned char *message, unsigned int len,
-            unsigned char *digest)
-{
-    sha384_ctx ctx;
-
-    camlpdf_sha384_init(&ctx);
-    camlpdf_sha384_update(&ctx, message, len);
-    camlpdf_sha384_final(&ctx, digest);
-}
-
-void camlpdf_sha384_init(sha384_ctx *ctx)
-{
-#ifndef UNROLL_LOOPS
-    int i;
-    for (i = 0; i < 8; i++) {
-        ctx->h[i] = sha384_h0[i];
-    }
-#else
-    ctx->h[0] = sha384_h0[0]; ctx->h[1] = sha384_h0[1];
-    ctx->h[2] = sha384_h0[2]; ctx->h[3] = sha384_h0[3];
-    ctx->h[4] = sha384_h0[4]; ctx->h[5] = sha384_h0[5];
-    ctx->h[6] = sha384_h0[6]; ctx->h[7] = sha384_h0[7];
-#endif /* !UNROLL_LOOPS */
-
-    ctx->len = 0;
-    ctx->tot_len = 0;
-}
-
-void camlpdf_sha384_update(sha384_ctx *ctx, const unsigned char *message,
-                   unsigned int len)
-{
-    unsigned int block_nb;
-    unsigned int new_len, rem_len, tmp_len;
-    const unsigned char *shifted_message;
-
-    tmp_len = SHA384_BLOCK_SIZE - ctx->len;
-    rem_len = len < tmp_len ? len : tmp_len;
-
-    memcpy(&ctx->block[ctx->len], message, rem_len);
-
-    if (ctx->len + len < SHA384_BLOCK_SIZE) {
-        ctx->len += len;
-        return;
-    }
-
-    new_len = len - rem_len;
-    block_nb = new_len / SHA384_BLOCK_SIZE;
-
-    shifted_message = message + rem_len;
-
-    camlpdf_sha512_transf(ctx, ctx->block, 1);
-    camlpdf_sha512_transf(ctx, shifted_message, block_nb);
-
-    rem_len = new_len % SHA384_BLOCK_SIZE;
-
-    memcpy(ctx->block, &shifted_message[block_nb << 7],
-           rem_len);
-
-    ctx->len = rem_len;
-    ctx->tot_len += (block_nb + 1) << 7;
-}
-
-void camlpdf_sha384_final(sha384_ctx *ctx, unsigned char *digest)
-{
-    unsigned int block_nb;
-    unsigned int pm_len;
-    unsigned int len_b;
-
-#ifndef UNROLL_LOOPS
-    int i;
-#endif
-
-    block_nb = (1 + ((SHA384_BLOCK_SIZE - 17)
-                     < (ctx->len % SHA384_BLOCK_SIZE)));
-
-    len_b = (ctx->tot_len + ctx->len) << 3;
-    pm_len = block_nb << 7;
-
-    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
-    ctx->block[ctx->len] = 0x80;
-    UNPACK32(len_b, ctx->block + pm_len - 4);
-
-    camlpdf_sha512_transf(ctx, ctx->block, block_nb);
-
-#ifndef UNROLL_LOOPS
-    for (i = 0 ; i < 6; i++) {
-        UNPACK64(ctx->h[i], &digest[i << 3]);
-    }
-#else
-    UNPACK64(ctx->h[0], &digest[ 0]);
-    UNPACK64(ctx->h[1], &digest[ 8]);
-    UNPACK64(ctx->h[2], &digest[16]);
-    UNPACK64(ctx->h[3], &digest[24]);
-    UNPACK64(ctx->h[4], &digest[32]);
-    UNPACK64(ctx->h[5], &digest[40]);
-#endif /* !UNROLL_LOOPS */
-}
-
 /* SHA-224 functions */
 
-void camlpdf_sha224(const unsigned char *message, unsigned int len,
-            unsigned char *digest)
+void camlpdf_sha224(const uint8 *message, uint64 len, uint8 *digest)
 {
     sha224_ctx ctx;
 
@@ -750,12 +447,11 @@ void camlpdf_sha224_init(sha224_ctx *ctx)
     ctx->tot_len = 0;
 }
 
-void camlpdf_sha224_update(sha224_ctx *ctx, const unsigned char *message,
-                   unsigned int len)
+void camlpdf_sha224_update(sha224_ctx *ctx, const uint8 *message, uint64 len)
 {
-    unsigned int block_nb;
-    unsigned int new_len, rem_len, tmp_len;
-    const unsigned char *shifted_message;
+    uint64 block_nb;
+    uint64 new_len, rem_len, tmp_len;
+    const uint8 *shifted_message;
 
     tmp_len = SHA224_BLOCK_SIZE - ctx->len;
     rem_len = len < tmp_len ? len : tmp_len;
@@ -777,18 +473,18 @@ void camlpdf_sha224_update(sha224_ctx *ctx, const unsigned char *message,
 
     rem_len = new_len % SHA224_BLOCK_SIZE;
 
-    memcpy(ctx->block, &shifted_message[block_nb << 6],
-           rem_len);
+    memcpy(ctx->block, &shifted_message[block_nb << 6], rem_len);
 
     ctx->len = rem_len;
     ctx->tot_len += (block_nb + 1) << 6;
 }
 
-void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest)
+void camlpdf_sha224_final(sha224_ctx *ctx, uint8 *digest)
 {
-    unsigned int block_nb;
-    unsigned int pm_len;
-    unsigned int len_b;
+    uint64 block_nb;
+    uint64 pm_len;
+    uint64 len_b;
+    uint64 tot_len;
 
 #ifndef UNROLL_LOOPS
     int i;
@@ -797,12 +493,15 @@ void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest)
     block_nb = (1 + ((SHA224_BLOCK_SIZE - 9)
                      < (ctx->len % SHA224_BLOCK_SIZE)));
 
-    len_b = (ctx->tot_len + ctx->len) << 3;
+    tot_len = ctx->tot_len + ctx->len;
+    ctx->tot_len = tot_len;
+
+    len_b = tot_len << 3;
     pm_len = block_nb << 6;
 
     memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
     ctx->block[ctx->len] = 0x80;
-    UNPACK32(len_b, ctx->block + pm_len - 4);
+    UNPACK64(len_b, ctx->block + pm_len - 8);
 
     camlpdf_sha256_transf(ctx, ctx->block, block_nb);
 
@@ -821,6 +520,313 @@ void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest)
 #endif /* !UNROLL_LOOPS */
 }
 
+/* SHA-256 functions */
+
+void camlpdf_sha256(const uint8 *message, uint64 len, uint8 *digest)
+{
+    sha256_ctx ctx;
+
+    camlpdf_sha256_init(&ctx);
+    camlpdf_sha256_update(&ctx, message, len);
+    camlpdf_sha256_final(&ctx, digest);
+}
+
+void camlpdf_sha256_init(sha256_ctx *ctx)
+{
+#ifndef UNROLL_LOOPS
+    int i;
+    for (i = 0; i < 8; i++) {
+        ctx->h[i] = sha256_h0[i];
+    }
+#else
+    ctx->h[0] = sha256_h0[0]; ctx->h[1] = sha256_h0[1];
+    ctx->h[2] = sha256_h0[2]; ctx->h[3] = sha256_h0[3];
+    ctx->h[4] = sha256_h0[4]; ctx->h[5] = sha256_h0[5];
+    ctx->h[6] = sha256_h0[6]; ctx->h[7] = sha256_h0[7];
+#endif /* !UNROLL_LOOPS */
+
+    ctx->len = 0;
+    ctx->tot_len = 0;
+}
+
+void camlpdf_sha256_update(sha256_ctx *ctx, const uint8 *message, uint64 len)
+{
+    uint64 block_nb;
+    uint64 new_len, rem_len, tmp_len;
+    const uint8 *shifted_message;
+
+    tmp_len = SHA256_BLOCK_SIZE - ctx->len;
+    rem_len = len < tmp_len ? len : tmp_len;
+
+    memcpy(&ctx->block[ctx->len], message, rem_len);
+
+    if (ctx->len + len < SHA256_BLOCK_SIZE) {
+        ctx->len += len;
+        return;
+    }
+
+    new_len = len - rem_len;
+    block_nb = new_len / SHA256_BLOCK_SIZE;
+
+    shifted_message = message + rem_len;
+
+    camlpdf_sha256_transf(ctx, ctx->block, 1);
+    camlpdf_sha256_transf(ctx, shifted_message, block_nb);
+
+    rem_len = new_len % SHA256_BLOCK_SIZE;
+
+    memcpy(ctx->block, &shifted_message[block_nb << 6], rem_len);
+
+    ctx->len = rem_len;
+    ctx->tot_len += (block_nb + 1) << 6;
+}
+
+void camlpdf_sha256_final(sha256_ctx *ctx, uint8 *digest)
+{
+    uint64 block_nb;
+    uint64 pm_len;
+    uint64 len_b;
+    uint64 tot_len;
+
+#ifndef UNROLL_LOOPS
+    int i;
+#endif
+
+    block_nb = (1 + ((SHA256_BLOCK_SIZE - 9)
+                     < (ctx->len % SHA256_BLOCK_SIZE)));
+
+    tot_len = ctx->tot_len + ctx->len;
+    ctx->tot_len = tot_len;
+
+    len_b = tot_len << 3;
+    pm_len = block_nb << 6;
+
+    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
+    ctx->block[ctx->len] = 0x80;
+    UNPACK64(len_b, ctx->block + pm_len - 8);
+
+    camlpdf_sha256_transf(ctx, ctx->block, block_nb);
+
+#ifndef UNROLL_LOOPS
+    for (i = 0 ; i < 8; i++) {
+        UNPACK32(ctx->h[i], &digest[i << 2]);
+    }
+#else
+   UNPACK32(ctx->h[0], &digest[ 0]);
+   UNPACK32(ctx->h[1], &digest[ 4]);
+   UNPACK32(ctx->h[2], &digest[ 8]);
+   UNPACK32(ctx->h[3], &digest[12]);
+   UNPACK32(ctx->h[4], &digest[16]);
+   UNPACK32(ctx->h[5], &digest[20]);
+   UNPACK32(ctx->h[6], &digest[24]);
+   UNPACK32(ctx->h[7], &digest[28]);
+#endif /* !UNROLL_LOOPS */
+}
+
+/* SHA-384 functions */
+
+void camlpdf_sha384(const uint8 *message, uint64 len, uint8 *digest)
+{
+    sha384_ctx ctx;
+
+    camlpdf_sha384_init(&ctx);
+    camlpdf_sha384_update(&ctx, message, len);
+    camlpdf_sha384_final(&ctx, digest);
+}
+
+void camlpdf_sha384_init(sha384_ctx *ctx)
+{
+#ifndef UNROLL_LOOPS
+    int i;
+    for (i = 0; i < 8; i++) {
+        ctx->h[i] = sha384_h0[i];
+    }
+#else
+    ctx->h[0] = sha384_h0[0]; ctx->h[1] = sha384_h0[1];
+    ctx->h[2] = sha384_h0[2]; ctx->h[3] = sha384_h0[3];
+    ctx->h[4] = sha384_h0[4]; ctx->h[5] = sha384_h0[5];
+    ctx->h[6] = sha384_h0[6]; ctx->h[7] = sha384_h0[7];
+#endif /* !UNROLL_LOOPS */
+
+    ctx->len = 0;
+    ctx->tot_len = 0;
+}
+
+void camlpdf_sha384_update(sha384_ctx *ctx, const uint8 *message, uint64 len)
+{
+    uint64 block_nb;
+    uint64 new_len, rem_len, tmp_len;
+    const uint8 *shifted_message;
+
+    tmp_len = SHA384_BLOCK_SIZE - ctx->len;
+    rem_len = len < tmp_len ? len : tmp_len;
+
+    memcpy(&ctx->block[ctx->len], message, rem_len);
+
+    if (ctx->len + len < SHA384_BLOCK_SIZE) {
+        ctx->len += len;
+        return;
+    }
+
+    new_len = len - rem_len;
+    block_nb = new_len / SHA384_BLOCK_SIZE;
+
+    shifted_message = message + rem_len;
+
+    sha512_transf(ctx, ctx->block, 1);
+    sha512_transf(ctx, shifted_message, block_nb);
+
+    rem_len = new_len % SHA384_BLOCK_SIZE;
+
+    memcpy(ctx->block, &shifted_message[block_nb << 7], rem_len);
+
+    ctx->len = rem_len;
+    ctx->tot_len += (block_nb + 1) << 7;
+}
+
+void camlpdf_sha384_final(sha384_ctx *ctx, uint8 *digest)
+{
+    uint64 block_nb;
+    uint64 pm_len;
+    uint64 len_b;
+    uint64 tot_len;
+
+#ifndef UNROLL_LOOPS
+    int i;
+#endif
+
+    block_nb = (1 + ((SHA384_BLOCK_SIZE - 17)
+                     < (ctx->len % SHA384_BLOCK_SIZE)));
+
+    tot_len = ctx->tot_len + ctx->len;
+    ctx->tot_len = tot_len;
+
+    len_b = tot_len << 3;
+    pm_len = block_nb << 7;
+
+    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
+    ctx->block[ctx->len] = 0x80;
+    UNPACK64(len_b, ctx->block + pm_len - 8);
+
+    sha512_transf(ctx, ctx->block, block_nb);
+
+#ifndef UNROLL_LOOPS
+    for (i = 0 ; i < 6; i++) {
+        UNPACK64(ctx->h[i], &digest[i << 3]);
+    }
+#else
+    UNPACK64(ctx->h[0], &digest[ 0]);
+    UNPACK64(ctx->h[1], &digest[ 8]);
+    UNPACK64(ctx->h[2], &digest[16]);
+    UNPACK64(ctx->h[3], &digest[24]);
+    UNPACK64(ctx->h[4], &digest[32]);
+    UNPACK64(ctx->h[5], &digest[40]);
+#endif /* !UNROLL_LOOPS */
+}
+
+/* SHA-512 functions */
+
+void camlpdf_sha512(const uint8 *message, uint64 len, uint8 *digest)
+{
+    sha512_ctx ctx;
+
+    camlpdf_sha512_init(&ctx);
+    camlpdf_sha512_update(&ctx, message, len);
+    camlpdf_sha512_final(&ctx, digest);
+}
+
+void camlpdf_sha512_init(sha512_ctx *ctx)
+{
+#ifndef UNROLL_LOOPS
+    int i;
+    for (i = 0; i < 8; i++) {
+        ctx->h[i] = sha512_h0[i];
+    }
+#else
+    ctx->h[0] = sha512_h0[0]; ctx->h[1] = sha512_h0[1];
+    ctx->h[2] = sha512_h0[2]; ctx->h[3] = sha512_h0[3];
+    ctx->h[4] = sha512_h0[4]; ctx->h[5] = sha512_h0[5];
+    ctx->h[6] = sha512_h0[6]; ctx->h[7] = sha512_h0[7];
+#endif /* !UNROLL_LOOPS */
+
+    ctx->len = 0;
+    ctx->tot_len = 0;
+}
+
+void camlpdf_sha512_update(sha512_ctx *ctx, const uint8 *message, uint64 len)
+{
+    uint64 block_nb;
+    uint64 new_len, rem_len, tmp_len;
+    const uint8 *shifted_message;
+
+    tmp_len = SHA512_BLOCK_SIZE - ctx->len;
+    rem_len = len < tmp_len ? len : tmp_len;
+
+    memcpy(&ctx->block[ctx->len], message, rem_len);
+
+    if (ctx->len + len < SHA512_BLOCK_SIZE) {
+        ctx->len += len;
+        return;
+    }
+
+    new_len = len - rem_len;
+    block_nb = new_len / SHA512_BLOCK_SIZE;
+
+    shifted_message = message + rem_len;
+
+    sha512_transf(ctx, ctx->block, 1);
+    sha512_transf(ctx, shifted_message, block_nb);
+
+    rem_len = new_len % SHA512_BLOCK_SIZE;
+
+    memcpy(ctx->block, &shifted_message[block_nb << 7], rem_len);
+
+    ctx->len = rem_len;
+    ctx->tot_len += (block_nb + 1) << 7;
+}
+
+void camlpdf_sha512_final(sha512_ctx *ctx, uint8 *digest)
+{
+    uint64 block_nb;
+    uint64 pm_len;
+    uint64 len_b;
+    uint64 tot_len;
+
+#ifndef UNROLL_LOOPS
+    int i;
+#endif
+
+    block_nb = 1 + ((SHA512_BLOCK_SIZE - 17)
+                     < (ctx->len % SHA512_BLOCK_SIZE));
+
+    tot_len = ctx->tot_len + ctx->len;
+    ctx->tot_len = tot_len;
+
+    len_b = tot_len << 3;
+    pm_len = block_nb << 7;
+
+    memset(ctx->block + ctx->len, 0, pm_len - ctx->len);
+    ctx->block[ctx->len] = 0x80;
+    UNPACK64(len_b, ctx->block + pm_len - 8);
+
+    sha512_transf(ctx, ctx->block, block_nb);
+
+#ifndef UNROLL_LOOPS
+    for (i = 0 ; i < 8; i++) {
+        UNPACK64(ctx->h[i], &digest[i << 3]);
+    }
+#else
+    UNPACK64(ctx->h[0], &digest[ 0]);
+    UNPACK64(ctx->h[1], &digest[ 8]);
+    UNPACK64(ctx->h[2], &digest[16]);
+    UNPACK64(ctx->h[3], &digest[24]);
+    UNPACK64(ctx->h[4], &digest[32]);
+    UNPACK64(ctx->h[5], &digest[40]);
+    UNPACK64(ctx->h[6], &digest[48]);
+    UNPACK64(ctx->h[7], &digest[56]);
+#endif /* !UNROLL_LOOPS */
+}
+
 #ifdef TEST_VECTORS
 
 /* FIPS 180-2 Validation tests */
@@ -828,8 +834,7 @@ void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest)
 #include <stdio.h>
 #include <stdlib.h>
 
-void test(const char *vector, unsigned char *digest,
-          unsigned int digest_size)
+void test(const char *vector, uint8 *digest, uint32 digest_size)
 {
     char output[2 * SHA512_DIGEST_SIZE + 1];
     int i;
@@ -847,20 +852,166 @@ void test(const char *vector, unsigned char *digest,
     }
 }
 
+static void test_sha224_message4(uint8 *digest)
+{
+    /* Message of 929271 bytes */
+
+    sha224_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha224_init(&ctx);
+    for (i = 0; i < 929; i++) {
+        sha224_update(&ctx, message, sizeof (message));
+    }
+    sha224_update(&ctx, message, 271);
+
+    sha224_final(&ctx, digest);
+}
+
+static void test_sha256_message4(uint8 *digest)
+{
+    /* Message of 929271 bytes */
+
+    sha256_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha256_init(&ctx);
+    for (i = 0; i < 929; i++) {
+        sha256_update(&ctx, message, sizeof (message));
+    }
+    sha256_update(&ctx, message, 271);
+
+    sha256_final(&ctx, digest);
+}
+
+static void test_sha384_message4(uint8 *digest)
+{
+    /* Message of 929271 bytes */
+
+    sha384_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha384_init(&ctx);
+    for (i = 0; i < 929; i++) {
+        sha384_update(&ctx, message, sizeof (message));
+    }
+    sha384_update(&ctx, message, 271);
+
+    sha384_final(&ctx, digest);
+}
+
+static void test_sha512_message4(uint8 *digest)
+{
+    /* Message of 929271 bytes */
+
+    sha512_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha512_init(&ctx);
+    for (i = 0; i < 929; i++) {
+        sha512_update(&ctx, message, sizeof (message));
+    }
+    sha512_update(&ctx, message, 271);
+
+    sha512_final(&ctx, digest);
+}
+
+#ifdef TEST_VECTORS_LONG
+
+/* Validation tests with a message of 10 GB */
+
+static void test_sha224_long_message(uint8 *digest)
+{
+    sha224_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha224_init(&ctx);
+    for (i = 0; i < 10000000; i++) {
+        sha224_update(&ctx, message, sizeof (message));
+    }
+    sha224_final(&ctx, digest);
+}
+
+static void test_sha256_long_message(uint8 *digest)
+{
+    sha256_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha256_init(&ctx);
+    for (i = 0; i < 10000000; i++) {
+        sha256_update(&ctx, message, sizeof (message));
+    }
+    sha256_final(&ctx, digest);
+}
+
+static void test_sha384_long_message(uint8 *digest)
+{
+    sha384_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha384_init(&ctx);
+    for (i = 0; i < 10000000; i++) {
+        sha384_update(&ctx, message, sizeof (message));
+    }
+    sha384_final(&ctx, digest);
+}
+
+static void test_sha512_long_message(uint8 *digest)
+{
+    sha512_ctx ctx;
+    uint8 message[1000];
+    int i;
+
+    memset(message, 'a', sizeof (message));
+
+    sha512_init(&ctx);
+    for (i = 0; i < 10000000; i++) {
+        sha512_update(&ctx, message, sizeof (message));
+    }
+    sha512_final(&ctx, digest);
+}
+
+#endif /* TEST_VECTORS_LONG */
+
 int main(void)
 {
-    static const char *vectors[4][3] =
+    static const char *vectors[4][5] =
     {   /* SHA-224 */
         {
         "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7",
         "75388b16512776cc5dba5da1fd890150b0c6455cb4f58b1952522525",
         "20794655980c91d8bbb4c1ea97618a4bf03f42581948b2ee4ee7ad67",
+        "c84cf4761583afa849ffd562c52a2e2a5104f1a4071dab6c53560d4f",
+        "b7bdc6c1f4f789f1456e68a005779a6c1f6199211008bee2801baf0d",
         },
         /* SHA-256 */
         {
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
         "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0",
+        "8c14f43ad81026351e9b60025b5420e6072ff617f5c72145b179599211514947",
+        "53748286337dbe36f5df22e7ef1af3ad71530398cf569adc7eb5fefa7af7003c",
         },
         /* SHA-384 */
         {
@@ -870,6 +1021,10 @@ int main(void)
         "fcc7c71a557e2db966c3e9fa91746039",
         "9d0e1809716474cb086e834e310a4a1ced149e9c00f248527972cec5704c2a5b"
         "07b8b3dc38ecc4ebae97ddd87f3d8985",
+        "3de4a44dba8627278c376148b6d45be0a3a410337330ef3e1d9ca34c4593ecfc"
+        "8ce7a8415aefaca6b39d1112078cc3e0",
+        "073de8e641532032b2922c4af165baa88dfe5fdafb09575657406894b4b94996"
+        "8975eef50c1ef5be59ca0ecdaa996496",
         },
         /* SHA-512 */
         {
@@ -878,7 +1033,11 @@ int main(void)
         "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
         "501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909",
         "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973eb"
-        "de0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b"
+        "de0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b",
+        "a7e464bfd1f27201d7d0575c1a302cecef0004828e923e4255c8de6bae958a01"
+        "9294e3f851bf9a03013963cd1268687c549916438e465433957d4480bcaa8572",
+        "922637075a3ee5d87a7ce3ae7e04083d6daea7b541f264512290157ce3f81f9b"
+        "afcd3f9dc2d4fe0a6248a071709b96d0128d96c48220b2ab919b99187cb16fbf"
         }
     };
 
@@ -888,9 +1047,9 @@ int main(void)
     static const char message2b[] = "abcdefghbcdefghicdefghijdefghijkefghij"
                                     "klfghijklmghijklmnhijklmnoijklmnopjklm"
                                     "nopqklmnopqrlmnopqrsmnopqrstnopqrstu";
-    unsigned char *message3;
-    unsigned int message3_len = 1000000;
-    unsigned char digest[SHA512_DIGEST_SIZE];
+    uint8 *message3;
+    uint32 message3_len = 1000000;
+    uint8 digest[SHA512_DIGEST_SIZE];
 
     message3 = malloc(message3_len);
     if (message3 == NULL) {
@@ -902,42 +1061,66 @@ int main(void)
     printf("SHA-2 FIPS 180-2 Validation tests\n\n");
     printf("SHA-224 Test vectors\n");
 
-    camlpdf_sha224((const unsigned char *) message1, strlen(message1), digest);
+    sha224((const uint8 *) message1, strlen(message1), digest);
     test(vectors[0][0], digest, SHA224_DIGEST_SIZE);
-    camlpdf_sha224((const unsigned char *) message2a, strlen(message2a), digest);
+    sha224((const uint8 *) message2a, strlen(message2a), digest);
     test(vectors[0][1], digest, SHA224_DIGEST_SIZE);
-    camlpdf_sha224(message3, message3_len, digest);
+    sha224(message3, message3_len, digest);
     test(vectors[0][2], digest, SHA224_DIGEST_SIZE);
+    test_sha224_message4(digest);
+    test(vectors[0][3], digest, SHA224_DIGEST_SIZE);
+#ifdef TEST_VECTORS_LONG
+    test_sha224_long_message(digest);
+    test(vectors[0][4], digest, SHA224_DIGEST_SIZE);
+#endif
     printf("\n");
 
     printf("SHA-256 Test vectors\n");
 
-    camlpdf_sha256((const unsigned char *) message1, strlen(message1), digest);
+    sha256((const uint8 *) message1, strlen(message1), digest);
     test(vectors[1][0], digest, SHA256_DIGEST_SIZE);
-    camlpdf_sha256((const unsigned char *) message2a, strlen(message2a), digest);
+    sha256((const uint8 *) message2a, strlen(message2a), digest);
     test(vectors[1][1], digest, SHA256_DIGEST_SIZE);
-    camlpdf_sha256(message3, message3_len, digest);
+    sha256(message3, message3_len, digest);
     test(vectors[1][2], digest, SHA256_DIGEST_SIZE);
+    test_sha256_message4(digest);
+    test(vectors[1][3], digest, SHA256_DIGEST_SIZE);
+#ifdef TEST_VECTORS_LONG
+    test_sha256_long_message(digest);
+    test(vectors[1][4], digest, SHA256_DIGEST_SIZE);
+#endif
     printf("\n");
 
     printf("SHA-384 Test vectors\n");
 
-    camlpdf_sha384((const unsigned char *) message1, strlen(message1), digest);
+    sha384((const uint8 *) message1, strlen(message1), digest);
     test(vectors[2][0], digest, SHA384_DIGEST_SIZE);
-    camlpdf_sha384((const unsigned char *)message2b, strlen(message2b), digest);
+    sha384((const uint8 *)message2b, strlen(message2b), digest);
     test(vectors[2][1], digest, SHA384_DIGEST_SIZE);
-    camlpdf_sha384(message3, message3_len, digest);
+    sha384(message3, message3_len, digest);
     test(vectors[2][2], digest, SHA384_DIGEST_SIZE);
+    test_sha384_message4(digest);
+    test(vectors[2][3], digest, SHA384_DIGEST_SIZE);
+#ifdef TEST_VECTORS_LONG
+    test_sha384_long_message(digest);
+    test(vectors[2][4], digest, SHA384_DIGEST_SIZE);
+#endif
     printf("\n");
 
     printf("SHA-512 Test vectors\n");
 
-    camlpdf_sha512((const unsigned char *) message1, strlen(message1), digest);
+    sha512((const uint8 *) message1, strlen(message1), digest);
     test(vectors[3][0], digest, SHA512_DIGEST_SIZE);
-    camlpdf_sha512((const unsigned char *) message2b, strlen(message2b), digest);
+    sha512((const uint8 *) message2b, strlen(message2b), digest);
     test(vectors[3][1], digest, SHA512_DIGEST_SIZE);
-    camlpdf_sha512(message3, message3_len, digest);
+    sha512(message3, message3_len, digest);
     test(vectors[3][2], digest, SHA512_DIGEST_SIZE);
+    test_sha512_message4(digest);
+    test(vectors[3][3], digest, SHA512_DIGEST_SIZE);
+#ifdef TEST_VECTORS_LONG
+    test_sha512_long_message(digest);
+    test(vectors[3][4], digest, SHA512_DIGEST_SIZE);
+#endif
     printf("\n");
 
     printf("All tests passed.\n");
@@ -946,4 +1129,3 @@ int main(void)
 }
 
 #endif /* TEST_VECTORS */
-

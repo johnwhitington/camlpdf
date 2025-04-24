@@ -1,9 +1,7 @@
 /*
  * FIPS 180-2 SHA-224/256/384/512 implementation
- * Last update: 02/02/2007
- * Issue date:  04/30/2005
  *
- * Copyright (C) 2005, 2007 Olivier Gay <olivier.gay@a3.epfl.ch>
+ * Copyright (C) 2005-2023 Olivier Gay <olivier.gay@a3.epfl.ch>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,9 +44,9 @@
 
 #ifndef SHA2_TYPES
 #define SHA2_TYPES
-/*typedef unsigned char uint8;
+typedef unsigned char uint8;
 typedef unsigned int  uint32;
-typedef unsigned long long uint64;*/
+typedef unsigned long long uint64;
 #endif
 
 #ifdef __cplusplus
@@ -56,53 +54,44 @@ extern "C" {
 #endif
 
 typedef struct {
-    unsigned int tot_len;
-    unsigned int len;
-    unsigned char block[2 * SHA256_BLOCK_SIZE];
-    unsigned int h[8];
+    uint64 tot_len;
+    uint64 len;
+    uint8 block[2 * SHA256_BLOCK_SIZE];
+    uint32 h[8];
 } sha256_ctx;
 
 typedef struct {
-    unsigned int tot_len;
-    unsigned int len;
-    unsigned char block[2 * SHA512_BLOCK_SIZE];
-    unsigned long long h[8];
+    uint64 tot_len;
+    uint64 len;
+    uint8 block[2 * SHA512_BLOCK_SIZE];
+    uint64 h[8];
 } sha512_ctx;
 
 typedef sha512_ctx sha384_ctx;
 typedef sha256_ctx sha224_ctx;
 
 void camlpdf_sha224_init(sha224_ctx *ctx);
-void camlpdf_sha224_update(sha224_ctx *ctx, const unsigned char *message,
-                   unsigned int len);
-void camlpdf_sha224_final(sha224_ctx *ctx, unsigned char *digest);
-void camlpdf_sha224(const unsigned char *message, unsigned int len,
-            unsigned char *digest);
+void camlpdf_sha224_update(sha224_ctx *ctx, const uint8 *message, uint64 len);
+void camlpdf_sha224_final(sha224_ctx *ctx, uint8 *digest);
+void camlpdf_sha224(const uint8 *message, uint64 len, uint8 *digest);
 
 void camlpdf_sha256_init(sha256_ctx * ctx);
-void camlpdf_sha256_update(sha256_ctx *ctx, const unsigned char *message,
-                   unsigned int len);
-void camlpdf_sha256_final(sha256_ctx *ctx, unsigned char *digest);
-void camlpdf_sha256(const unsigned char *message, unsigned int len,
-            unsigned char *digest);
+void camlpdf_sha256_update(sha256_ctx *ctx, const uint8 *message, uint64 len);
+void camlpdf_sha256_final(sha256_ctx *ctx, uint8 *digest);
+void camlpdf_sha256(const uint8 *message, uint64 len, uint8 *digest);
 
 void camlpdf_sha384_init(sha384_ctx *ctx);
-void camlpdf_sha384_update(sha384_ctx *ctx, const unsigned char *message,
-                   unsigned int len);
-void camlpdf_sha384_final(sha384_ctx *ctx, unsigned char *digest);
-void camlpdf_sha384(const unsigned char *message, unsigned int len,
-            unsigned char *digest);
+void camlpdf_sha384_update(sha384_ctx *ctx, const uint8 *message, uint64 len);
+void camlpdf_sha384_final(sha384_ctx *ctx, uint8 *digest);
+void camlpdf_sha384(const uint8 *message, uint64 len, uint8 *digest);
 
 void camlpdf_sha512_init(sha512_ctx *ctx);
-void camlpdf_sha512_update(sha512_ctx *ctx, const unsigned char *message,
-                   unsigned int len);
-void camlpdf_sha512_final(sha512_ctx *ctx, unsigned char *digest);
-void camlpdf_sha512(const unsigned char *message, unsigned int len,
-            unsigned char *digest);
+void camlpdf_sha512_update(sha512_ctx *ctx, const uint8 *message, uint64 len);
+void camlpdf_sha512_final(sha512_ctx *ctx, uint8 *digest);
+void camlpdf_sha512(const uint8 *message, uint64 len, uint8 *digest);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* !SHA2_H */
-
