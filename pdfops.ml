@@ -846,7 +846,7 @@ let concat_bytess ss =
         iter
           (fun s ->
              for x = 0 to bytes_size s - 1 do
-               bset_unsafe s' !p (bget s x);
+               bset_unsafe s' !p (bget_unsafe s x);
                incr p
              done;
              bset_unsafe s' !p (int_of_char ' ');
