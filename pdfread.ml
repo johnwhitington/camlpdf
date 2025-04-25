@@ -1779,7 +1779,7 @@ let read_malformed_pdf_objects i =
                more objects could be read. *)
             i.seek_in c;
             let fin = ref false in
-              while not !fin do
+              while not !fin && i.pos_in () < i.in_channel_length do
                 let l = String.trim (input_line i) in
                   fin := starts_with "endobj" l || starts_with "jbodne" (implode (rev (explode l)))
               done
