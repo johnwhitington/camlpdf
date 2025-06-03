@@ -1091,7 +1091,7 @@ let read_run maxcols i =
     done;
     (!iswhite, !nbits)
 
-let encode_ccitt columns stream =
+let encode_ccitt columns rows stream =
   let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
   let o = Pdfio.make_write_bitstream () in
     try
@@ -1119,7 +1119,7 @@ let encode_ccitt columns stream =
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
-let encode_ccittg4 columns stream =
+let encode_ccittg4 columns rows stream =
   let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
   let o = Pdfio.make_write_bitstream () in
   let white, black = true, false in
@@ -1201,15 +1201,19 @@ let encode_ccittg4 columns stream =
         Pdfio.align_write o;
         bytes_of_write_bitstream o
 
-let roundtrip_test_g4 cols input =
-  decode_CCITTFax ~-1 false false cols 0 true false 0 (input_of_bytes (encode_ccittg4 cols input))
+let roundtrip_test_g4 cols rows input =
+  decode_CCITTFax ~-1 false false cols 0 true false 0 (input_of_bytes (encode_ccittg4 cols rows input))
+
+let roundtrip_test_g3 cols rows input =
+  decode_CCITTFax 0 false false cols 0 true false 0 (input_of_bytes (encode_ccitt cols rows input)) 
 
 let smallest_possible_image = bytes_of_string "\000"
 
 let _ =
   let input = smallest_possible_image in
-  let output = roundtrip_test_g4 1 input in
-  Printf.printf "One pixel 0 test result %b, %S, %S\n" (input = output) (string_of_bytes input) (string_of_bytes output)
+  let output = roundtrip_test_g4 1 1 input in
+  let outputg3 = roundtrip_test_g3 1 1 input in
+  Printf.printf "G4 One pixel 0 test result %b, %S, %S (G3 = %S)\n" (input = output) (string_of_bytes input) (string_of_bytes output) (string_of_bytes outputg3)
 
 (* PNG and TIFF Predictors *)
 
@@ -1711,8 +1715,8 @@ type encoding =
   | ASCII85
   | RunLength
   | Flate
-  | CCITT of int
-  | CCITTG4 of int
+  | CCITT of int * int
+  | CCITTG4 of int * int
 
 type predictor =
     TIFF2
@@ -1752,8 +1756,8 @@ let encoder_of_encoding = function
   | ASCII85 -> encode_ASCII85
   | RunLength -> encode_runlength
   | Flate -> encode_flate
-  | CCITT cols -> encode_ccitt cols
-  | CCITTG4 cols -> encode_ccittg4 cols
+  | CCITT (cols, rows) -> encode_ccitt cols rows
+  | CCITTG4 (cols, rows) -> encode_ccittg4 cols rows
 
 (* For now, just for xref streams *)
 let process_prediction_data predictor predictor_columns d =

@@ -15,8 +15,8 @@ type encoding =
   | ASCII85
   | RunLength
   | Flate
-  | CCITT of int
-  | CCITTG4 of int
+  | CCITT of int * int
+  | CCITTG4 of int * int
 
 (** Predictors. *)
 type predictor =
@@ -72,10 +72,10 @@ val encode_flate : Pdfio.bytes -> Pdfio.bytes
 val decode_flate : Pdfio.bytes -> Pdfio.bytes
 
 (** Encode data in CCITTDecode Group 3. *)
-val encode_ccitt : int -> Pdfio.bytes -> Pdfio.bytes
+val encode_ccitt : int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Encode data in CCITTDecode Group 4. *)
-val encode_ccittg4 : int -> Pdfio.bytes -> Pdfio.bytes
+val encode_ccittg4 : int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Setting this boolean prints some debug information. *)
 val debug : bool ref
