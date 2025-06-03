@@ -1201,6 +1201,16 @@ let encode_ccittg4 columns stream =
         Pdfio.align_write o;
         bytes_of_write_bitstream o
 
+let roundtrip_test_g4 cols input =
+  decode_CCITTFax ~-1 false false cols 0 true false 0 (input_of_bytes (encode_ccittg4 cols input))
+
+let smallest_possible_image = bytes_of_string "\000"
+
+let _ =
+  let input = smallest_possible_image in
+  let output = roundtrip_test_g4 1 input in
+  Printf.printf "One pixel 0 test result %b, %S, %S\n" (input = output) (string_of_bytes input) (string_of_bytes output)
+
 (* PNG and TIFF Predictors *)
 
 (* Get the value at index i from an int array a, giving zero if the index is
