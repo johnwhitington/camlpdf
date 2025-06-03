@@ -555,13 +555,54 @@ let replace_chain pdf chain obj =
         else
           replace_chain_exists pdf chain (key, obj)
 
-(* FIXME When the final item in the chain is indirect, shouldn't it be kept indirect and the object just replaced? *)
+(* FIXME When the final item in the chain is indirect, shouldn't it be kept indirect and the object just replaced? In case there are other references to it? Check. *)
 
-(* Remove something given its chain. Chain must exist - check with
-   lookup_chain. If an indirect exists as the last jump, that indirect is
-   itself removed. *)
+(* Remove a dictionary entry given its chain. Returns true if removed.
+   Our example for now /Root/Names/JavaScript. Aim is to remove the dict entry with key "/JavaScript" from /Names.
+   In the future, extend to deleting things other than dictionary entries. *)
+let rec remove_chain_all_direct chain obj =
+  match chain with
+  | [] -> obj
+  | [k] ->
+      (*Printf.printf "remove_chain_all_direct, final k = %s, obj = %s\n" k (!string_of_pdf obj);*)
+      begin match obj with
+      | Dictionary _ as d ->
+          remove_dict_entry d k
+      | Stream ({contents = (Dictionary _ as d, s)} as r) ->
+          r := (remove_dict_entry d k, s); obj
+      | _ -> assert false
+      end
+  | k::ks ->
+      (*Printf.printf "remove_chain_all_direct, k = %s, obj = %s\n" k (!string_of_pdf obj);*)
+      begin match obj with
+      | Dictionary dd as d ->
+          add_dict_entry d k (remove_chain_all_direct ks (unopt (lookup k dd)))
+      | Stream ({contents = (Dictionary dd as d, s)} as r) ->
+          r := (add_dict_entry d k (remove_chain_all_direct ks (unopt (lookup k dd))), s);
+          obj
+      | _ -> assert false
+      end
+
 let remove_chain pdf chain =
-  false
+  (*flprint  "remove_chain\n";*)
+  match lookup_chain pdf pdf.trailerdict chain with
+  | None -> false
+  | Some _ ->
+      match chain with
+      | [] | [_] -> raise (PDFError "no chain or chain too short")
+      | chain ->
+          let finalobjnum, remaining_chain = find_final_indirect [] pdf pdf.trailerdict 0 (all_but_last chain) in
+          let remaining_chain = remaining_chain @ [last chain] in
+          (*Printf.printf "finalobjnum = %i = %s\n" finalobjnum (!string_of_pdf (lookup_obj pdf finalobjnum));*)
+          let newobj =
+            if finalobjnum = 0 then
+              remove_chain_all_direct remaining_chain pdf.trailerdict
+            else
+              remove_chain_all_direct remaining_chain (lookup_obj pdf finalobjnum)
+          in
+            (*Printf.printf "newobj = %s\n" (!string_of_pdf newobj);*)
+            (if finalobjnum = 0 then pdf.trailerdict <- newobj else addobj_given_num pdf (finalobjnum, newobj));
+            true
 
 (* Look up under a key and its alternate. Return the value associated
 with the key that worked, or [None] if neither did. *)

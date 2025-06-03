@@ -146,9 +146,8 @@ val lookup_chain : t -> pdfobject -> string list -> pdfobject option
 val replace_chain : t -> string list -> pdfobject -> unit
 
 (** [remove_chain doc chain obj] removes the object at the given chain. True is
-    returned if it was removed, false otherwise. If the last link in the chain
-    is indirect, the indirect reference is removed from its array or its key and
-    value in a dictionary are removed. *)
+    returned if it was removed, false otherwise. Only for chains entirely
+    composed of dictionaries for now. *)
 val remove_chain : t -> string list -> bool
 
 (** Return the object number of an indirect dictionary object, if it is indirect. *)
