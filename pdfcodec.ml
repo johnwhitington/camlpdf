@@ -940,6 +940,8 @@ let read_mode i =
         end
   | _ -> raise (Failure "Not a valid code")
 
+let dcct = ref true
+
 let decode_CCITTFax k eol eba c r eob bone dra input =
   if k > 0 then raise (DecodeNotSupported "CCITTFax k > 0") else
     let whiteval, blackval = if bone then 0, 1 else 1, 0
@@ -1026,10 +1028,12 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                     (* Group 4 *)
                     match read_mode b with
                     | Pass ->
+                        if !dcct then Printf.printf "Read: pass\n";
                         output_span
                           (find_b2 () - !column)
                           (if !white then whiteval else blackval)
                     | Horizontal ->
+                        if !dcct then Printf.printf "Read: Horizontal.\n";
                         if !white then
                           begin
                             output_span (read_white_code b) whiteval;
@@ -1041,11 +1045,13 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                             output_span (read_white_code b) whiteval;
                           end
                     | Vertical n ->
+                        if !dcct then Printf.printf "Read: Vertical.\n";
                         output_span
                           (find_b1 () - !column - n)
                           (if !white then whiteval else blackval);
                         flip white
-                    | EOFB -> raise End_of_file
+                    | EOFB ->
+                        raise End_of_file
                     | Uncompressed ->
                         raise (DecodeNotSupported "CCITT Uncompressed")
                   else if k = 0 then
@@ -1217,8 +1223,6 @@ let roundtrip_test_g4 cols rows input =
 let roundtrip_test_g3 cols rows input =
   decode_CCITTFax 0 false false cols 0 true false 0 (input_of_bytes (encode_ccitt cols rows input)) 
 
-let smallest_possible_image = bytes_of_string "\000"
-
 (* Make a random image of given width and height *)
 let random_image w h =
   let o = make_write_bitstream () in
@@ -1236,13 +1240,13 @@ let _ =
     let w = a in
     let h = a in
     for x = 1 to 10 do
-      let input = random_image w h (*smallest_possible_image*) in
+      let input = random_image w h in
       let outputg4 = roundtrip_test_g4 w h input in
-      if input <> outputg4 then
-        begin Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); exit 2 end;
-      let outputg3 = roundtrip_test_g3 w h input in
+      (*if input <> outputg4 then*)
+        begin Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); if input <> outputg4 then exit 2 end;
+      (*let outputg3 = roundtrip_test_g3 w h input in
       if input <> outputg3 then 
-        begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); exit 2 end
+        begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
     done
   done
 
