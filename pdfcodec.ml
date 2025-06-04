@@ -9,7 +9,7 @@ let flate_level = ref 6
 (* Get the next non-whitespace character in a stream. *)
 let rec get_streamchar s =
   match s.input_byte () with
-  | x when x = Pdfio.no_more ->
+  | x when x = no_more ->
       raise End_of_file
   | x ->
       let chr = Char.unsafe_chr x in
@@ -236,7 +236,7 @@ let decode_flate_input i =
            if s > 0 then
              begin
                match i.input_byte () with
-               | x when x = Pdfio.no_more -> raise End_of_file
+               | x when x = no_more -> raise End_of_file
                | x -> Bytes.unsafe_set buf 0 (char_of_int x); 1
              end
            else 0)
@@ -256,7 +256,7 @@ let is_js =
 
 let encode_flate stream =
   if is_js then
-    Pdfio.bytes_of_string (camlpdf_caml_zlib_compress (Pdfio.string_of_bytes stream))
+    bytes_of_string (camlpdf_caml_zlib_compress (string_of_bytes stream))
   else
     flate_process (Pdfflate.compress ~level:!flate_level) stream
 
@@ -281,7 +281,7 @@ let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try
       if is_js then
-        Pdfio.bytes_of_string (camlpdf_caml_zlib_decompress (Pdfio.string_of_bytes stream))
+        bytes_of_string (camlpdf_caml_zlib_decompress (string_of_bytes stream))
       else
         flate_process Pdfflate.uncompress stream
     with
@@ -312,7 +312,7 @@ let decode_lzw early i =
       while !bit_count <= 24 do
         let streambyte =
           match stream.input_byte () with
-          | b when b = Pdfio.no_more ->
+          | b when b = no_more ->
               if !endflush = 0 then raise End_of_file else (decr endflush; 0)
           | b -> b
         in
@@ -1074,7 +1074,7 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
 (* CCITT Group 3 encoder *)
 
 (* Data comes in as bytes, with each scanline padded with zeroes. In addition,
-   it is padded to bytes at the end. (Why though? Check for our case.)
+   it is padded to bytes at the end.
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K 0 with all other
 dictionary entries as default. *)
@@ -1082,18 +1082,18 @@ dictionary entries as default. *)
 (* Return colour of run, and non-zero length of run (must make progress) *)
 let read_run maxcols i =
   let nbits = ref 1 in
-  let iswhite = ref (Pdfio.getbit i) in
+  let iswhite = ref (getbit i) in
   let fin = ref false in
     while !nbits < maxcols && not !fin do
-      let pos = ref (Pdfio.bitstream_pos i) in
-      let newbit = Pdfio.getbit i in
-      if newbit = !iswhite then nbits += 1 else (Pdfio.bitstream_seek i !pos; set fin)
+      let pos = ref (bitstream_pos i) in
+      let newbit = getbit i in
+      if newbit = !iswhite then nbits += 1 else (bitstream_seek i !pos; set fin)
     done;
     (!iswhite, !nbits)
 
 let encode_ccitt columns rows stream =
-  let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
-  let o = Pdfio.make_write_bitstream () in
+  let i = bitbytes_of_input (input_of_bytes stream) in
+  let o = make_write_bitstream () in
     try
       let rows_left = ref rows in
       let cols_left = ref columns in
@@ -1101,17 +1101,17 @@ let encode_ccitt columns rows stream =
           if !rows_left = 0 then raise Exit else
             let iswhite, length = read_run !cols_left i in
               let bits = (if iswhite then write_white_code else write_black_code) length in
-                if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_white_code 0);
-                iter (Pdfio.putbit o) bits;
+                if not iswhite && !cols_left = columns then iter (putbit o) (write_white_code 0);
+                iter (putbit o) bits;
                 cols_left -= length;
-                if !cols_left = 0 then (Pdfio.align i; cols_left := columns; rows_left -= 1);
+                if !cols_left = 0 then (align i; cols_left := columns; rows_left -= 1);
         done;
         mkbytes 0
     with
     | Exit ->
-        iter (Pdfio.putbit o) (write_white_code ~-1);
-        iter (Pdfio.putbit o) (write_white_code ~-1);
-        Pdfio.align_write o;
+        iter (putbit o) (write_white_code ~-1);
+        iter (putbit o) (write_white_code ~-1);
+        align_write o;
         bytes_of_write_bitstream o
     | End_of_file ->
         raise (Failure "encode_ccitt: not enough data")
@@ -1124,8 +1124,8 @@ let encode_ccitt columns rows stream =
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
 let encode_ccittg4 columns rows stream =
-  let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
-  let o = Pdfio.make_write_bitstream () in
+  let i = bitbytes_of_input (input_of_bytes stream) in
+  let o = make_write_bitstream () in
   let white, black = true, false in
   let rl = Array.make columns white in
   let cl = Array.make columns white in
@@ -1137,7 +1137,7 @@ let encode_ccittg4 columns rows stream =
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
         (* Read new current line from input *)
-        for x = 0 to columns - 1 do cl.(x) <- Pdfio.getbit i done;
+        for x = 0 to columns - 1 do cl.(x) <- getbit i done;
         let a0 = ref 0 in
         let a1 = ref 0 in
         let a2 = ref 0 in
@@ -1171,20 +1171,20 @@ let encode_ccittg4 columns rows stream =
           if !b2 < !a1 then
             begin
               Printf.printf "Pass mode coding\n";
-              iter (Pdfio.putbit o) [0; 0; 0; 1];
+              iter (putbit o) [0; 0; 0; 1];
               a0 := !b2
             end
           else if abs (!b1 - !a1) <= 3 then
             begin
               Printf.printf "Vertical mode coding\n";
               begin match !b1 - !a1 with
-              | 0 -> iter (Pdfio.putbit o) [1]
-              | -1 -> iter (Pdfio.putbit o) [0; 1; 1]
-              | -2 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 1; 1]
-              | -3 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 0; 1; 1]
-              | 1 -> iter (Pdfio.putbit o) [0; 1; 0]
-              | 2 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 1; 0]
-              | 3 -> iter (Pdfio.putbit o) [0; 0; 0; 0; 0; 1; 0]
+              | 0 -> iter (putbit o) [1]
+              | -1 -> iter (putbit o) [0; 1; 1]
+              | -2 -> iter (putbit o) [0; 0; 0; 0; 1; 1]
+              | -3 -> iter (putbit o) [0; 0; 0; 0; 0; 1; 1]
+              | 1 -> iter (putbit o) [0; 1; 0]
+              | 2 -> iter (putbit o) [0; 0; 0; 0; 1; 0]
+              | 3 -> iter (putbit o) [0; 0; 0; 0; 0; 1; 0]
               | _ -> raise (Pdf.PDFError "Bad vertical mode in CCITT G4 encoding")
               end;
               a0 := !a1
@@ -1192,20 +1192,21 @@ let encode_ccittg4 columns rows stream =
           else
             begin
               Printf.printf "Horizontal mode coding\n";
-              iter (Pdfio.putbit o) [0; 0; 1];
-              begin try iter (Pdfio.putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
-              begin try iter (Pdfio.putbit o) (if cl.(!a1) = black then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
+              iter (putbit o) [0; 0; 1];
+              begin try iter (putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
+              begin try iter (putbit o) (if cl.(!a1) = black then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
               begin try Printf.printf "%s %i, " (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
               begin try Printf.printf "%s %i\n" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
               a0 := !a2
             end
         done;
+        align i;
         rows_left -= 1
       done;
       mkbytes 0
     with
     | Exit ->
-        Pdfio.align_write o;
+        align_write o;
         bytes_of_write_bitstream o
     | End_of_file ->
         raise (Failure "encode_ccittg4: not enough data")
@@ -1221,20 +1222,28 @@ let smallest_possible_image = bytes_of_string "\000"
 (* Make a random image of given width and height *)
 let random_image w h =
   let o = make_write_bitstream () in
-    for _ = 1 to w * h do putbit o (Random.int 2) done;
+    for _ = 1 to h do
+      for _ = 1 to w do
+        putbit o (Random.int 2)
+      done;
+      align_write o
+    done;
     bytes_of_write_bitstream o
 
 let _ =
-  let w = 1 in
-  let h = 2 in
-  for x = 1 to 100 do
-    let input = random_image w h (*smallest_possible_image*) in
-    (*let outputg4 = roundtrip_test_g4 w h input in
-    if input <> outputg4 then
-      Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); *)
-    let outputg3 = roundtrip_test_g3 w h input in
-    if input <> outputg3 then 
-      Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3)
+  for a = 1 to max_int do
+    Printf.printf "%i x %i...\n%!" a a;
+    let w = a in
+    let h = a in
+    for x = 1 to 10 do
+      let input = random_image w h (*smallest_possible_image*) in
+      let outputg4 = roundtrip_test_g4 w h input in
+      if input <> outputg4 then
+        begin Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); exit 2 end;
+      let outputg3 = roundtrip_test_g3 w h input in
+      if input <> outputg3 then 
+        begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); exit 2 end
+    done
   done
 
 (* PNG and TIFF Predictors *)
@@ -1324,7 +1333,7 @@ let decode_predictor pred colors bpc columns stream =
           while not !finished do
             clear got_predictor;
             begin match i.input_byte () with
-            | x when x = Pdfio.no_more -> set finished
+            | x when x = no_more -> set finished
             | x -> pred := x
             end;
             if !finished then () else
@@ -1333,7 +1342,7 @@ let decode_predictor pred colors bpc columns stream =
                 prev := !curr;
                 for x = 0 to scanline_width - 1 do
                   match i.input_byte () with
-                  | x when x = Pdfio.no_more -> set finished
+                  | x when x = no_more -> set finished
                   | b -> (!curr).(x) <- b
                 done
               end;
@@ -1357,30 +1366,30 @@ let encode_predictor pred colors bpc columns stream =
     match pred with
     | 11 ->
         (* Just for recompressing inline images. Restricted to bpc = 8, colors = 3 for now. *)
-        let o, bytes = Pdfio.input_output_of_bytes 4096 in
+        let o, bytes = input_output_of_bytes 4096 in
           for scanline = 0 to bytes_size stream / (columns * 3) - 1 do
-            o.Pdfio.output_byte 1; (* tag for Sub *)
+            o.output_byte 1; (* tag for Sub *)
             for byte = 0 to columns * 3 - 1 do
-              o.Pdfio.output_byte
+              o.output_byte
                 ((get0 stream (scanline * columns + byte)) -
                  (if byte < 3 then 0 else get0 stream (scanline * columns + byte - 3))
                  mod 256)
             done
           done;
-          Pdfio.extract_bytes_from_input_output o bytes
+          extract_bytes_from_input_output o bytes
     | 12 ->
         (* Just for XRef streams. *)
-        let o, bytes = Pdfio.input_output_of_bytes 4096 in
+        let o, bytes = input_output_of_bytes 4096 in
           for scanline = 0 to bytes_size stream / columns - 1 do
-            o.Pdfio.output_byte 2; (* tag for Up *)
+            o.output_byte 2; (* tag for Up *)
             for byte = 0 to columns - 1 do
-              o.Pdfio.output_byte
+              o.output_byte
                 ((get0 stream (scanline * columns + byte) -
                  get0 stream ((scanline - 1) * columns + byte))
                  mod 256)
             done
           done;
-        Pdfio.extract_bytes_from_input_output o bytes
+        extract_bytes_from_input_output o bytes
     | n ->
         raise (Pdf.PDFError ("encode_predictor: not supported - " ^ string_of_int n))
 
@@ -1392,7 +1401,7 @@ let encode_runlength stream =
         while true do
           data_in =|
             begin match i.input_byte () with
-            | x when x = Pdfio.no_more -> raise End_of_file
+            | x when x = no_more -> raise End_of_file
             | x -> x
             end
         done
@@ -1448,21 +1457,21 @@ let decode_runlength i =
         while not !eod do
           let l =
             match i.input_byte () with
-            | x when x = Pdfio.no_more -> raise End_of_file
+            | x when x = no_more -> raise End_of_file
             | x -> x
           in
             if l < 128 then
               for x = 1 to l + 1 do
                 o.output_byte
                   begin match i.input_byte () with
-                    | x when x = Pdfio.no_more -> raise End_of_file
+                    | x when x = no_more -> raise End_of_file
                     | x -> x
                   end
               done
             else if l > 128 then
               let towrite =
                 begin match i.input_byte () with
-                | x when x = Pdfio.no_more -> raise End_of_file
+                | x when x = no_more -> raise End_of_file
                 | x -> x
                 end;
               in
@@ -1482,7 +1491,7 @@ type source =
   | InputSource of input
 
 let decode_identity i =
-  Pdfio.bytes_of_input i 0 i.in_channel_length
+  bytes_of_input i 0 i.in_channel_length
 
 let decoder pdf dict source name =
   let input_of_source = function
