@@ -1095,22 +1095,26 @@ let encode_ccitt columns rows stream =
   let i = Pdfio.bitbytes_of_input (Pdfio.input_of_bytes stream) in
   let o = Pdfio.make_write_bitstream () in
     try
+      let rows_left = ref rows in
       let cols_left = ref columns in
         while true do
-          let iswhite, length = read_run !cols_left i in
-            let bits = (if iswhite then write_white_code else write_black_code) length in
-              if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_white_code 0);
-              iter (Pdfio.putbit o) bits;
-              cols_left -= length;
-              if !cols_left = 0 then (Pdfio.align i; cols_left := columns);
+          if !rows_left = 0 then raise Exit else
+            let iswhite, length = read_run !cols_left i in
+              let bits = (if iswhite then write_white_code else write_black_code) length in
+                if not iswhite && !cols_left = columns then iter (Pdfio.putbit o) (write_white_code 0);
+                iter (Pdfio.putbit o) bits;
+                cols_left -= length;
+                if !cols_left = 0 then (Pdfio.align i; cols_left := columns; rows_left -= 1);
         done;
         mkbytes 0
     with
-      End_of_file ->
+    | Exit ->
         iter (Pdfio.putbit o) (write_white_code ~-1);
         iter (Pdfio.putbit o) (write_white_code ~-1);
         Pdfio.align_write o;
         bytes_of_write_bitstream o
+    | End_of_file ->
+        raise (Failure "encode_ccitt: not enough data")
 
 (* CCITT Group 4 encoder *)
 
@@ -1125,8 +1129,10 @@ let encode_ccittg4 columns rows stream =
   let white, black = true, false in
   let rl = Array.make columns white in
   let cl = Array.make columns white in
+  let rows_left = ref rows in
     try
       while true do
+        if !rows_left = 0 then raise Exit else
         Printf.printf "------------------------\n";
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
@@ -1193,13 +1199,16 @@ let encode_ccittg4 columns rows stream =
               begin try Printf.printf "%s %i\n" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
               a0 := !a2
             end
-        done
+        done;
+        rows_left -= 1
       done;
       mkbytes 0
     with
-      End_of_file ->
+    | Exit ->
         Pdfio.align_write o;
         bytes_of_write_bitstream o
+    | End_of_file ->
+        raise (Failure "encode_ccittg4: not enough data")
 
 let roundtrip_test_g4 cols rows input =
   decode_CCITTFax ~-1 false false cols 0 true false 0 (input_of_bytes (encode_ccittg4 cols rows input))
@@ -1209,11 +1218,24 @@ let roundtrip_test_g3 cols rows input =
 
 let smallest_possible_image = bytes_of_string "\000"
 
+(* Make a random image of given width and height *)
+let random_image w h =
+  let o = make_write_bitstream () in
+    for _ = 1 to w * h do putbit o (Random.int 2) done;
+    bytes_of_write_bitstream o
+
 let _ =
-  let input = smallest_possible_image in
-  let output = roundtrip_test_g4 1 1 input in
-  let outputg3 = roundtrip_test_g3 1 1 input in
-  Printf.printf "G4 One pixel 0 test result %b, %S, %S (G3 = %S)\n" (input = output) (string_of_bytes input) (string_of_bytes output) (string_of_bytes outputg3)
+  let w = 1 in
+  let h = 2 in
+  for x = 1 to 100 do
+    let input = random_image w h (*smallest_possible_image*) in
+    (*let outputg4 = roundtrip_test_g4 w h input in
+    if input <> outputg4 then
+      Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); *)
+    let outputg3 = roundtrip_test_g3 w h input in
+    if input <> outputg3 then 
+      Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3)
+  done
 
 (* PNG and TIFF Predictors *)
 
