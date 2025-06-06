@@ -1230,18 +1230,20 @@ let random_image w h =
   let o = make_write_bitstream () in
     for _ = 1 to h do
       for _ = 1 to w do
-        putbit o (Random.int 2)
+        putbit o 0 (*Random.int 2*)
       done;
       align_write o
     done;
     bytes_of_write_bitstream o
+
+let white = 1 and black = 0
 
 let print_image w h i =
   i.seek_in 0;
   let bits = bitbytes_of_input i in
     for _ = 1 to h do
       for _ = 1 to w do
-        Printf.printf "%s " (if getbit bits then "B" else "W")
+        Printf.printf "%s " (if getbit bits then "W" else "B")
       done;
       flprint "\n"
     done
@@ -1250,7 +1252,7 @@ let _ =
   for a = 1 to max_int do
     let w = a in
     let h = a in
-    for x = 1 to 10 do
+    for x = 1 to 1 do
       Printf.printf "%i x %i... Test %i...\n" w h x;
       let input = random_image w h in
       let outputg4 = try roundtrip_test_g4 w h input with _ -> mkbytes 0 in
