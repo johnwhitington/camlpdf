@@ -1152,39 +1152,41 @@ let encode_ccittg4 columns rows stream =
         let b1 = ref 0 in
         let b2 = ref 0 in
         let find_different pos thisline readline =
+          Printf.printf "find_different pos = %i\n%!" pos;
           (* Scan in thisline from pos+1 to possibly the end (or end+1?). *)
           let pos = ref (pos + 1) in
-            try
-              let colour = if !pos = 0 then white else readline.(!pos - 1) in 
-                while thisline.(!pos) = colour do pos += 1 done; !pos
-            with
-              Invalid_argument _ -> !pos
+          let readfrom line p =
+            if p < 0 then white else
+            if p = Array.length line then not line.(Array.length line - 1) else
+            if p > Array.length line then white else
+            line.(p)
+          in
+            let colour = if !pos = 0 then white else readfrom readline (!pos - 1) in 
+              while readfrom thisline !pos = colour && !pos < Array.length thisline + 1 do pos += 1 done; !pos
         in
         let read_spans () =
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
           a1 := find_different !a0 cl cl;
-          (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
-          a2 := find_different !a1 cl cl;
           (* Find b1, the first position (in reference line) after a0 (in coding line) which has a different colour from a0 (in coding line) *)
           b1 := find_different !a0 rl cl;
           (* Find b2, the first position (in reference line) after b1 (in reference line) which has a different colour from b1 (in reference line) *)
           b2 := find_different !b1 rl rl
         in
         let print_spans () =
-          Printf.printf "a0 %i a1 %i a2 %i b1 %i b2 %i\n" !a0 !a1 !a2 !b1 !b2
+          Printf.printf "a0 %i a1 %i a2 %i b1 %i b2 %i\n%!" !a0 !a1 !a2 !b1 !b2
         in
-        while !a0 <= columns - 1 do
+        while !a0 < columns - 1 do
           read_spans ();
           print_spans ();
           if !b2 < !a1 then
             begin
-              Printf.printf "Pass mode coding\n";
+              Printf.printf "Pass mode coding\n%!";
               iter (putbit o) [0; 0; 0; 1];
               a0 := !b2
             end
           else if abs (!b1 - !a1) <= 3 then
             begin
-              Printf.printf "Vertical mode coding, !b1 - !a1 = %i\n" (!b1 - !a1);
+              Printf.printf "Vertical mode coding, !b1 - !a1 = %i\n%!" (!b1 - !a1);
               begin match !b1 - !a1 with
               | 0 -> iter (putbit o) [1]
               | -1 -> iter (putbit o) [0; 1; 1]
@@ -1199,12 +1201,15 @@ let encode_ccittg4 columns rows stream =
             end
           else
             begin
-              Printf.printf "Horizontal mode coding\n";
+              Printf.printf "Horizontal mode coding\n%!";
+              (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
+              a2 := find_different !a1 cl cl;
               iter (putbit o) [0; 0; 1];
+              (*if cl.(0) = black then iter (putbit o) [0; 0; 1; 1; 0; 1; 0; 1];*)
               begin try iter (putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
               begin try iter (putbit o) (if cl.(!a1) = black then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
-              begin try Printf.printf "%s %i, " (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
-              begin try Printf.printf "%s %i\n" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
+              begin try Printf.printf "%s %i, %!" (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
+              begin try Printf.printf "%s %i\n%!" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
               a0 := !a2
             end
         done;
@@ -1214,6 +1219,7 @@ let encode_ccittg4 columns rows stream =
       mkbytes 0
     with
     | Exit ->
+        iter (putbit o) [0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1];
         align_write o;
         bytes_of_write_bitstream o
     | End_of_file ->
@@ -1230,7 +1236,7 @@ let random_image w h =
   let o = make_write_bitstream () in
     for _ = 1 to h do
       for _ = 1 to w do
-        putbit o (*0*) (Random.int 2)
+        putbit o 0 (*(Random.int 2)*)
       done;
       align_write o
     done;
@@ -1250,7 +1256,7 @@ let print_image w h i =
 
 let _ =
   for a = 1 to max_int do
-    let w = 2 in
+    let w = 1 in
     let h = 1 in
     for x = 1 to 1 do
       Printf.printf "%i x %i... Test %i...\n" w h x;
