@@ -943,6 +943,7 @@ let read_mode i =
 let dcct = ref true
 
 let decode_CCITTFax k eol eba c r eob bone dra input =
+  Printf.printf "**** decode_CCITTFax\n";
   if k > 0 then raise (DecodeNotSupported "CCITTFax k > 0") else
     let whiteval, blackval = if bone then 0, 1 else 1, 0
     in let output = make_write_bitstream () in
@@ -1046,6 +1047,7 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                           end
                     | Vertical n ->
                         if !dcct then Printf.printf "Read: Vertical.\n";
+                        Printf.printf "white is %b\n" !white;
                         output_span
                           (find_b1 () - !column - n)
                           (if !white then whiteval else blackval);
@@ -1139,12 +1141,12 @@ let encode_ccittg4 columns rows stream =
     try
       while true do
         if !rows_left = 0 then raise Exit else
-        Printf.printf "------------------------\n";
+        Printf.printf "------------------------ rows left = %i\n" !rows_left;
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
         (* Read new current line from input *)
         for x = 0 to columns - 1 do cl.(x) <- getbit i done;
-        let a0 = ref 0 in
+        let a0 = ref ~-1 in
         let a1 = ref 0 in
         let a2 = ref 0 in
         let b1 = ref 0 in
@@ -1153,7 +1155,7 @@ let encode_ccittg4 columns rows stream =
           (* Scan in thisline from pos+1 to possibly the end (or end+1?). *)
           let pos = ref (pos + 1) in
             try
-              let colour = readline.(!pos - 1) in 
+              let colour = if !pos = 0 then white else readline.(!pos - 1) in 
                 while thisline.(!pos) = colour do pos += 1 done; !pos
             with
               Invalid_argument _ -> !pos
@@ -1234,16 +1236,30 @@ let random_image w h =
     done;
     bytes_of_write_bitstream o
 
+let print_image w h i =
+  i.seek_in 0;
+  let bits = bitbytes_of_input i in
+    for _ = 1 to h do
+      for _ = 1 to w do
+        Printf.printf "%s " (if getbit bits then "B" else "W")
+      done;
+      flprint "\n"
+    done
+
 let _ =
   for a = 1 to max_int do
-    Printf.printf "%i x %i...\n%!" a a;
     let w = a in
     let h = a in
     for x = 1 to 10 do
+      Printf.printf "%i x %i... Test %i...\n" w h x;
       let input = random_image w h in
-      let outputg4 = roundtrip_test_g4 w h input in
-      (*if input <> outputg4 then*)
-        begin Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4); if input <> outputg4 then exit 2 end;
+      let outputg4 = try roundtrip_test_g4 w h input with _ -> mkbytes 0 in
+      if input <> outputg4 then
+        begin
+          Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4);
+          print_image w h (input_of_bytes input);
+          if input <> outputg4 then exit 2
+        end;
       (*let outputg3 = roundtrip_test_g3 w h input in
       if input <> outputg3 then 
         begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
