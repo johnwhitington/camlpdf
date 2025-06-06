@@ -1230,7 +1230,7 @@ let random_image w h =
   let o = make_write_bitstream () in
     for _ = 1 to h do
       for _ = 1 to w do
-        putbit o 0 (*Random.int 2*)
+        putbit o (*0*) (Random.int 2)
       done;
       align_write o
     done;
@@ -1250,8 +1250,8 @@ let print_image w h i =
 
 let _ =
   for a = 1 to max_int do
-    let w = a in
-    let h = a in
+    let w = 2 in
+    let h = 1 in
     for x = 1 to 1 do
       Printf.printf "%i x %i... Test %i...\n" w h x;
       let input = random_image w h in
