@@ -1184,7 +1184,7 @@ let encode_ccittg4 columns rows stream =
             end
           else if abs (!b1 - !a1) <= 3 then
             begin
-              Printf.printf "Vertical mode coding\n";
+              Printf.printf "Vertical mode coding, !b1 - !a1 = %i\n" (!b1 - !a1);
               begin match !b1 - !a1 with
               | 0 -> iter (putbit o) [1]
               | -1 -> iter (putbit o) [0; 1; 1]
@@ -1255,7 +1255,7 @@ let _ =
     for x = 1 to 1 do
       Printf.printf "%i x %i... Test %i...\n" w h x;
       let input = random_image w h in
-      let outputg4 = try roundtrip_test_g4 w h input with _ -> mkbytes 0 in
+      let outputg4 = (*try*) roundtrip_test_g4 w h input (*with _ -> mkbytes 0*) in
       if input <> outputg4 then
         begin
           Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4);
