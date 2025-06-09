@@ -1158,19 +1158,21 @@ let encode_ccittg4 columns rows stream =
           let readfrom line p =
             if p < 0 then white else
             if p = Array.length line then not line.(Array.length line - 1) else
-            if p > Array.length line then white else
             line.(p)
           in
-            let colour = if !pos = 0 then white else readfrom readline (!pos - 1) in 
+            let colour = if !pos = 0 then white else readfrom readline (!pos - 1) in
               while readfrom thisline !pos = colour && !pos < Array.length thisline + 1 do pos += 1 done; !pos
         in
         let read_spans () =
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
           a1 := find_different !a0 cl cl;
+          Printf.printf "Found a1 at %i\n" !a1;
           (* Find b1, the first position (in reference line) after a0 (in coding line) which has a different colour from a0 (in coding line) *)
           b1 := find_different !a0 rl cl;
+          Printf.printf "Found b1 at %i\n" !b1;
           (* Find b2, the first position (in reference line) after b1 (in reference line) which has a different colour from b1 (in reference line) *)
-          b2 := find_different !b1 rl rl
+          b2 := find_different !b1 rl rl;
+          Printf.printf "Found b2 at %i\n" !b2
         in
         let print_spans () =
           Printf.printf "a0 %i a1 %i a2 %i b1 %i b2 %i\n%!" !a0 !a1 !a2 !b1 !b2
@@ -1225,11 +1227,21 @@ let encode_ccittg4 columns rows stream =
     | End_of_file ->
         raise (Failure "encode_ccittg4: not enough data")
 
-let roundtrip_test_g4 cols rows input =
-  decode_CCITTFax ~-1 false false cols 0 true false 0 (input_of_bytes (encode_ccittg4 cols rows input))
+(* Show all the bits in an input *)
+let debug_bits i =
+  let b = bitbytes_of_input i in
+    try
+      while true do Printf.printf "%s " (if getbit b then "1" else "0") done
+    with _ -> flprint "\n"
 
-let roundtrip_test_g3 cols rows input =
-  decode_CCITTFax 0 false false cols 0 true false 0 (input_of_bytes (encode_ccitt cols rows input)) 
+let roundtrip_test_g4 cols rows (input : input) =
+  flprint "IN: "; debug_bits input;
+  let encoded = input_of_bytes (encode_ccittg4 cols rows (bytes_of_string (string_of_input input))) in
+    flprint "OUT: "; debug_bits encoded;
+    decode_CCITTFax ~-1 false false cols 0 true false 0 encoded
+
+let roundtrip_test_g3 cols rows (input : input) =
+  decode_CCITTFax 0 false false cols 0 true false 0 (input_of_bytes (encode_ccitt cols rows (bytes_of_string (string_of_input input))))
 
 (* Make a random image of given width and height *)
 let random_image w h =
@@ -1261,7 +1273,7 @@ let _ =
     for x = 1 to 1 do
       Printf.printf "%i x %i... Test %i...\n" w h x;
       let input = random_image w h in
-      let outputg4 = (*try*) roundtrip_test_g4 w h input (*with _ -> mkbytes 0*) in
+      let outputg4 = (*try*) roundtrip_test_g4 w h (input_of_bytes input) (*with _ -> mkbytes 0*) in
       if input <> outputg4 then
         begin
           Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4);
