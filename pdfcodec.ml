@@ -1266,7 +1266,7 @@ let print_image w h i =
       flprint "\n"
     done
 
-let _ =
+(*let _ =
   for a = 1 to max_int do
     let w = 1 in
     let h = 1 in
@@ -1284,7 +1284,7 @@ let _ =
       if input <> outputg3 then 
         begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
     done
-  done
+  done*)
 
 (* PNG and TIFF Predictors *)
 
