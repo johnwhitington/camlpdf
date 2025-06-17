@@ -1151,31 +1151,16 @@ let encode_ccittg4 columns rows stream =
         let a2 = ref 0 in
         let b1 = ref 0 in
         let b2 = ref 0 in
-        let find_different pos thisline readline =
-          Printf.printf "find_different pos = %i\n%!" pos;
-          (* Scan in thisline from pos+1 to possibly the end (or end+1?). *)
-          let pos = ref (pos + 1) in
-          let readfrom line p =
-            if p < 0 then white else
-            if p = Array.length line then not line.(Array.length line - 1) else
-            line.(p)
-          in
-            let colour = if !pos = 0 then white else readfrom readline (!pos - 1) in
-              while readfrom thisline !pos = colour && !pos < Array.length thisline + 1 do pos += 1 done; !pos
-        in
         let read_spans () =
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
-          a1 := find_different !a0 cl cl;
-          Printf.printf "Found a1 at %i\n" !a1;
+          a1 := 0;
           (* Find b1, the first position (in reference line) after a0 (in coding line) which has a different colour from a0 (in coding line) *)
-          b1 := find_different !a0 rl cl;
-          Printf.printf "Found b1 at %i\n" !b1;
+          b1 := 0;
           (* Find b2, the first position (in reference line) after b1 (in reference line) which has a different colour from b1 (in reference line) *)
-          b2 := find_different !b1 rl rl;
-          Printf.printf "Found b2 at %i\n" !b2
+          b2 := 0;
         in
         let print_spans () =
-          Printf.printf "a0 %i a1 %i a2 %i b1 %i b2 %i\n%!" !a0 !a1 !a2 !b1 !b2
+          Printf.printf "a0 = %i, a1 = %i, b1 = %i, b2 = %i\n%!" !a0 !a1 !b1 !b2
         in
         while !a0 < columns - 1 do
           read_spans ();
@@ -1205,7 +1190,8 @@ let encode_ccittg4 columns rows stream =
             begin
               Printf.printf "Horizontal mode coding\n%!";
               (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
-              a2 := find_different !a1 cl cl;
+              (* a2 := 0 *)
+              Printf.printf "a2 = %i\n" !a2;
               iter (putbit o) [0; 0; 1];
               (*if cl.(0) = black then iter (putbit o) [0; 0; 1; 1; 0; 1; 0; 1];*)
               begin try iter (putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
@@ -1266,7 +1252,7 @@ let print_image w h i =
       flprint "\n"
     done
 
-(*let _ =
+let _ =
   for a = 1 to max_int do
     let w = 1 in
     let h = 1 in
@@ -1284,7 +1270,7 @@ let print_image w h i =
       if input <> outputg3 then 
         begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
     done
-  done*)
+  done
 
 (* PNG and TIFF Predictors *)
 
