@@ -888,12 +888,15 @@ type modes =
   | EOFB
 
 let read_mode i =
+  (*Printf.printf "read_mode\n";
+  Printf.printf "input length %i, position %i\n" i.input.in_channel_length (i.input.pos_in ());*)
   let a = getbitint i in
     match a with
     | 1 -> Vertical 0
     | _ ->
   let b = getbitint i in
   let c = getbitint i in
+    (*Printf.printf "a, b, c = %i, %i, %i\n" a b c;*)
     match a, b, c with
     | 0, 1, 1 -> Vertical (-1)
     | 0, 1, 0 -> Vertical 1
@@ -940,10 +943,8 @@ let read_mode i =
         end
   | _ -> raise (Failure "Not a valid code")
 
-let dcct = ref true
-
 let decode_CCITTFax k eol eba c r eob bone dra input =
-  Printf.printf "**** decode_CCITTFax\n";
+  (*Printf.printf "**** decode_CCITTFax\n";*)
   if k > 0 then raise (DecodeNotSupported "CCITTFax k > 0") else
     let whiteval, blackval = if bone then 0, 1 else 1, 0
     in let output = make_write_bitstream () in
@@ -1013,6 +1014,7 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
         in
           try
             while true do
+              (*Printf.printf "column = %i, c = %i\n" !column c;*)
               if !column >= c then
                 begin
                   output_line !currline;
@@ -1027,14 +1029,15 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                begin
                   if k < 0 then
                     (* Group 4 *)
+                    begin (*flprint "Group 4 detected\n";*)
                     match read_mode b with
                     | Pass ->
-                        if !dcct then Printf.printf "Read: pass\n";
+                        (*Printf.printf "Read: pass\n";*)
                         output_span
                           (find_b2 () - !column)
                           (if !white then whiteval else blackval)
                     | Horizontal ->
-                        if !dcct then Printf.printf "Read: Horizontal.\n";
+                        (*Printf.printf "Read: Horizontal.\n";*)
                         if !white then
                           begin
                             output_span (read_white_code b) whiteval;
@@ -1046,16 +1049,19 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                             output_span (read_white_code b) whiteval;
                           end
                     | Vertical n ->
-                        if !dcct then Printf.printf "Read: Vertical.\n";
-                        Printf.printf "white is %b\n" !white;
+                        (*Printf.printf "Read: Vertical.\n";
+                        Printf.printf "white is %b\n" !white;*)
                         output_span
                           (find_b1 () - !column - n)
                           (if !white then whiteval else blackval);
                         flip white
                     | EOFB ->
+                        (*flprint "***EOFB\n";*)
                         raise End_of_file
                     | Uncompressed ->
+                        (*flprint "***Uncompressed\n";*)
                         raise (DecodeNotSupported "CCITT Uncompressed")
+                    end
                   else if k = 0 then
                     (* Group 3 *)
                     begin match
@@ -1076,7 +1082,9 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
             done;
             mkbytes 0
           with
-            | End_of_file -> bytes_of_write_bitstream output
+            | End_of_file ->
+                (*flprint "***End_of_file\n";*)
+                bytes_of_write_bitstream output
             | _ -> raise (Failure "Bad CCITT Stream") 
 
 (* CCITT Group 3 encoder *)
@@ -1142,7 +1150,7 @@ let encode_ccittg4 columns rows stream =
     try
       while true do
         if !rows_left = 0 then raise Exit else
-        Printf.printf "------------------------ rows left = %i\n" !rows_left;
+        (*Printf.printf "------------------------ rows left = %i\n" !rows_left;*)
         (* Move current line to reference line *)
         Array.blit cl 0 rl 0 columns;
         (* Read new current line from input *)
@@ -1153,37 +1161,37 @@ let encode_ccittg4 columns rows stream =
         let b1 = ref 0 in
         let b2 = ref 0 in
         let read l p =
-          Printf.printf "read %i\n%!" p;
+          (*Printf.printf "read %i\n%!" p;*)
           if p = ~-1 then white else
           if p >= Array.length l then not l.(Array.length l - 1) else
           try l.(p) with _ -> raise (Failure "out of range / encode_ccittg4")
         in
-        Printf.printf "Beginning of while loop\n%!";
+        (*Printf.printf "Beginning of while loop\n%!";*)
         while !a0 < columns - 1 do
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
           let a0_colour_cl = read cl !a0 in
-          Printf.printf "a0_colour_cl = %s\n%!" (colstr a0_colour_cl);
+          (*Printf.printf "a0_colour_cl = %s\n%!" (colstr a0_colour_cl);*)
           a1 := !a0 + 1;
-          while let r = read cl !a1 in Printf.printf "read colour %s\n%!" (colstr r); r = a0_colour_cl do a1 += 1 done;
-          Printf.printf "a1 = %i\n%!" !a1;
+          while let r = read cl !a1 in (*Printf.printf "read colour %s\n%!" (colstr r);*) r = a0_colour_cl do a1 += 1 done;
+          (*Printf.printf "a1 = %i\n%!" !a1;*)
           (* Find b1, the first position (in reference line) after a0 which has a different colour from a0 (in coding line) *)
           b1 := min (Array.length cl) (!a0 + 1);
           while !b1 < Array.length rl && read rl !b1 = a0_colour_cl do b1 += 1 done;
-          Printf.printf "b1 = %i\n%!" !b1;
+          (*Printf.printf "b1 = %i\n%!" !b1;*)
           let b1_colour_rl = read rl !b1 in
           (* Find b2, the first position (in reference line) after b1 (which has a different colour from b1 (in reference line) *)
           b2 := min (Array.length cl) (!b1 + 1);
           while !b2 < Array.length rl && read rl !b2 = b1_colour_rl do b2 += 1 done;
-          Printf.printf "b2 = %i\n%!" !b2;
+          (*Printf.printf "b2 = %i\n%!" !b2;*)
           if !b2 < !a1 then
             begin
-              Printf.printf "Pass mode coding\n%!";
+              (*Printf.printf "Pass mode coding\n%!";*)
               iter (putbit o) [0; 0; 0; 1];
               a0 := !b2
             end
           else if abs (!b1 - !a1) <= 3 then
             begin
-              Printf.printf "Vertical mode coding, !b1 - !a1 = %i\n%!" (!b1 - !a1);
+              (*Printf.printf "Vertical mode coding, !b1 - !a1 = %i\n%!" (!b1 - !a1);*)
               begin match !b1 - !a1 with
               | 0 -> iter (putbit o) [1]
               | -1 -> iter (putbit o) [0; 1; 1]
@@ -1198,18 +1206,18 @@ let encode_ccittg4 columns rows stream =
             end
           else
             begin
-              Printf.printf "Horizontal mode coding\n%!";
+              (*Printf.printf "Horizontal mode coding\n%!";*)
               (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
               let a1_color_cl = read cl !a1 in
               a2 := !a1 + 1;
               while read cl !a2 = a1_color_cl do a2 += 1 done;
-              Printf.printf "a2 = %i\n" !a2;
+              (*Printf.printf "a2 = %i\n" !a2;*)
               iter (putbit o) [0; 0; 1];
               (*if cl.(0) = black then iter (putbit o) [0; 0; 1; 1; 0; 1; 0; 1];*)
               begin try iter (putbit o) (if cl.(!a0) = black then write_black_code (!a1 - !a0) else write_white_code (!a1 - !a0)) with _ -> flprint "Error\n" end;
               begin try iter (putbit o) (if cl.(!a1) = black then write_black_code (!a2 - !a1) else write_white_code (!a2 - !a1)) with _ -> flprint "Error2\n" end;
-              begin try Printf.printf "%s %i, %!" (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
-              begin try Printf.printf "%s %i\n%!" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;
+             (* begin try Printf.printf "%s %i, %!" (if cl.(!a0) = black then "black" else "white") (!a1 - !a0) with _ -> () end;
+              begin try Printf.printf "%s %i\n%!" (if cl.(!a1) = black then "black" else "white") (!a2 - !a1) with _ -> () end;*)
               a0 := !a2
             end
         done;
@@ -1228,14 +1236,17 @@ let encode_ccittg4 columns rows stream =
 (* Show all the bits in an input *)
 let debug_bits i =
   let b = bitbytes_of_input i in
+  let pos = bitstream_pos b in
     try
       while true do Printf.printf "%s " (if getbit b then "1" else "0") done
-    with _ -> flprint "\n"
+    with _ -> 
+      bitstream_seek b pos;
+      flprint "\n"
 
 let roundtrip_test_g4 cols rows (input : input) =
-  flprint "IN: "; debug_bits input;
+  (*flprint "IN: "; debug_bits input;*)
   let encoded = input_of_bytes (encode_ccittg4 cols rows (bytes_of_string (string_of_input input))) in
-    flprint "OUT: "; debug_bits encoded;
+    (*flprint "OUT: "; debug_bits encoded;*)
     decode_CCITTFax ~-1 false false cols 0 true false 0 encoded
 
 let roundtrip_test_g3 cols rows (input : input) =
@@ -1246,7 +1257,7 @@ let random_image w h =
   let o = make_write_bitstream () in
     for _ = 1 to h do
       for _ = 1 to w do
-        putbit o 0 (*(Random.int 2)*)
+        putbit o 1 (*(Random.int 2)*)
       done;
       align_write o
     done;
@@ -1261,28 +1272,31 @@ let print_image w h i =
       for _ = 1 to w do
         Printf.printf "%s " (if getbit bits then "W" else "B")
       done;
+      align bits;
       flprint "\n"
     done
 
 let _ =
   for a = 1 to max_int do
-    let w = 1 in
-    let h = 1 in
-    for x = 1 to 1 do
-      Printf.printf "%i x %i... Test %i...\n" w h x;
-      let input = random_image w h in
-      let outputg4 = (*try*) roundtrip_test_g4 w h (input_of_bytes input) (*with _ -> mkbytes 0*) in
-      if input <> outputg4 then
-        begin
-          Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4);
-          print_image w h (input_of_bytes input);
-          if input <> outputg4 then exit 2
-        end;
-      (*let outputg3 = roundtrip_test_g3 w h input in
-      if input <> outputg3 then 
-        begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
-    done
-  done
+    (*for w = 1 to a do
+      for h = 1 to a do*) let w = a and h = a in
+        for x = 1 to 1 do
+          Printf.printf "%i x %i... Test %i...\n%!" w h x;
+          let input = random_image w h in
+          (*print_image w h (input_of_bytes input);*)
+          let outputg4 = (*try*) roundtrip_test_g4 w h (input_of_bytes input) (*with _ -> mkbytes 0*) in
+          if input <> outputg4 then
+            begin
+              Printf.printf "Input: %S --> G4 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg4);
+              if input <> outputg4 then exit 2
+            end;
+          (*let outputg3 = roundtrip_test_g3 w h input in
+          if input <> outputg3 then 
+            begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
+        done
+      done
+   (* done
+  done*)
 
 (* PNG and TIFF Predictors *)
 
