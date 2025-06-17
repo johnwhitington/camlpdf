@@ -1151,13 +1151,23 @@ let encode_ccittg4 columns rows stream =
         let a2 = ref 0 in
         let b1 = ref 0 in
         let b2 = ref 0 in
+        let read l p =
+          if p = ~-1 then white else
+          if p >= Array.length l then not l.(p - 1) else
+          try l.(p) with _ -> raise (Failure "out of range / encode_ccittg4")
+        in
         let read_spans () =
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
-          a1 := 0;
-          (* Find b1, the first position (in reference line) after a0 (in coding line) which has a different colour from a0 (in coding line) *)
-          b1 := 0;
-          (* Find b2, the first position (in reference line) after b1 (in reference line) which has a different colour from b1 (in reference line) *)
-          b2 := 0;
+          let a0_colour_cl = read cl !a0 in
+          a1 := !a0 + 1;
+          while cl.(!a1) = a0_colour_cl do a1 += 1 done;
+          (* Find b1, the first position (in reference line) after a0 which has a different colour from a0 (in coding line) *)
+          b1 := !a0 + 1;
+          while rl.(!b1) = a0_colour_cl do b1 += 1 done;
+          let b1_colour_rl = read rl !b1 in
+          (* Find b2, the first position (in reference line) after b1 (which has a different colour from b1 (in reference line) *)
+          b2 := !b1 + 1;
+          while rl.(!b2) = b1_colour_rl do b2 += 1 done
         in
         let print_spans () =
           Printf.printf "a0 = %i, a1 = %i, b1 = %i, b2 = %i\n%!" !a0 !a1 !b1 !b2
@@ -1190,7 +1200,9 @@ let encode_ccittg4 columns rows stream =
             begin
               Printf.printf "Horizontal mode coding\n%!";
               (* Find a2, the first position (in coding line) which has a different colour from the new a1. (in coding line) *)
-              (* a2 := 0 *)
+              let a1_color_cl = read cl !a1 in
+              a2 := !a1 + 1;
+              while cl.(!a2) = a1_color_cl do a2 += 1 done;
               Printf.printf "a2 = %i\n" !a2;
               iter (putbit o) [0; 0; 1];
               (*if cl.(0) = black then iter (putbit o) [0; 0; 1; 1; 0; 1; 0; 1];*)
