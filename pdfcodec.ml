@@ -1255,9 +1255,10 @@ let roundtrip_test_g3 cols rows (input : input) =
 (* Make a random image of given width and height *)
 let random_image w h =
   let o = make_write_bitstream () in
-    for _ = 1 to h do
-      for _ = 1 to w do
-        putbit o 1 (*(Random.int 2)*)
+    for y = 1 to h do
+      for x = 1 to w do
+        if x = 1 then putbit o 1 else
+        putbit o (Random.int 2);
       done;
       align_write o
     done;
@@ -1283,7 +1284,7 @@ let _ =
         for x = 1 to 1 do
           Printf.printf "%i x %i... Test %i...\n%!" w h x;
           let input = random_image w h in
-          (*print_image w h (input_of_bytes input);*)
+          print_image w h (input_of_bytes input);
           let outputg4 = (*try*) roundtrip_test_g4 w h (input_of_bytes input) (*with _ -> mkbytes 0*) in
           if input <> outputg4 then
             begin
