@@ -1277,7 +1277,7 @@ let print_image w h i =
       flprint "\n"
     done
 
-let _ =
+(*let _ =
   for a = 1 to max_int do
     (*for w = 1 to a do
       for h = 1 to a do*) let w = a and h = a in
@@ -1297,7 +1297,7 @@ let _ =
         done
       done
    (* done
-  done*)
+  done*)*)
 
 (* PNG and TIFF Predictors *)
 

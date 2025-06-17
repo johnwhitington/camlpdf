@@ -779,8 +779,7 @@ let page_reference_numbers pdf =
 
 (* Renumber an object given a change table (A hash table mapping old to new
 numbers). *)
-let rec renumber_object_parsed (pdf : t) changes obj =
-  match obj with
+let rec renumber_object_parsed pdf changes = function
   | Indirect i ->
       let i' =
         match tryfind changes i with
@@ -796,14 +795,32 @@ let rec renumber_object_parsed (pdf : t) changes obj =
       Stream {contents = renumber_object_parsed pdf changes p, s}
   | pdfobject -> pdfobject
 
+let rec check_object_contains_renumbering changes = function
+  | Indirect i ->
+      begin match tryfind changes i with | Some x -> true | None -> false end
+  | Array a ->
+      List.exists (check_object_contains_renumbering changes) a
+  | Dictionary d ->
+      List.exists (fun (_, x) -> check_object_contains_renumbering changes x) d
+  | Stream {contents = (Dictionary p, _)} ->
+      List.exists (fun (_, x) -> check_object_contains_renumbering changes x) p
+  | pdfobject -> false
+
+(* FIXME This new check seems to lead to larger (but vastly faster) squeezes.
+   Is it correct? Why does the squeezed one contain more objects. e.g
+   pdfs/large/toolong... To debug, could be renumber it anyway and check for
+   equality? *)
+(* FIXME Maybe it is correct, but the fact that dictionaries are getting reversed is the problem? Before, they all got reversed. But now only the processed ones will. Aha! So we need to keep the order of dictionaries when doing the changes after detecting them. Or, better, detect equality properly on dictionaries - something the PDF standard says we should do anyway. *)
+
 let renumber_object pdf changes objnum = function
   | ToParse -> 
-      renumber_object_parsed pdf changes (parse_lazy pdf objnum)
+      let o = parse_lazy pdf objnum in
+        if check_object_contains_renumbering changes o then renumber_object_parsed pdf changes o else o
   | ToParseFromObjectStream (themap, s, _, func) ->
-      renumber_object_parsed
-        pdf changes (parse_delayed_object_stream themap objnum s pdf func)
+      let o = parse_delayed_object_stream themap objnum s pdf func in
+        if check_object_contains_renumbering changes o then renumber_object_parsed pdf changes o else o
   | Parsed obj | ParsedAlreadyDecrypted obj ->
-      renumber_object_parsed pdf changes obj
+      if check_object_contains_renumbering changes obj then renumber_object_parsed pdf changes obj else obj
 
 (* Renumber a PDF's objects to 1...n. *)
 
