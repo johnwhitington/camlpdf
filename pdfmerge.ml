@@ -615,7 +615,7 @@ let merge_pdfs retain_numbering do_remove_duplicate_fonts ?(process_struct_trees
       in
         let changes = combine old_page_numbers new_page_numbers in
           Pdf.objselfmap
-          (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
+          (Pdf.renumber_object_parsed ~preserve_order:false pdf (hashtable_of_dictionary changes))
           pdf;
    let pdf = {pdf with Pdf.major = major'; Pdf.minor = minor'} in
      let pdf = merge_bookmarks changes pdfs ranges pdf in

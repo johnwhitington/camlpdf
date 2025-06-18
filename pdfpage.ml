@@ -802,7 +802,7 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
                          _ -> raise (Pdf.PDFError "change_pages: bad serial number")
                 in
                   Pdf.objselfmap
-                    (Pdf.renumber_object_parsed pdf (hashtable_of_dictionary changes))
+                    (Pdf.renumber_object_parsed ~preserve_order:false pdf (hashtable_of_dictionary changes))
                     pdf;
                   match matrices with
                     None -> pdf

@@ -251,7 +251,7 @@ val objnumbers : t -> int list
 
 (** Use the given function on each element of a PDF dictionary. *)
 val recurse_dict :
-  (pdfobject -> pdfobject) -> (string * pdfobject) list -> pdfobject 
+  ?preserve_order:bool -> (pdfobject -> pdfobject) -> (string * pdfobject) list -> pdfobject 
 
 (** Similarly for an [Array]. The function is applied to each element. *)
 val recurse_array :
@@ -261,10 +261,10 @@ val recurse_array :
 val changes : t -> (int, int) Hashtbl.t
 
 (** Perform the given renumberings on a PDF. *)
-val renumber : (int, int) Hashtbl.t -> t -> t
+val renumber : ?preserve_order : bool -> (int, int) Hashtbl.t -> t -> t
 
 (** Renumber an object given a change table. *)
-val renumber_object_parsed : t -> (int, int) Hashtbl.t -> pdfobject -> pdfobject
+val renumber_object_parsed : preserve_order:bool -> t -> (int, int) Hashtbl.t -> pdfobject -> pdfobject
 
 (** Fetch a stream, if necessary, and return its contents (with no processing). *)
 val bigarray_of_stream : pdfobject -> Pdfio.bytes

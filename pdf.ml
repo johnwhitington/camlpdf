@@ -274,13 +274,12 @@ let recurse_array (f : pdfobject -> pdfobject) elts =
   Array (map f elts)
 
 (* Similarly for dictionaries. *)
-let rec recurse_dict_inner f prev = function
-  | [] -> prev
-  | (n, o)::t -> recurse_dict_inner f ((n, f o)::prev) t
+let rec recurse_dict_inner preserve_order f prev = function
+  | [] -> if preserve_order then rev prev else prev
+  | (n, o)::t -> recurse_dict_inner preserve_order f ((n, f o)::prev) t
 
-let recurse_dict (f : pdfobject -> pdfobject) elts =
-  Dictionary (recurse_dict_inner f [] elts)
-
+let recurse_dict ?(preserve_order=false) f elts =
+  Dictionary (recurse_dict_inner preserve_order f [] elts)
 
 let change_obj doc i obj =
   fst (pdfobjmap_find i doc.objects.pdfobjects) := Parsed obj
@@ -779,7 +778,7 @@ let page_reference_numbers pdf =
 
 (* Renumber an object given a change table (A hash table mapping old to new
 numbers). *)
-let rec renumber_object_parsed pdf changes = function
+let rec renumber_object_parsed ~preserve_order pdf changes = function
   | Indirect i ->
       let i' =
         match tryfind changes i with
@@ -788,11 +787,11 @@ let rec renumber_object_parsed pdf changes = function
       in
         Indirect i'
   | Array a ->
-      recurse_array (renumber_object_parsed pdf changes) a
+      recurse_array (renumber_object_parsed ~preserve_order pdf changes) a
   | Dictionary d ->
-      recurse_dict (renumber_object_parsed pdf changes) d
+      recurse_dict ~preserve_order (renumber_object_parsed ~preserve_order pdf changes) d
   | Stream {contents = (p, s)} ->
-      Stream {contents = renumber_object_parsed pdf changes p, s}
+      Stream {contents = renumber_object_parsed ~preserve_order pdf changes p, s}
   | pdfobject -> pdfobject
 
 let rec check_object_contains_renumbering changes = function
@@ -806,21 +805,15 @@ let rec check_object_contains_renumbering changes = function
       List.exists (fun (_, x) -> check_object_contains_renumbering changes x) p
   | pdfobject -> false
 
-(* FIXME This new check seems to lead to larger (but vastly faster) squeezes.
-   Is it correct? Why does the squeezed one contain more objects. e.g
-   pdfs/large/toolong... To debug, could be renumber it anyway and check for
-   equality? *)
-(* FIXME Maybe it is correct, but the fact that dictionaries are getting reversed is the problem? Before, they all got reversed. But now only the processed ones will. Aha! So we need to keep the order of dictionaries when doing the changes after detecting them. Or, better, detect equality properly on dictionaries - something the PDF standard says we should do anyway. *)
-
-let renumber_object pdf changes objnum = function
+let renumber_object ?(preserve_order=false) pdf changes objnum = function
   | ToParse -> 
       let o = parse_lazy pdf objnum in
-        if check_object_contains_renumbering changes o then renumber_object_parsed pdf changes o else o
+        if check_object_contains_renumbering changes o then renumber_object_parsed ~preserve_order pdf changes o else o
   | ToParseFromObjectStream (themap, s, _, func) ->
       let o = parse_delayed_object_stream themap objnum s pdf func in
-        if check_object_contains_renumbering changes o then renumber_object_parsed pdf changes o else o
+        if check_object_contains_renumbering changes o then renumber_object_parsed ~preserve_order pdf changes o else o
   | Parsed obj | ParsedAlreadyDecrypted obj ->
-      if check_object_contains_renumbering changes obj then renumber_object_parsed pdf changes obj else obj
+      if check_object_contains_renumbering changes obj then renumber_object_parsed ~preserve_order pdf changes obj else obj
 
 (* Renumber a PDF's objects to 1...n. *)
 
@@ -833,15 +826,15 @@ let changes pdf =
       change_table
       
 (* Perform all renumberings given by a change table. *)
-let renumber change_table pdf =
+let renumber ?(preserve_order=false) change_table pdf =
   let root' =
     match tryfind change_table pdf.root with Some x -> x | None -> pdf.root
   and trailerdict' =
-    renumber_object pdf change_table 0 (Parsed pdf.trailerdict)
+    renumber_object ~preserve_order pdf change_table 0 (Parsed pdf.trailerdict)
   and objects' =
     let nums, objs = split (list_of_objs pdf) in
       let objs' =
-        map2 (renumber_object pdf change_table) nums objs
+        map2 (renumber_object ~preserve_order pdf change_table) nums objs
       in let nums' =
         map
           (function k ->
