@@ -1309,6 +1309,22 @@ let sanitize_trailerdict l trailerdict =
    structures here - should we split the xref table into two instead of
    splitting it into plain / stream ones on-the-fly all the time? Also,
    generally too many lists. *)
+type failed_decryption_read_info =
+  {mutable saved_encryption : Pdf.saved_encryption option;
+   mutable id0 : string option;
+   mutable id1 : string option}
+
+let fdri =
+  {saved_encryption = None;
+   id0 = None;
+   id1 = None}
+
+(* If a file cannot be read because a password is needed even to parse a stream
+   which must be parsed to read the file, cpdf -info cannot even report the
+   type of encryption and the encryption parameters. So, we set up a place here
+   for this information to be stored in such a case. Then after a failed call,
+   Cpdf can pick up the information. Hacky, yes, but the only way to do it
+   without reworking the file-reading architecture for this one edge case. *)
 
 (* Read a PDF from a channel. If [opt], streams are read immediately into
 memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest

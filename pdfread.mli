@@ -1,5 +1,12 @@
 (** Reading PDF Files *)
 
+type failed_decryption_read_info =
+  {mutable saved_encryption : Pdf.saved_encryption option;
+   mutable id0 : string option;
+   mutable id1 : string option}
+
+val fdri : failed_decryption_read_info
+
 (** Read a PDF from a [Pdfio.input], with an optional user password which, if
 absent, is assumed to be the empty string, and optional owner password. *)
 val pdf_of_input : ?revision:int -> string option -> string option -> Pdfio.input -> Pdf.t
