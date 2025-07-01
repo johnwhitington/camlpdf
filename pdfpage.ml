@@ -1040,6 +1040,7 @@ let replace_inherit pdf objnumbers =
     objnumbers
 
 let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) basepdf range =
+  if range = [] then raise (Pdf.PDFError "pdf_of_pages: cannot build PDF with no pages") else
   let page_labels =
     if length (Pdfpagelabels.read basepdf) = 0 then [] else
       if retain_numbering
