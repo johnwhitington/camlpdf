@@ -685,6 +685,8 @@ val leafnames_of_dir : string -> string list
 (** Return the contents of a (binary) file as a string *)
 val contents_of_file : string -> string
 
+val contents_to_file : filename:string -> string -> unit
+
 (** {2 Roman numerals} *)
 
 (** Uppercase roman representation of a number *)

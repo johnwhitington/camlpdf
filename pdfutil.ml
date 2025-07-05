@@ -1283,6 +1283,11 @@ let contents_of_file filename =
     with
       e -> close_in ch; raise e
 
+let contents_to_file ~filename str =
+  let fh = open_out_bin filename in
+    output_string fh str;
+    close_out fh
+
 (* A clock for debugging huge files without needing the Unix module.
 Does not work on Windows. Needs GNU version of POSIX date command (gdate
 with homebrew on MacOS). *)
