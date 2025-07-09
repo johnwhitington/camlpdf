@@ -20,8 +20,8 @@ let rec read_name_tree pdf tree =
     | _ -> names
 
 (* A malformed PDF with duplicate keys will cause problems e.g in merging. We
-   remove them. NB the assumption the tree is still properly ordered remains.
-   *)
+   remove them. Functions calling this will also pre-sort to make sure a
+   malformed un-ordered tree will have all its duplicates removed. *)
 let rec remove_duplicates = function
   | (k, _)::((k', _) as h)::t when k = k' ->
       Pdfe.log "Warning Duplicate name/number tree key (malformed file). Discarding.\n";
@@ -30,7 +30,7 @@ let rec remove_duplicates = function
   | [] -> []
 
 let read_number_tree pdf tree =
-  let r = remove_duplicates (read_name_tree pdf tree) in
+  let r = remove_duplicates (sort compare (read_name_tree pdf tree)) in
     try
       map (function (Pdf.Integer i, x) -> (string_of_int i, x) | _ -> raise Exit) r
     with
@@ -39,7 +39,7 @@ let read_number_tree pdf tree =
         []
 
 let read_name_tree pdf tree =
-  let r = remove_duplicates (read_name_tree pdf tree) in
+  let r = remove_duplicates (sort compare (read_name_tree pdf tree)) in
     try
       map (function (Pdf.String s, x) -> (s, x) | _ -> raise Exit) r
     with

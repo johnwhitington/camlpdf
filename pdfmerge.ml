@@ -398,7 +398,7 @@ let merge_pdfs_rename_name_trees names pdfs =
        | (pdf, None) -> (pdf, []))
       pdfs_and_nametrees
   in
-  (*if !mdebug then iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n") names;*)
+  if !mdebug then iter (fun (_, ns) -> iter (fun n -> Printf.printf "%s\n" n) ns; Printf.printf "\n%!") names;
   (* Calculate the changes e.g (pdf, "section", "section-f1") *)
   let num = ref ~-1 in
   let worked l =
