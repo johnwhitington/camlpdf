@@ -5,6 +5,7 @@ o CCITT Group 3 and Group 4 encoders
 o New Pdf.remove_chain
 o Check object requires renumbering before doing so (speed)
 o Allow extraction of encryption when lack of password prevents reading
+o Repair name/number trees with duplicate keys (better)
 
 2.8.1 (April 2025)
 

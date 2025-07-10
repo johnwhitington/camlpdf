@@ -183,6 +183,7 @@ let renumber_parent_trees pdfs =
       pdfs*)
 
 (* If add_toplevel_document is true, we add a PDF/UA-2 top-level /Document at the top of the structure tree. *)
+(* FIXME This does not know about names e.g a.pdf 1-5 b.pdf a.pdf 6-end. Should it? *)
 let merge_structure_trees ?(add_toplevel_document=false) pdf pdfs =
   let get_all struct_tree_roots pdf name =
     option_map
