@@ -893,7 +893,7 @@ two reasons:
 
 (* Given a number n, of a page node, copy it to a new object, and rewrite all
 but the first instance in the page tree to that new number. *)
-exception RewriteDone
+(*exception RewriteDone
 
 (* Rewrite first instance of an indirect in an array of such. *)
 let rec rewrite_first_kid m n = function
@@ -972,7 +972,9 @@ let fixup_parents pdf =
   let root = Pdf.lookup_obj pdf pdf.Pdf.root in
     match Pdf.indirect_number pdf "/Pages" root with
       Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
-    | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
+    | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")*)
+
+let new_fixup_duplicate_pages pdf = ()
 
 (* Page-nulling will have left us with a /Dests tree with some destinations
    pointing to null pages. This can be a problem when pulling apart and
@@ -1152,8 +1154,9 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = add_root old_pagetree_root_num existing_root_entries pdf in
                   Pdfpagelabels.write pdf page_labels;
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
-                    fixup_duplicate_pages pdf;
-                    fixup_parents pdf;
+                    (*fixup_duplicate_pages pdf;
+                    fixup_parents pdf;*)
+                    new_fixup_duplicate_pages pdf;
                     fixup_destinations pdf;
                     pdf
 
