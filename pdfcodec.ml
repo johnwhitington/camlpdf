@@ -1259,8 +1259,8 @@ let random_image w h =
   let o = make_write_bitstream () in
     for y = 1 to h do
       for x = 1 to w do
-        (*if x = 1 then putbit o 1 else*)
-        putbit o 0;
+        if x = 1 then putbit o 1 else
+        putbit o (Random.int 2);
       done;
       align_write o
     done;
@@ -1280,10 +1280,10 @@ let print_image w h i =
     done
 
 let _ =
-  let a = 8 in
+  let a = 2000 in
   (*for a = 1 to max_int do*)
-    (*for w = 1 to a do
-      for h = 1 to a do*) let w = a and h = a in
+    for w = 4 to 20 do
+      for h = 1 to 20 do
         for x = 1 to 1 do
           Printf.printf "%i x %i... Test %i...\n%!" w h x;
           let input = random_image w h in
@@ -1298,9 +1298,9 @@ let _ =
           if input <> outputg3 then 
             begin Printf.printf "Input: %S --> G3 failed with %S\n" (string_of_bytes input) (string_of_bytes outputg3); if input <> outputg3 then exit 2 end*)
         done
-      (*done*)
-   (* done
-  done*)
+      done
+   done
+  (*done*)
 
 (* PNG and TIFF Predictors *)
 
