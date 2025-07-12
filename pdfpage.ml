@@ -974,6 +974,10 @@ let fixup_parents pdf =
       Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
     | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")*)
 
+(* New simpler, better procedure. We find all the indirects in the parent tree
+   which point to a page and copy objects to rewrite any duplicates (leaving the
+   first one alone).  In addition, we must duplicate any annots when copying a
+   page, because annots are not allows to be shared between pages. *)
 let new_fixup_duplicate_pages pdf = ()
 
 (* Page-nulling will have left us with a /Dests tree with some destinations
