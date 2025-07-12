@@ -1167,23 +1167,23 @@ let encode_ccittg4 columns rows stream =
           if p >= Array.length l then not l.(Array.length l - 1) else
           try l.(p) with _ -> raise (Failure "out of range / encode_ccittg4")
         in
-        Printf.printf "Beginning of while loop\n%!";
-        while !a0 < columns - 1 do
+        Printf.printf "Beginning of while loop, a0 = %i\n%!" !a0;
+        while !a0 < columns do
           (* Find a1, the first position (in coding line) which has a different colour from a0. (in coding line) *)
           let a0_colour_cl = read cl !a0 in
           (*Printf.printf "a0_colour_cl = %s\n%!" (colstr a0_colour_cl);*)
           a1 := !a0 + 1;
           while let r = read cl !a1 in (*Printf.printf "read colour %s\n%!" (colstr r);*) r = a0_colour_cl do a1 += 1 done;
-          (*Printf.printf "a1 = %i\n%!" !a1;*)
+          Printf.printf "a1 = %i\n%!" !a1;
           (* Find b1, the first position (in reference line) after a0 which has a different colour from a0 (in coding line) *)
           b1 := min (Array.length cl) (!a0 + 1);
           while !b1 < Array.length rl && read rl !b1 = a0_colour_cl do b1 += 1 done;
-          (*Printf.printf "b1 = %i\n%!" !b1;*)
+          Printf.printf "b1 = %i\n%!" !b1;
           let b1_colour_rl = read rl !b1 in
           (* Find b2, the first position (in reference line) after b1 (which has a different colour from b1 (in reference line) *)
           b2 := min (Array.length cl) (!b1 + 1);
           while !b2 < Array.length rl && read rl !b2 = b1_colour_rl do b2 += 1 done;
-          (*Printf.printf "b2 = %i\n%!" !b2;*)
+          Printf.printf "b2 = %i\n%!" !b2;
           if !b2 < !a1 then
             begin
               Printf.printf "Pass mode coding\n%!";
@@ -1259,8 +1259,9 @@ let random_image w h =
   let o = make_write_bitstream () in
     for y = 1 to h do
       for x = 1 to w do
-        if x = 1 then putbit o 1 else
-        putbit o (Random.int 2);
+        (*if x = 1 then putbit o 1 else
+        putbit o (Random.int 2);*)
+        putbit o 0
       done;
       align_write o
     done;
@@ -1282,8 +1283,8 @@ let print_image w h i =
 let _ =
   let a = 2000 in
   (*for a = 1 to max_int do*)
-    for w = 4 to 20 do
-      for h = 1 to 20 do
+    for w = 1 to 3 do
+      for h = 1 to 1 do
         for x = 1 to 1 do
           Printf.printf "%i x %i... Test %i...\n%!" w h x;
           let input = random_image w h in
