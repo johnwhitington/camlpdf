@@ -1280,7 +1280,7 @@ let print_image w h i =
       flprint "\n"
     done
 
-let _ =
+(*let _ =
   let a = 2000 in
   (*for a = 1 to max_int do*)
     for w = 1 to 3 do
@@ -1301,7 +1301,7 @@ let _ =
         done
       done
    done
-  (*done*)
+  (*done*)*)
 
 (* PNG and TIFF Predictors *)
 
