@@ -122,21 +122,21 @@ let needs_processing s =
 let b = Buffer.create 30
 
 let make_pdf_name n =
-  if needs_processing n then
-    if n = "" || String.unsafe_get n 0 <> '/' then
-      begin
-        Pdfe.log "warning: bad name";
-        "/"
-      end
-    else
+  if String.length n = 0 || String.unsafe_get n 0 <> '/' then
+    begin
+      Pdfe.log (Printf.sprintf "warning: bad name |%s|\n" n);
+      "/"
+    end
+  else
+    if needs_processing n then
       begin
         Buffer.clear b;
         Buffer.add_char b '/';
         make_pdf_name_inner b n;
         Buffer.contents b
       end
-  else
-    n
+    else
+      n
 
 (* Calculate a strings and streams representing the given pdf datatype instance,
 assuming it has no unresolved indirect references. *)
