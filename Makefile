@@ -10,7 +10,7 @@ SOURCES = flatestubs.c rijndael-alg-fst.c stubs-aes.c sha2.c stubs-sha2.c \
 
 RESULT = camlpdf
 
-CFLAGS = -o2 -g
+CFLAGS = -g
 OCAMLFLAGS = -bin-annot
 OCAMLNCFLAGS = -g -safe-string
 OCAMLBCFLAGS = -g -safe-string
