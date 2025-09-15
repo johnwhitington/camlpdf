@@ -57,9 +57,8 @@ let glyphmap =
 
 let name_to_pdf =
   [
-  (* New items from ISO Standard D.3... These appear in annotation text, even though it's a text string. *)
-  (* FIXME: Should we add all the codepoints, even those called undefined, to allow failures to be tracked? *)
-  "/controlCR", 0o015; "/controlLF", 0o012; "/controlHT", 0o013;
+  (* New items from ISO Standard D.3 ... These appear in annotation text, even though it's a text string. *)
+  "/controlCR", 0o015; "/controlLF", 0o012; "/controlHT", 0o011; "/controlFF", 0o014;
   (* Original items from 1.6 spec *)
   "/A", 0o101; "/AE", 0o306; "/Aacute", 0o301; "/Acircumflex", 0o302;
   "/Adieresis", 0o304; "/Agrave", 0o300; "/Aring", 0o305; "/Atilde", 0o303;

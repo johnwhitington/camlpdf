@@ -944,7 +944,7 @@ let read_mode i =
   | _ -> raise (Failure "Not a valid code")
 
 let decode_CCITTFax k eol eba c r eob bone dra input =
-  Printf.printf "**** decode_CCITTFax, k = %i\n" k;
+  (*Printf.printf "**** decode_CCITTFax, k = %i\n" k;*)
   if k > 0 then raise (DecodeNotSupported "CCITTFax k > 0") else
     let whiteval, blackval = if bone then 0, 1 else 1, 0
     in let output = make_write_bitstream () in
@@ -1014,11 +1014,11 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
         in
           try
             while true do
-              flprint "--------------------------------------\n";
-              Printf.printf "column = %i, c = %i, k = %i\n" !column c k;
+              (*flprint "--------------------------------------\n";
+              Printf.printf "column = %i, c = %i, k = %i\n" !column c k;*)
               if !column >= c then
                 begin
-                  flprint "!column > c\n";
+                  (*flprint "!column > c\n";*)
                   output_line !currline;
                   refline := !currline;
                   column := 0;
@@ -1033,31 +1033,31 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
                     (* Group 4 *)
                     begin match read_mode b with
                     | Pass ->
-                        Printf.printf "Read: pass\n";
+                        (*Printf.printf "Read: pass\n";*)
                         output_span
                           (find_b2 () - !column)
                           (if !white then whiteval else blackval)
                     | Horizontal ->
-                        Printf.printf "Read: Horizontal.\n";
+                        (*Printf.printf "Read: Horizontal.\n";*)
                         if !white then
                           begin
-                            output_span (let x = read_white_code b in Printf.printf "It's white, read white code %i\n" x; x) whiteval;
-                            output_span (let x = read_black_code b in Printf.printf "It's white, read black code %i\n" x; x) blackval;
+                            output_span (let x = read_white_code b in (*Printf.printf "It's white, read white code %i\n" x;*) x) whiteval;
+                            output_span (let x = read_black_code b in (*Printf.printf "It's white, read black code %i\n" x;*) x) blackval;
                           end
                         else
                           begin
-                            output_span (let x = read_black_code b in Printf.printf "It's black, read black code %i\n" x; x) blackval;
-                            output_span (let x = read_white_code b in Printf.printf "It's black, read white code %i\n" x; x) whiteval;
+                            output_span (let x = read_black_code b in (*Printf.printf "It's black, read black code %i\n" x;*) x) blackval;
+                            output_span (let x = read_white_code b in (*Printf.printf "It's black, read white code %i\n" x;*) x) whiteval;
                           end
                     | Vertical n ->
-                        Printf.printf "Read: Vertical.\n";
-                        Printf.printf "white is %b\n" !white;
+                        (*Printf.printf "Read: Vertical.\n";
+                        Printf.printf "white is %b\n" !white;*)
                         output_span
-                          (let x = find_b1 () - !column - n in Printf.printf "white = %b, writing span %i\n" !white x; x)
+                          (let x = find_b1 () - !column - n in (*Printf.printf "white = %b, writing span %i\n" !white x;*) x)
                           (if !white then whiteval else blackval);
                         flip white
                     | EOFB ->
-                        flprint "***EOFB\n";
+                        (*flprint "***EOFB\n";*)
                         raise End_of_file
                     | Uncompressed ->
                         (*flprint "***Uncompressed\n";*)
@@ -1084,7 +1084,7 @@ let decode_CCITTFax k eol eba c r eob bone dra input =
             mkbytes 0
           with
             | End_of_file ->
-                flprint "***End_of_file\n";
+                (*flprint "***End_of_file\n";*)
                 bytes_of_write_bitstream output
             | _ -> raise (Failure "Bad CCITT Stream") 
 
