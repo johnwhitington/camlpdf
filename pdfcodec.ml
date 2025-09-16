@@ -1235,7 +1235,7 @@ let encode_ccittg4 columns rows stream =
     | End_of_file ->
         raise (Failure "encode_ccittg4: not enough data")
 
-(* Show all the bits in an input *)
+(*(* Show all the bits in an input *)
 let debug_bits i =
   let b = bitbytes_of_input i in
   let pos = bitstream_pos b in
@@ -1278,7 +1278,7 @@ let print_image w h i =
       done;
       align bits;
       flprint "\n"
-    done
+    done*)
 
 (*let _ =
   let a = 2000 in

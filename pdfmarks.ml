@@ -233,7 +233,7 @@ and do_until_no_next_lb ~preserve_actions indent_lb pdf outline output =
     begin let page =
       match Pdf.lookup_direct pdf "/Dest" outline with
       | Some (Pdf.String stringdest) when preserve_actions ->
-          Pdfdest.NamedDestination stringdest
+          Pdfdest.StringDestination stringdest
       | Some dest ->
           Pdfdest.read_destination ~shallow:preserve_actions pdf dest
       | None ->
