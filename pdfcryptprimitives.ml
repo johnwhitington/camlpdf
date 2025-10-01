@@ -82,7 +82,7 @@ let get_blocks data =
             blocks =|
               let a = Array.make 16 0 in
                 for y = 0 to 15 do
-                  Array.unsafe_set a y (bget_unsafe data (x * 16 + y))
+                  Array.set a y (bget data (x * 16 + y))
                 done;
                 a
           done;
@@ -136,7 +136,7 @@ let cutshort s =
       | Some padding ->
           let s' = mkbytes (bytes_size s - padding) in
             for x = 0 to bytes_size s' - 1 do
-              bset_unsafe s' x (bget_unsafe s x)
+              bset s' x (bget s x)
             done;
             s'
 
@@ -148,26 +148,26 @@ let aes_decrypt_data ?(remove_padding = true) nk key data =
       let output = mkbytes (len - 16)
       and prev_ciphertext = mkbytes 16 in
         for x = 0 to 15 do
-          bset_unsafe prev_ciphertext x (bget_unsafe data x)
+          bset prev_ciphertext x (bget data x)
         done;
         let pos = ref 16 in
           while !pos < len do
             let i = Bytes.make 16 ' '
             and o = Bytes.make 16 ' ' in
               for x = 0 to 15 do
-                Bytes.set i x (char_of_int (bget_unsafe data (x + !pos)))
+                Bytes.set i x (char_of_int (bget data (x + !pos)))
               done;
               aes_decrypt key i 0 o 0;
               for x = 0 to 15 do
-                bset_unsafe output (x + !pos - 16) (int_of_char (Bytes.get o x))
+                bset output (x + !pos - 16) (int_of_char (Bytes.get o x))
               done;
               for x = 0 to 15 do
-                bset_unsafe
+                bset
                   output
                   (x + !pos - 16)
-                  (bget_unsafe
-                    prev_ciphertext x lxor bget_unsafe output (x + !pos - 16));
-                bset_unsafe prev_ciphertext x (bget_unsafe data (x + !pos))
+                  (bget
+                    prev_ciphertext x lxor bget output (x + !pos - 16));
+                bset prev_ciphertext x (bget data (x + !pos))
               done;
               pos += 16
           done;
@@ -185,11 +185,11 @@ let aes_decrypt_data_ecb ?(remove_padding = true) nk key data =
             and o = Bytes.make 16 ' ' in
               for x = 0 to 15 do
                 Bytes.set i x
-                  (char_of_int (bget_unsafe data (x + !pos)))
+                  (char_of_int (bget data (x + !pos)))
               done;
               aes_decrypt key i 0 o 0;
               for x = 0 to 15 do
-                bset_unsafe output (x + !pos) (int_of_char (Bytes.get o x))
+                bset output (x + !pos) (int_of_char (Bytes.get o x))
               done;
               pos += 16
           done;
@@ -205,11 +205,11 @@ let aes_encrypt_data ?(firstblock = mkiv ()) nk key data =
           let ciphertext =
             let src =
               let a = array_map2 (lxor) block !prev_ciphertext in
-              Bytes.init (Array.length a) (fun i -> Char.unsafe_chr a.(i))
+              Bytes.init (Array.length a) (fun i -> Char.chr a.(i))
             and dst = Bytes.make 16 ' ' in
             aes_encrypt key src 0 dst 0;
             Array.init (Bytes.length dst)
-              (fun i -> int_of_char (Bytes.unsafe_get dst i))
+              (fun i -> int_of_char (Bytes.get dst i))
           in
             prev_ciphertext := ciphertext;
             outblocks =| ciphertext)
