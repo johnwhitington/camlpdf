@@ -976,9 +976,12 @@ let fixup_parents pdf =
 
 (* New simpler, better procedure. We find all the indirects in the parent tree
    which point to a page and copy objects to rewrite any duplicates (leaving the
-   first one alone).  In addition, we must duplicate any annots when copying a
-   page, because annots are not allows to be shared between pages. *)
+   first one alone). *)
 let new_fixup_duplicate_pages pdf = ()
+
+(* We must duplicate any annots when copying a page, because annots are not
+   allowed to be shared between pages. *)
+let fixup_duplicate_annots pdf = ()
 
 (* Page-nulling will have left us with a /Dests tree with some destinations
    pointing to null pages. This can be a problem when pulling apart and
@@ -1158,9 +1161,12 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = add_root old_pagetree_root_num existing_root_entries pdf in
                   Pdfpagelabels.write pdf page_labels;
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
-                    fixup_duplicate_pages pdf;
+                    begin match Sys.getenv_opt "CAMLPDF_NEW" with
+                    | Some "true" -> new_fixup_duplicate_pages pdf
+                    | _ -> fixup_duplicate_pages pdf
+                    end;
                     fixup_parents pdf;
-                    (*new_fixup_duplicate_pages pdf;*)
+                    fixup_duplicate_annots pdf;
                     fixup_destinations pdf;
                     pdf
 
