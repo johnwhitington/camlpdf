@@ -953,17 +953,6 @@ let page_tree_nodes_not_pages pdf =
     in
       page_tree_nodes_not_pages_inner pdf pages_node page_root_num
 
-let page_tree_nodes_not_pages_old pdf =
-  let objs = ref [] in
-    Pdf.objiter
-      (fun objnum o ->
-        match o with
-          Pdf.Dictionary d when lookup "/Type" d = Some (Pdf.Name "/Pages") ->
-            objs := (objnum, o) :: !objs
-        | _ -> ())
-      pdf;
-    !objs
-
 let rewrite_page_tree_first nodes pdf m =
   let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m) in
     try
@@ -974,19 +963,47 @@ let rewrite_page_tree_first nodes pdf m =
       RewriteDone -> () 
     | _ -> raise (Pdf.PDFError "rewrite_page_tree_first: malformed page tree")
 
+(* Find the (unordered) page reference numbers, given the top level node of the page tree *)
+let prns = ref []
+
+let rec page_reference_numbers_inner_unordered pdf pages_node node_number =
+  match Pdf.lookup_direct pdf "/Type" pages_node with
+    Some (Pdf.Name "/Page") -> prns := node_number::!prns
+  | _ ->
+      match Pdf.lookup_direct pdf "/Kids" pages_node with
+        Some (Pdf.Array elts) ->
+          iter
+            (function
+             | Pdf.Indirect i -> page_reference_numbers_inner_unordered pdf (Pdf.direct pdf (Pdf.Indirect i)) i
+             | _ -> ())
+            elts
+      | _ ->
+          (* Missing /Type /Page in a malformed file would end up here *)
+          prns := node_number::!prns
+
+let page_reference_numbers_unordered pdf =
+  prns := [];
+  let root = Pdf.lookup_obj pdf pdf.root in
+    let pages_node =
+      match Pdf.lookup_direct pdf "/Pages" root with
+      | Some p -> p
+      | None -> raise (Pdf.PDFError "No /Pages found in /Root")
+    in
+      page_reference_numbers_inner_unordered pdf pages_node (-1);
+      !prns
+
 (* Run this strategy repeatedly, until there are no duplicate page objects *)
 let rec fixup_duplicate_pages nodes pdf =
-  let pagerefs = Pdf.page_reference_numbers pdf in
-    let groups =
-      keep
-        (fun x -> length x > 1)
-        (collate compare (sort compare pagerefs))
-    in
-      match groups with
-        (h::_)::_ ->
-          rewrite_page_tree_first nodes pdf h;
-          fixup_duplicate_pages nodes pdf
-      | _ -> ()
+  let rec first_double_number = function
+  | a::b::t when a = b -> Some a
+  | a::b::t -> first_double_number (b::t)
+  | _ -> None
+  in
+    match first_double_number (sort compare (page_reference_numbers_unordered pdf)) with
+    | Some n ->
+        rewrite_page_tree_first nodes pdf n;
+        fixup_duplicate_pages nodes pdf
+    | None -> ()
 
 let fixup_duplicate_pages pdf =
   let nodes = page_tree_nodes_not_pages pdf in
@@ -1014,11 +1031,6 @@ let fixup_parents pdf =
     match Pdf.indirect_number pdf "/Pages" root with
       Some pagetreeroot -> fixup_parents_inner pdf 0 pagetreeroot
     | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
-
-(* New simpler, better procedure. We find all the indirects in the parent tree
-   which point to a page and copy objects to rewrite any duplicates (leaving the
-   first one alone). *)
-let new_fixup_duplicate_pages pdf = ()
 
 (* We must duplicate any annots when copying a page, because annots are not
    allowed to be shared between pages. *)
