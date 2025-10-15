@@ -951,7 +951,7 @@ let page_tree_nodes_not_pages pdf =
       | Some p -> p
       | None -> raise (Pdf.PDFError "No /Pages found in /Root")
     in
-      map (fun x -> (x, Pdf.lookup_obj pdf x)) (page_tree_nodes_not_pages_inner pdf pages_node page_root_num)
+      page_tree_nodes_not_pages_inner pdf pages_node page_root_num
 
 let page_tree_nodes_not_pages_old pdf =
   let objs = ref [] in
@@ -964,25 +964,18 @@ let page_tree_nodes_not_pages_old pdf =
       pdf;
     !objs
 
-let rewrite_page_tree_first pdf m =
+let rewrite_page_tree_first nodes pdf m =
   let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m) in
-  let nodes = page_tree_nodes_not_pages pdf in
-  (*let nodes_old = page_tree_nodes_not_pages_old pdf in*)
-    (*flprint "new: ";
-    iter (Printf.printf "%i ") (map fst nodes);
-    flprint "\nold: ";
-    iter (Printf.printf "%i ") (map fst nodes_old);
-    flprint "\n";*)
     try
       iter
-        (fun (objnum, obj) -> rewrite_first_indirect pdf objnum obj m n)
+        (fun objnum -> rewrite_first_indirect pdf objnum (Pdf.lookup_obj pdf objnum) m n)
         nodes
     with
       RewriteDone -> () 
     | _ -> raise (Pdf.PDFError "rewrite_page_tree_first: malformed page tree")
 
 (* Run this strategy repeatedly, until there are no duplicate page objects *)
-let rec fixup_duplicate_pages pdf =
+let rec fixup_duplicate_pages nodes pdf =
   let pagerefs = Pdf.page_reference_numbers pdf in
     let groups =
       keep
@@ -991,9 +984,13 @@ let rec fixup_duplicate_pages pdf =
     in
       match groups with
         (h::_)::_ ->
-          rewrite_page_tree_first pdf h;
-          fixup_duplicate_pages pdf
+          rewrite_page_tree_first nodes pdf h;
+          fixup_duplicate_pages nodes pdf
       | _ -> ()
+
+let fixup_duplicate_pages pdf =
+  let nodes = page_tree_nodes_not_pages pdf in
+    fixup_duplicate_pages nodes pdf
 
 (* When there are duplicate pages, even once de-duplicated by
  * fixup_duplicate_pages, we can end up with incorrect /Parent links. This
