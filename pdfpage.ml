@@ -915,7 +915,45 @@ let rewrite_first_indirect pdf objnum obj m n =
   | _ -> failwith "rewrite_first_indirect"
 
 (* Those page tree nodes which are not pages *)
+let rec page_tree_nodes_not_pages_inner pdf pages_node node_number =
+  match Pdf.lookup_direct pdf "/Type" pages_node with
+    Some (Name "/Page") -> []
+  | _ ->
+      match Pdf.lookup_direct pdf "/Kids" pages_node with
+        Some (Pdf.Array elts) ->
+          node_number::
+          flatten
+            (option_map
+              (function
+               | Pdf.Indirect i ->
+                   Some
+                     (page_tree_nodes_not_pages_inner
+                        pdf (Pdf.direct pdf (Pdf.Indirect i)) i)
+               | _ -> None)
+              elts)
+      | _ ->
+          (* Missing /Type /Page in a malformed file would end up here *)
+          []
+
 let page_tree_nodes_not_pages pdf =
+  let root = Pdf.lookup_obj pdf pdf.root in
+  let page_root_num =
+    match root with
+    | Pdf.Dictionary d ->
+        begin match lookup "/Pages" d with
+        | Some (Pdf.Indirect i) -> i
+        | _ -> raise (Pdf.PDFError "No /Pages found in /Root")
+        end
+    | _ -> raise (Pdf.PDFError "No /Pages found in /Root")
+  in
+    let pages_node =
+      match Pdf.lookup_direct pdf "/Pages" root with
+      | Some p -> p
+      | None -> raise (Pdf.PDFError "No /Pages found in /Root")
+    in
+      map (fun x -> (x, Pdf.lookup_obj pdf x)) (page_tree_nodes_not_pages_inner pdf pages_node page_root_num)
+
+let page_tree_nodes_not_pages_old pdf =
   let objs = ref [] in
     Pdf.objiter
       (fun objnum o ->
@@ -927,8 +965,14 @@ let page_tree_nodes_not_pages pdf =
     !objs
 
 let rewrite_page_tree_first pdf m =
-  let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m)
-  and nodes = page_tree_nodes_not_pages pdf in
+  let n = Pdf.addobj pdf (Pdf.lookup_obj pdf m) in
+  let nodes = page_tree_nodes_not_pages pdf in
+  (*let nodes_old = page_tree_nodes_not_pages_old pdf in*)
+    (*flprint "new: ";
+    iter (Printf.printf "%i ") (map fst nodes);
+    flprint "\nold: ";
+    iter (Printf.printf "%i ") (map fst nodes_old);
+    flprint "\n";*)
     try
       iter
         (fun (objnum, obj) -> rewrite_first_indirect pdf objnum obj m n)
