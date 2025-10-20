@@ -8,6 +8,8 @@ o Allow extraction of encryption when lack of password prevents reading
 o Repair name/number trees with duplicate keys (better)
 o Fix bad name detection and improve error message
 o Fix regression where bookmark strings were mangled
+o Fix (partially) efficiency of page renumbering on very large files
+o Disambiguate annotation object numbers where a page is copied
 
 2.8.1 (April 2025)
 

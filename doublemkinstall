@@ -1,0 +1,6 @@
+#!/bin/bash
+./mkinstall
+cd ../cpdf-source
+make clean; make; ocamlfind remove cpdf; make install
+cd ../camlpdf
+cp ../cpdf-source/cpdf .

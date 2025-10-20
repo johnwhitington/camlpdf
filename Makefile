@@ -31,7 +31,7 @@ endif
 all : $(TARGETS)
 
 clean ::
-	rm -rf doc foo foo2 out.pdf out2.pdf *.ps *.cmt *.cmti *.zlib
+	rm -rf doc foo foo2 out.pdf out2.pdf *.ps *.cmt *.cmti *.zlib cpdf
 	rm -rf examples/out.pdf examples/out2.pdf examples/foo examples/foo
 	rm -rf examples/hello.pdf
 	cd examples; make clean

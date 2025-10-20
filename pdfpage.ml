@@ -1034,7 +1034,54 @@ let fixup_parents pdf =
 
 (* We must duplicate any annots when copying a page, because annots are not
    allowed to be shared between pages. *)
-let fixup_duplicate_annots pdf = ()
+let fixup_duplicate_annots pdf =
+  let src = ref (Pdf.objcard pdf) in
+  (* Find the annotations for each page, if any. *)
+  let pages = pages_of_pagetree pdf in
+  let existing_annots =
+    map
+      (fun p ->
+         match Pdf.lookup_direct pdf "/Annots" p.rest with
+         | Some (Pdf.Array a) -> option_map (function Pdf.Indirect i -> Some i | _ -> None) a
+         | _ -> [])
+      pages
+  in
+  (* Make a minimal mapping (serial number, old annot number, new annot number) which could de-duplicate them *)
+  let seen = ref [] in
+  let to_copy = ref [] in
+  let mapping =
+    map
+      (fun annots ->
+         (* Assume no duplicates in the list. *)
+         let new_annots =
+           map (fun i -> if not (mem i !seen) then i else (incr src; to_copy := (i, !src)::!to_copy; !src)) annots
+         in
+           seen := annots @ new_annots @ !seen;
+           new_annots)
+      existing_annots
+  in
+  (* Duplicate the annotation objects *) 
+  (*flprint "Objects to rewrite:\n";
+  iter (fun (f, t) -> Printf.printf "%i -> %i\n" f t) !to_copy;
+  flprint "\n";
+  iter (fun (f, t) -> Pdf.addobj_given_num pdf (t, Pdf.lookup_obj pdf f)) !to_copy;*)
+  (* Rewrite each page's annotation using the map. *)
+  (*flprint "/Annots entries to rewrite\n";*)
+  let pagerefnums = Pdf.page_reference_numbers pdf in
+    iter2
+      (fun na pagerefnum ->
+        (*flprint "from: ";
+        iter (Printf.printf "%i ") ea; flprint "\n";*)
+        (*flprint "to: ";
+        iter (Printf.printf "%i ") na; flprint "\n";*)
+        begin match Pdf.lookup_obj pdf pagerefnum with
+        | Pdf.Dictionary _ as d ->
+            let nas = map (fun x -> Pdf.Indirect x) na in
+              if na <> [] then Pdf.addobj_given_num pdf (pagerefnum, Pdf.add_dict_entry d "/Annots" (Pdf.Array nas))
+        | _ -> ()
+        end)
+      mapping
+      pagerefnums
 
 (* Page-nulling will have left us with a /Dests tree with some destinations
    pointing to null pages. This can be a problem when pulling apart and
@@ -1214,10 +1261,7 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = add_root old_pagetree_root_num existing_root_entries pdf in
                   Pdfpagelabels.write pdf page_labels;
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
-                    begin match Sys.getenv_opt "CAMLPDF_NEW" with
-                    | Some "true" -> new_fixup_duplicate_pages pdf
-                    | _ -> fixup_duplicate_pages pdf
-                    end;
+                    fixup_duplicate_pages pdf;
                     fixup_parents pdf;
                     fixup_duplicate_annots pdf;
                     fixup_destinations pdf;
