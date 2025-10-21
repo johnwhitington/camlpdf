@@ -1063,15 +1063,14 @@ let fixup_duplicate_annots pdf =
   (* Duplicate the annotation objects *) 
   (*flprint "Objects to rewrite:\n";
   iter (fun (f, t) -> Printf.printf "%i -> %i\n" f t) !to_copy;
-  flprint "\n";
-  iter (fun (f, t) -> Pdf.addobj_given_num pdf (t, Pdf.lookup_obj pdf f)) !to_copy;*)
+  flprint "\n";*)
+  iter (fun (f, t) -> Pdf.addobj_given_num pdf (t, Pdf.lookup_obj pdf f)) !to_copy;
+  (*iter (fun (f, t) -> Printf.printf "%s -> %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf f)) (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf t))) !to_copy;*)
   (* Rewrite each page's annotation using the map. *)
   (*flprint "/Annots entries to rewrite\n";*)
   let pagerefnums = Pdf.page_reference_numbers pdf in
     iter2
       (fun na pagerefnum ->
-        (*flprint "from: ";
-        iter (Printf.printf "%i ") ea; flprint "\n";*)
         (*flprint "to: ";
         iter (Printf.printf "%i ") na; flprint "\n";*)
         begin match Pdf.lookup_obj pdf pagerefnum with
@@ -1263,8 +1262,8 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                   let pdf = Pdfmarks.add_bookmarks marks pdf in
                     fixup_duplicate_pages pdf;
                     fixup_parents pdf;
-                    fixup_duplicate_annots pdf;
                     fixup_destinations pdf;
+                    fixup_duplicate_annots pdf;
                     pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
