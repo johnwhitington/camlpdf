@@ -1033,7 +1033,9 @@ let fixup_parents pdf =
     | _ -> raise (Pdf.PDFError "fixup_parents: no page tree root")
 
 (* We must duplicate any annots when copying a page, because annots are not
-   allowed to be shared between pages. *)
+   allowed to be shared between pages. Their subobjects are, though.
+   Still, Acrobat seems confused sometimes and only shows one of the
+   duplicates. *)
 let fixup_duplicate_annots pdf =
   let src = ref (Pdf.objcard pdf) in
   let pages = pages_of_pagetree pdf in
@@ -1049,7 +1051,7 @@ let fixup_duplicate_annots pdf =
   (* Make a minimal mapping (serial number, old annot number, new annot number) which could de-duplicate them *)
   let seen = ref [] in
   let to_copy = ref [] in
-  let mapping =
+  let new_annots =
     map
       (fun annots ->
          (* Assume no duplicates in the list. *)
@@ -1060,48 +1062,56 @@ let fixup_duplicate_annots pdf =
            new_annots)
       existing_annots
   in
-(*flprint "Objects to rewrite:\n";
-iter (fun (f, t) -> Printf.printf "%i -> %i\n" f t) !to_copy;
-flprint "\n";*)
-  (* Duplicate the annotation objects. When copying, we must pay regard to
+  (*flprint "Existing annots:\n";
+  iter (fun page -> iter (Printf.printf "%i ") page; flprint "\n") existing_annots;
+  flprint "New annots:\n";
+  iter (fun page -> iter (Printf.printf "%i ") page; flprint "\n") new_annots;
+  flprint "Objects to rewrite:\n";
+  iter (fun (f, t) -> Printf.printf "%i -> %i\n" f t) !to_copy;
+  flprint "\n";*)
+  (* Duplicate the annotation objects. *)
+  iter (fun (f, t) -> Pdf.addobj_given_num pdf (t, Pdf.lookup_obj pdf f)) !to_copy;
+  (* When copying, we must pay regard to
      popup annotations, which have a mutual /Popup & /Parent link pair. So
      if /Popup or /Parent in an annotation points to the anything in the
-     !to_copy from set the link should be rewritten to point to the
+     !to_copy from set the link should be rewritten to point to t Pdf.addobj_given_num pdf (t, obj)he
      corresponding entry in the to set. *)
-  (* FIXME fixup_link should not use the to_copy (f, t) pairs but the mapping itself. But do we have all the info? *)
-  let fixup_link_assoc = map () 
-  let fixup_link n obj =
+  let fixup_link n obj assoc =
     match Pdf.lookup_immediate n obj with
     | Some (Pdf.Indirect i) ->
-        begin match List.assoc_opt i !to_copy with
+        begin match List.assoc_opt i assoc with
         | Some t -> Pdf.add_dict_entry obj n (Pdf.Indirect t)
         | None -> obj
         end
     | _ -> obj
   in
-    iter
-      (fun (f, t) ->
-        let obj = Pdf.lookup_obj pdf f in
-        Printf.printf "Original: %s\n" (Pdfwrite.string_of_pdf obj);
-        let obj = fixup_link "/Popup" obj in
-        let obj = fixup_link "/Parent" obj in
-          Printf.printf "New:     %s\n" (Pdfwrite.string_of_pdf obj);
-          Pdf.addobj_given_num pdf (t, obj)) !to_copy;
-(*iter (fun (f, t) -> Printf.printf "%s -> %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf f)) (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf t))) !to_copy;*)
-(* Rewrite each page's annotation using the map. *)
-(*flprint "/Annots entries to rewrite\n";*)
+  iter2
+    (fun e n ->
+      let assoc = combine e n in
+      iter
+        (fun on ->
+           let obj = Pdf.lookup_obj pdf on in
+           let obj = fixup_link "/Popup" obj assoc in
+           let obj = fixup_link "/Parent" obj assoc in
+             Pdf.addobj_given_num pdf (on, obj))
+        n)
+    existing_annots
+    new_annots;
+  (*iter (fun (f, t) -> Printf.printf "%s -> %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf f)) (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf t))) !to_copy;*)
+  (* Rewrite each page's annotation using the map. *)
+  (*flprint "/Annots entries to rewrite\n";*)
   let pagerefnums = Pdf.page_reference_numbers pdf in
     iter2
       (fun na pagerefnum ->
-(*flprint "to: ";
-iter (Printf.printf "%i ") na; flprint "\n";*)
+        (*flprint "to: ";
+        iter (Printf.printf "%i ") na; flprint "\n";*)
         begin match Pdf.lookup_obj pdf pagerefnum with
         | Pdf.Dictionary _ as d ->
             let nas = map (fun x -> Pdf.Indirect x) na in
               if na <> [] then Pdf.addobj_given_num pdf (pagerefnum, Pdf.add_dict_entry d "/Annots" (Pdf.Array nas))
         | _ -> ()
         end)
-      mapping
+      new_annots
       pagerefnums
 
 (* Page-nulling will have left us with a /Dests tree with some destinations
@@ -1285,8 +1295,8 @@ let pdf_of_pages ?(retain_numbering = false) ?(process_struct_tree = false) base
                     fixup_duplicate_pages pdf;
                     fixup_parents pdf;
                     fixup_destinations pdf;
-                    fixup_duplicate_annots pdf;
-                    (*Pdfwrite.debug_whole_pdf pdf;*)
+                    (* Because this is a new pass.... *)
+                    begin try fixup_duplicate_annots pdf with e -> Printf.eprintf "warning: fixup_duplicate_annots %s\n" (Printexc.to_string e) end;
                     pdf
 
 let prepend_operators pdf ops ?(fast=false) page =
