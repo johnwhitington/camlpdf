@@ -43,15 +43,15 @@ val encode_pdfstream : Pdf.t -> encoding -> ?only_if_smaller:bool -> ?predictor:
 
 (** Given a document and stream, decode. The pdf document is updated
 with the decoded stream. May raise either of the exceptions above. *)
-val decode_pdfstream : Pdf.t -> Pdf.pdfobject -> unit
+val decode_pdfstream : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a document and stream decode just one stage. May raise either of the
 exceptions above. *)
-val decode_pdfstream_onestage : Pdf.t -> Pdf.pdfobject -> unit
+val decode_pdfstream_onestage : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a document and stream decode until there's an unknown decoder. May
 raise [Couldn'tDecodeStream]. *)
-val decode_pdfstream_until_unknown : Pdf.t -> Pdf.pdfobject -> unit
+val decode_pdfstream_until_unknown : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a [Pdfio.input] with pointer at the first byte and an inline image
 stream dictionary, decode the first decoder and its predictor. Return the data,

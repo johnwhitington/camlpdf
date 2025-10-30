@@ -1542,6 +1542,11 @@ let decode_runlength i =
       end;
       extract_bytes_from_input_output o data
 
+(* JBIG2Decode with the help of jbig2dec. *)
+let decode_jbig2 jbig2globals jbig2dec i =
+  Printf.printf "Decoding with jbig2dec = %s, jbig2globals = %s\n" jbig2dec (match jbig2globals with None -> "None" | Some g -> string_of_int (bytes_size g)); 
+  mkbytes 0
+
 (* Decoding PDF streams *)
 type source =
   | StreamSource of bytes
@@ -1550,7 +1555,7 @@ type source =
 let decode_identity i =
   bytes_of_input i 0 i.in_channel_length
 
-let decoder pdf dict source name =
+let decoder ?jbig2dec pdf dict source name =
   let input_of_source = function
     | InputSource i -> i
     | StreamSource s -> input_of_bytes s
@@ -1627,11 +1632,34 @@ let decoder pdf dict source name =
                 decode_CCITTFax k eol eba c r eob bone dra i
             | _ -> raise (Pdf.PDFError "bad Decodeparms")
             end
+      | "/JBIG2Decode" ->
+           flprint "Found a /JBIG2Decode to look at...\n";
+           begin match jbig2dec with
+           | None ->
+               flprint "no jbig2dec\n";
+               raise (DecodeNotSupported (Printf.sprintf "JBIG2Decode requires jbig2dec"))
+           | Some jbig2dec ->
+               match Pdf.lookup_direct_orelse pdf "/DecodeParms" "/DP" dict with
+               | Some (Pdf.Dictionary _ as dparms)
+               | Some (Pdf.Array (dparms::_)) ->
+                   let jbig2globals =
+                     match Pdf.lookup_direct pdf "/JBIG2Globals" dparms with
+                     | Some s ->
+                         Pdf.getstream s;
+                         begin match s with
+                         | Pdf.Stream {contents = _, Pdf.Got b} -> Some b
+                         | _ -> None
+                         end
+                     | _ -> None
+                   in
+                     decode_jbig2 jbig2globals jbig2dec i
+               | _ -> decode_jbig2 None jbig2dec i
+           end
       | name ->
           raise (DecodeNotSupported (Printf.sprintf "Unknown: %s" name))
 
 (* Decode at most one stage. *)
-let decode_one pdf dict source =
+let decode_one ?jbig2dec pdf dict source =
   match Pdf.lookup_direct_orelse pdf "/Filter" "/F" dict with
   | None | Some (Pdf.Array []) ->
       begin match source with
@@ -1639,7 +1667,7 @@ let decode_one pdf dict source =
       | InputSource _ -> raise (DecodeNotSupported "decode_one")
       end
   | Some (Pdf.Name n) | Some (Pdf.Array (Pdf.Name n::_)) ->
-      let decoded = decoder pdf dict source n in
+      let decoded = decoder ?jbig2dec pdf dict source n in
         let decodeparms =
           match Pdf.lookup_direct_orelse pdf "/DecodeParms" "/DP" dict with
           | Some (Pdf.Dictionary d)
@@ -1709,7 +1737,7 @@ let remove_decoder d =
     | _ -> raise (Pdf.PDFError "PDF.remove_decoder: malformed /DecodeParms")
 
 (* Decode at most one stage. *)
-let decode_pdfstream_onestage pdf stream =
+let decode_pdfstream_onestage ?jbig2dec pdf stream =
   Pdf.getstream stream;
   match stream with
   | Pdf.Stream
@@ -1720,7 +1748,7 @@ let decode_pdfstream_onestage pdf stream =
       | Pdf.Integer _ -> () (*i if l <> bytes_size s then raise (PDFError "Wrong /Length") i*)
       | _ -> raise (Pdf.PDFError "No /Length")
       end;
-      let stream' = decode_one pdf dict (StreamSource s) in
+      let stream' = decode_one ?jbig2dec pdf dict (StreamSource s) in
         let d' =
           replace
             "/Length"
@@ -1733,29 +1761,29 @@ let decode_pdfstream_onestage pdf stream =
 let string_of_pdf = ref (fun _ -> "")
 
 (* Decode until there's nothing left to do. *)
-let rec decode_pdfstream pdf = function
+let rec decode_pdfstream ?jbig2dec pdf = function
   | Pdf.Stream {contents = d, _} as stream ->
       Pdf.getstream stream;
       begin match Pdf.lookup_direct_orelse pdf "/Filter" "/F" d with
       | None -> ()
       | Some (Pdf.Name _ | Pdf.Array _) ->
             begin
-              decode_pdfstream_onestage pdf stream;
+              decode_pdfstream_onestage ?jbig2dec pdf stream;
               match stream with
               | Pdf.Stream {contents = d', _} ->
                   if !string_of_pdf d = !string_of_pdf d' then () else
-                  decode_pdfstream pdf stream
+                  decode_pdfstream ?jbig2dec pdf stream
               | _ -> assert false
             end
       | _ -> raise (Pdf.PDFError "Pdf.remove_decoder: malformed /Filter")
       end
   | Pdf.Indirect i ->
-      decode_pdfstream pdf (Pdf.direct pdf (Pdf.Indirect i))
+      decode_pdfstream ?jbig2dec pdf (Pdf.direct pdf (Pdf.Indirect i))
   | _ -> raise (Pdf.PDFError "Pdf.decode_pdfstream: malformed Stream")
 
 (* Decode a stream until a decoding isn't supported. *)
-let decode_pdfstream_until_unknown pdf s =
-  try decode_pdfstream pdf s with
+let decode_pdfstream_until_unknown ?jbig2dec pdf s =
+  try decode_pdfstream ?jbig2dec pdf s with
     DecodeNotSupported _ -> ()
 
 (* Decode from an input. *)
