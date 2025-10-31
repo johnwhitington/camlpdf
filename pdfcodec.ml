@@ -1564,7 +1564,7 @@ let decode_jbig2 jbig2globals jbig2dec i =
   | None -> ()
   end;
   let outcode =
-    let command = (Filename.quote_command jbig2dec (["-e"; f_i] @ (if f_globals = "" then [] else [f_globals]) @ ["-o"; f_out])) in
+    let command = (Filename.quote_command jbig2dec (["-e"] @ (if f_globals = "" then [] else [f_globals]) @ [f_i] @ ["-o"; f_out])) in
       Sys.command command
   in
   let data =
