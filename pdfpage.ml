@@ -1037,7 +1037,7 @@ let fixup_parents pdf =
    Still, Acrobat seems confused sometimes and only shows one of the
    duplicates. *)
 let fixup_duplicate_annots pdf =
-  let src = ref (Pdf.objcard pdf) in
+  let src = ref pdf.Pdf.objects.maxobjnum in
   let pages = pages_of_pagetree pdf in
   (* Find the annotations for each page, if any. *)
   let existing_annots =
@@ -1097,14 +1097,10 @@ let fixup_duplicate_annots pdf =
         n)
     existing_annots
     new_annots;
-  (*iter (fun (f, t) -> Printf.printf "%s -> %s\n" (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf f)) (Pdfwrite.string_of_pdf (Pdf.lookup_obj pdf t))) !to_copy;*)
-  (* Rewrite each page's annotation using the map. *)
-  (*flprint "/Annots entries to rewrite\n";*)
   let pagerefnums = Pdf.page_reference_numbers pdf in
     iter2
       (fun na pagerefnum ->
-        (*flprint "to: ";
-        iter (Printf.printf "%i ") na; flprint "\n";*)
+        (*flprint "to: "; iter (Printf.printf "%i ") na; flprint "\n";*)
         begin match Pdf.lookup_obj pdf pagerefnum with
         | Pdf.Dictionary _ as d ->
             let nas = map (fun x -> Pdf.Indirect x) na in
