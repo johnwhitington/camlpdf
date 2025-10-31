@@ -1543,9 +1543,37 @@ let decode_runlength i =
       extract_bytes_from_input_output o data
 
 (* JBIG2Decode with the help of jbig2dec. *)
+let decode_jbig2dec_pbm s =
+  let pos, num = ref 0, ref 3 in
+    while !num > 0 do
+      if Pdf.is_whitespace s.[!pos] then num -= 1;
+      pos += 1
+    done;
+    let s = String.sub s !pos (String.length s - !pos) in
+      bytes_of_string (String.map (fun c -> char_of_int (int_of_char c lxor 0xFF)) s)
+
 let decode_jbig2 jbig2globals jbig2dec i =
-  Printf.printf "Decoding with jbig2dec = %s, jbig2globals = %s\n" jbig2dec (match jbig2globals with None -> "None" | Some g -> string_of_int (bytes_size g)); 
-  mkbytes 0
+  let f_i, f_globals, f_out =
+    Filename.temp_file "cpdf" "jb2input",
+    (match jbig2globals with Some _ -> Filename.temp_file "cpdf" "jb2globals" | _ -> ""),
+    Filename.temp_file "cpdf" "jb2out"
+  in
+  contents_to_file ~filename:f_i (Pdfio.string_of_input i);
+  begin match jbig2globals with
+  | Some b -> contents_to_file ~filename:f_globals (Pdfio.string_of_bytes b)
+  | None -> ()
+  end;
+  let outcode =
+    let command = (Filename.quote_command jbig2dec (["-e"; f_i] @ (if f_globals = "" then [] else [f_globals]) @ ["-o"; f_out])) in
+      Sys.command command
+  in
+  let data =
+    if outcode = 0 then contents_of_file f_out else raise (DecodeNotSupported "jbig2dec return code non-zero")
+  in
+  Sys.remove f_i;
+  if f_globals <> "" then Sys.remove f_globals;
+  Sys.remove f_out;
+  try decode_jbig2dec_pbm data with _ -> raise (DecodeNotSupported "jbig2dec produced output which could not be read")
 
 (* Decoding PDF streams *)
 type source =
@@ -1633,10 +1661,8 @@ let decoder ?jbig2dec pdf dict source name =
             | _ -> raise (Pdf.PDFError "bad Decodeparms")
             end
       | "/JBIG2Decode" ->
-           flprint "Found a /JBIG2Decode to look at...\n";
            begin match jbig2dec with
            | None ->
-               flprint "no jbig2dec\n";
                raise (DecodeNotSupported (Printf.sprintf "JBIG2Decode requires jbig2dec"))
            | Some jbig2dec ->
                match Pdf.lookup_direct_orelse pdf "/DecodeParms" "/DP" dict with
