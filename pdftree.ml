@@ -24,7 +24,7 @@ let rec read_name_tree pdf tree =
    malformed un-ordered tree will have all its duplicates removed. *)
 let rec remove_duplicates = function
   | (k, _)::((k', _) as h)::t when k = k' ->
-      Pdfe.log "Warning Duplicate name/number tree key (malformed file). Discarding.\n";
+      (*Pdfe.log "Warning Duplicate name/number tree key (malformed file). Discarding.\n";*)
       remove_duplicates (h::t)
   | h::t -> h::remove_duplicates t
   | [] -> []
