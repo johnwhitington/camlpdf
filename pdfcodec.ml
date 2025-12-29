@@ -1140,9 +1140,24 @@ let encode_ccitt columns rows stream =
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
-let encode_ccittg4 ~im columns rows stream =
-  flprint "encode_ccittg4 with imagemagick\n";
-  stream
+let encode_ccittg4 ?im columns rows stream =
+  match im with None -> raise (DecodeNotSupported "no imagemagick provided.") | Some im ->
+    flprint "encode_ccittg4 with imagemagick\n";
+    let f_i, f_out =
+      Filename.temp_file "cpdf" "g4input.gray", Filename.temp_file "cpdf" "g4out.fax"
+    in
+    contents_to_file ~filename:f_i (Pdfio.string_of_bytes stream);
+    let outcode =
+      let command = Filename.quote_command im ["-depth"; "1"; "-size"; string_of_int columns ^ "x" ^ string_of_int rows; f_i; "-compress"; "GROUP4"; f_out] in
+        flprint (command ^ "\n");
+        Sys.command command
+    in
+    let data =
+      if outcode = 0 then contents_of_file f_out else raise (DecodeNotSupported "magick return code non-zero")
+    in
+    (*Sys.remove f_i;
+    Sys.remove f_out;*)
+    Pdfio.bytes_of_string data
 
 (* This implementation is unfinished, and does not work. We're calling out to magick for now. *)
 (*
@@ -1899,13 +1914,13 @@ let add_encoding length pdf encoding d =
       (Pdf.add_dict_entry d "/Filter" filter') "/Length" (Pdf.Integer length)
 
 (* Find the encoding function. *)
-let encoder_of_encoding ~im = function
+let encoder_of_encoding ?im = function
   | ASCIIHex -> encode_ASCIIHex
   | ASCII85 -> encode_ASCII85
   | RunLength -> encode_runlength
   | Flate -> encode_flate
   | CCITT (cols, rows) -> encode_ccitt cols rows
-  | CCITTG4 (cols, rows) -> encode_ccittg4 ~im cols rows
+  | CCITTG4 (cols, rows) -> encode_ccittg4 ?im cols rows
 
 (* For now, just for xref streams *)
 let process_prediction_data predictor predictor_columns d =
@@ -1943,7 +1958,7 @@ let encode_pdfstream pdf encoding ?im ?(only_if_smaller=false) ?predictor ?(pred
           then process_prediction predictor predictor_columns stream
           else d, s
       in
-        let data = encoder_of_encoding ~im encoding predicted in
+        let data = encoder_of_encoding ?im encoding predicted in
           let d'' = add_encoding (bytes_size data) pdf encoding d' in
             if not only_if_smaller || bytes_size data + 20 < bytes_size s then stream := d'', Pdf.Got data
   | _ -> raise (Pdf.PDFError "Pdf.encode_pdfstream: malformed Stream")

@@ -75,7 +75,7 @@ val decode_flate : Pdfio.bytes -> Pdfio.bytes
 val encode_ccitt : int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Encode data in CCITTDecode Group 4. *)
-val encode_ccittg4 : im:string -> int -> int -> Pdfio.bytes -> Pdfio.bytes
+val encode_ccittg4 : ?im:string -> int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Setting this boolean prints some debug information. *)
 val debug : bool ref
