@@ -1140,7 +1140,12 @@ let encode_ccitt columns rows stream =
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
-let encode_ccittg4 columns rows stream =
+let encode_ccittg4 ~im columns rows stream =
+  flprint "encode_ccittg4 with imagemagick\n";
+  stream
+
+(* This implementation is unfinished, and does not work. We're calling out to magick for now. *)
+(*
   let i = bitbytes_of_input (input_of_bytes stream) in
   let o = make_write_bitstream () in
   let white, black = true, false in
@@ -1302,6 +1307,7 @@ let print_image w h i =
       done
    done
   (*done*)*)
+*)
 
 (* PNG and TIFF Predictors *)
 
@@ -1893,13 +1899,13 @@ let add_encoding length pdf encoding d =
       (Pdf.add_dict_entry d "/Filter" filter') "/Length" (Pdf.Integer length)
 
 (* Find the encoding function. *)
-let encoder_of_encoding = function
+let encoder_of_encoding ~im = function
   | ASCIIHex -> encode_ASCIIHex
   | ASCII85 -> encode_ASCII85
   | RunLength -> encode_runlength
   | Flate -> encode_flate
   | CCITT (cols, rows) -> encode_ccitt cols rows
-  | CCITTG4 (cols, rows) -> encode_ccittg4 cols rows
+  | CCITTG4 (cols, rows) -> encode_ccittg4 ~im cols rows
 
 (* For now, just for xref streams *)
 let process_prediction_data predictor predictor_columns d =
@@ -1928,7 +1934,7 @@ let process_prediction predictor predictor_columns stream =
   | _ -> assert false
 
 (* Encode a PDF stream with an encoding. *)
-let encode_pdfstream pdf encoding ?(only_if_smaller=false) ?predictor ?(predictor_columns = 1) stream =
+let encode_pdfstream pdf encoding ?im ?(only_if_smaller=false) ?predictor ?(predictor_columns = 1) stream =
   Pdf.getstream stream;
   match stream with
   | Pdf.Stream ({contents = d, Pdf.Got s} as stream) ->
@@ -1937,7 +1943,7 @@ let encode_pdfstream pdf encoding ?(only_if_smaller=false) ?predictor ?(predicto
           then process_prediction predictor predictor_columns stream
           else d, s
       in
-        let data = encoder_of_encoding encoding predicted in
+        let data = encoder_of_encoding ~im encoding predicted in
           let d'' = add_encoding (bytes_size data) pdf encoding d' in
             if not only_if_smaller || bytes_size data + 20 < bytes_size s then stream := d'', Pdf.Got data
   | _ -> raise (Pdf.PDFError "Pdf.encode_pdfstream: malformed Stream")
