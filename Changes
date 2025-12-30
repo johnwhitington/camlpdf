@@ -1,7 +1,7 @@
 2.9 (to come)
 
 o Add cycle detection in find_pages_quick for malformed files
-o CCITT Group 3 and Group 4 encoders
+o CCITT Group 3 encoder (native) and Group 4 encoder (via imagemagick)
 o New Pdf.remove_chain
 o Check object requires renumbering before doing so (speed)
 o Allow extraction of encryption when lack of password prevents reading
