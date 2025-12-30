@@ -1921,6 +1921,9 @@ let pdf_of_file ?revision upw opw f =
     | (Pdf.PDFError _) as e -> raise e
     | Sys_error str -> raise (Pdf.PDFError str)
 
+
+let _ = Pdfcodec.pdf_of_file := pdf_of_file
+
 let what_encryption pdf =
   if Pdfcrypt.is_encrypted pdf then
     let crypt, _, _, _, _, _, _ = Pdfcrypt.get_encryption_values pdf in

@@ -1140,24 +1140,28 @@ let encode_ccitt columns rows stream =
 
 Output is suitable for /CCITTFaxDecode /Columns <columns> /K -1 with all other
 dictionary entries as default. *)
+let pdf_of_file = ref (fun ?revision:int _ _ _ -> Pdf.empty ())
+
 let encode_ccittg4 ?im columns rows stream =
   match im with None -> raise (DecodeNotSupported "no imagemagick provided.") | Some im ->
-    flprint "encode_ccittg4 with imagemagick\n";
     let f_i, f_out =
-      Filename.temp_file "cpdf" "g4input.gray", Filename.temp_file "cpdf" "g4out.fax"
+      Filename.temp_file "cpdf" "g4input.gray", Filename.temp_file "cpdf" "g4out.pdf"
     in
     contents_to_file ~filename:f_i (Pdfio.string_of_bytes stream);
     let outcode =
       let command = Filename.quote_command im ["-depth"; "1"; "-size"; string_of_int columns ^ "x" ^ string_of_int rows; f_i; "-compress"; "GROUP4"; f_out] in
-        flprint (command ^ "\n");
         Sys.command command
     in
-    let data =
-      if outcode = 0 then contents_of_file f_out else raise (DecodeNotSupported "magick return code non-zero")
-    in
-    (*Sys.remove f_i;
-    Sys.remove f_out;*)
-    Pdfio.bytes_of_string data
+      if outcode > 0 then raise (DecodeNotSupported "magick return code non-zero") else
+        let pdf = !pdf_of_file None None f_out in
+        let data =
+          match Pdf.lookup_chain pdf pdf.Pdf.trailerdict ["/Root"; "/Pages"; "/Kids"; "/[0]"; "/Resources"; "/XObject"; "/Im0"] with
+          | Some (Pdf.Stream {contents = (_, Pdf.Got data)}) -> data
+          | _ -> raise (DecodeNotSupported "malformed PDF from imagemagick")
+        in
+          Sys.remove f_i;
+          Sys.remove f_out;
+          data
 
 (* This implementation is unfinished, and does not work. We're calling out to magick for now. *)
 (*

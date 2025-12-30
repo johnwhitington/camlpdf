@@ -85,6 +85,8 @@ val debug : bool ref
 (* Inter-module recursion. *)
 val string_of_pdf : (Pdf.pdfobject -> string) ref
 
+val pdf_of_file : (?revision:int -> string option -> string option -> string -> Pdf.t) ref
+
 val encode_predictor : int -> int -> int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 val decode_predictor : int -> int -> int -> int -> Pdfio.bytes -> Pdfio.bytes
