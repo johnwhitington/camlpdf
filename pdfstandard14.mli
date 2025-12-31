@@ -19,8 +19,8 @@ val afm_data :
   Pdftext.standard_font ->
     (string, string) Hashtbl.t * (int, int) Hashtbl.t * (int * int, int) Hashtbl.t * (string, int) Hashtbl.t
 
-(** Return a suitable StemV value for a standard font *)
+(** Return a suitable StemV value for a standard font. *)
 val stemv_of_standard_font : Pdftext.standard_font -> int
 
-(** Return a suitable flags value for a standard font *)
+(** Return a suitable flags value for a standard font. *)
 val flags_of_standard_font : Pdftext.standard_font -> int

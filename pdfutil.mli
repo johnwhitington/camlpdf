@@ -546,7 +546,7 @@ val isdigit : char -> bool
 (** Same as [Stdlib.int_of_float] *)
 val toint : float -> int
 
-(** Make sure a floating point number is no degenarate, by making it zero if it is. *)
+(** Make sure a floating point number is not degenarate, by making it zero if it is. *)
 val safe_float : float -> float
 
 (** {2 Options} *)
