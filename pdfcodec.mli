@@ -2,8 +2,8 @@
 
 (**
 {b Currently supported:}
-- Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode, LZWDecode.
-- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode.
+- Decoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode, LZWDecode, JBIG2 (via jbig2dec)
+- Encoders: ASCIIHexDecode, ASCII85Decode, FlateDecode, RunLengthDecode, CCITTFaxDecode G3, CCITTFaxDecode G4 (via imagemagick)
 - Decode predictors: PNG (all), TIFF (8-bit only).
 *)
 
@@ -36,21 +36,28 @@ exception DecodeNotSupported of string
 
 (** {2 Encoding} *)
 
-(** Encode a PDF stream with an encoding. The only predictor supported is PNGUp. *)
+(** Encode a PDF stream with an encoding. [im] is the path to imagemagick (only
+    for CCITTG4) If [only_if_smaller] is true, the stream remains uncompressed
+    if compression would make it bigger. [predictor] and [predictor_columns]
+    describe any predictor to be used. *)
 val encode_pdfstream : Pdf.t -> encoding -> ?im:string -> ?only_if_smaller:bool -> ?predictor:predictor -> ?predictor_columns:int -> Pdf.pdfobject -> unit
 
 (** {2 Decoding} *)
 
 (** Given a document and stream, decode. The pdf document is updated
-with the decoded stream. May raise either of the exceptions above. *)
+with the decoded stream. May raise either of the exceptions above. If
+[jbig2dec] is given, JBIG2 streams will be decompressed with it. Otherwise,
+they are left alone. *)
 val decode_pdfstream : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a document and stream decode just one stage. May raise either of the
-exceptions above. *)
+exceptions above. If [jbig2dec] is given, JBIG2 streams will be decompressed
+with it. Otherwise, they are left alone. *)
 val decode_pdfstream_onestage : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a document and stream decode until there's an unknown decoder. May
-raise [Couldn'tDecodeStream]. *)
+raise [Couldn'tDecodeStream]. If [jbig2dec] is given, JBIG2 streams will be
+decompressed with it. Otherwise, they are left alone. *)
 val decode_pdfstream_until_unknown : ?jbig2dec:string -> Pdf.t -> Pdf.pdfobject -> unit
 
 (** Given a [Pdfio.input] with pointer at the first byte and an inline image
@@ -74,7 +81,7 @@ val decode_flate : Pdfio.bytes -> Pdfio.bytes
 (** Encode data in CCITTDecode Group 3. *)
 val encode_ccitt : int -> int -> Pdfio.bytes -> Pdfio.bytes
 
-(** Encode data in CCITTDecode Group 4. *)
+(** Encode data in CCITTDecode Group 4. Presently we do this via imagemagick, given by [im]. *)
 val encode_ccittg4 : ?im:string -> int -> int -> Pdfio.bytes -> Pdfio.bytes
 
 (** Setting this boolean prints some debug information. *)
