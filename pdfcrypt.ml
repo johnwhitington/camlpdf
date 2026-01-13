@@ -318,8 +318,11 @@ let process_cryption
               (Pdf.addobj_given_num
                  pdf
                  (objnum,
-                  decrypt crypt_type pdf no_encrypt_metadata encrypt objnum
-                  gennum key keylength r file_encryption_key obj))
+                  try
+                    decrypt crypt_type pdf no_encrypt_metadata encrypt objnum
+                    gennum key keylength r file_encryption_key obj
+                  with
+                    e -> Pdfe.log (Printf.sprintf "Warning: unable to decrypt object %i\n" objnum); obj))
            end)
       pdf;
     let trailerdict' = Pdf.remove_dict_entry pdf.Pdf.trailerdict "/Encrypt" in

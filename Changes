@@ -11,6 +11,7 @@ o Fix regression where bookmark strings were mangled
 o Fix (partially) efficiency of page renumbering on very large files
 o Disambiguate annotation object numbers where a page is copied
 o Allow optional use of jbig2dec to decode JBIG2 streams
+o Failure to decrypt an object due to malformity no longer fatal
 
 2.8.1 (April 2025)
 
