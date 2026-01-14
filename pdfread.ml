@@ -1878,6 +1878,8 @@ let read_pdf revision upw opw opt i =
           raise e
       | BadRevision ->
           raise (Pdf.PDFError "Revision number too low when reading PDF")
+      | Revisions n ->
+          raise (Revisions n)
       | e ->
           if !error_on_malformed then raise e else
             begin
