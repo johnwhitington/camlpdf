@@ -61,7 +61,8 @@ type pdfobjects =
   {mutable maxobjnum : int;
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
-   mutable object_stream_ids : (int, int) Hashtbl.t}
+   mutable object_stream_ids : (int, int) Hashtbl.t;
+   mutable altered : (int, unit) Hashtbl.t}
 
 (** {2 The PDF document} *)
 

@@ -143,7 +143,8 @@ type pdfobjects =
   {mutable maxobjnum : int;
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
-   mutable object_stream_ids : (int, int) Hashtbl.t}
+   mutable object_stream_ids : (int, int) Hashtbl.t;
+   mutable altered : (int, unit) Hashtbl.t}
 
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
@@ -168,7 +169,8 @@ let empty () =
      {maxobjnum = 0;
       parse = None;
       pdfobjects = pdfobjmap_empty ();
-      object_stream_ids = null_hash ()};
+      object_stream_ids = null_hash ();
+      altered = null_hash ()};
    trailerdict = Dictionary [];
    was_linearized = false;
    saved_encryption = None}
@@ -745,7 +747,8 @@ let objects_of_list parse l =
     {parse = parse;
      pdfobjects = !map;
      maxobjnum = !maxobj;
-     object_stream_ids = null_hash ()}
+     object_stream_ids = null_hash ();
+     altered = null_hash ()}
 
 (* Find the page reference numbers, given the top level node of the page tree *)
 let rec page_reference_numbers_inner pdf pages_node node_number =
@@ -1168,7 +1171,8 @@ let deep_copy from =
      {maxobjnum = from.objects.maxobjnum;
       parse = from.objects.parse;
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
-      object_stream_ids = Hashtbl.copy from.objects.object_stream_ids};
+      object_stream_ids = Hashtbl.copy from.objects.object_stream_ids;
+      altered = Hashtbl.copy from.objects.altered};
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption}
