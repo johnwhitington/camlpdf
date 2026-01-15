@@ -459,7 +459,8 @@ let addobj_given_num doc (num, obj) =
   doc.objects.maxobjnum <-
     max doc.objects.maxobjnum num;
   doc.objects.pdfobjects <-
-    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
+    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects;
+  Hashtbl.replace doc.objects.altered num ()
 
 (* Follow a chain from the root, finding a dictionary entry to replace (or add).
    Keep the same direct / indirect structure as is already present - any
