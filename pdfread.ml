@@ -1841,15 +1841,18 @@ let read_malformed_pdf upw opw i =
            pdf
 
 let report_read_error i e e' =
-  raise
-    (Pdf.PDFError
-       (Pdf.input_pdferror
-          i
-          (Printf.sprintf
-             "Failed to read PDF - initial error was\n%s\n\n\
-             final error was \n%s\n\n"
-             (Printexc.to_string e)
-             (Printexc.to_string e'))))
+  match e' with
+  | Revisions 1 -> raise (Revisions 1)
+  | _ ->
+    raise
+      (Pdf.PDFError
+         (Pdf.input_pdferror
+            i
+            (Printf.sprintf
+               "Failed to read PDF - initial error was\n%s\n\n\
+               final error was \n%s\n\n"
+               (Printexc.to_string e)
+               (Printexc.to_string e'))))
 
 let endpage = ref (fun _ -> 0)
 
@@ -1888,6 +1891,8 @@ let read_pdf revision upw opw opt i =
                 let r = read_malformed_pdf upw opw i in
                 (* As above, but this time it triggers checks for cyclic page trees etc. *)
                 ignore (!endpage r);
+                (* If the operation is Revisions, return 1. *)
+                if revision = Some ~-1 then raise (Revisions 1);
                 r
               with e' ->
                 report_read_error i e e'
