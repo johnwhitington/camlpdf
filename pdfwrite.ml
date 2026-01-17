@@ -547,7 +547,28 @@ let dummy_encryption =
 
 (* Updating a PDF by appending. *)
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
-  o.output_string "The update!"
+  (* 1. Write each new or replacement object *)
+  (* 2. Write xref table update *)
+  let xrefstart = o.pos_out () in
+  let xreflength = 10 in
+  (* write_xrefs (rev !xrefs) o; *)
+  (* 3. Write trailer section. *)
+  o.output_string "trailer\n";
+  let trailerdict' =
+    match pdf.Pdf.trailerdict with
+    | Pdf.Dictionary trailerdict ->
+        Pdf.Dictionary
+          (add "/Size" (Pdf.Integer (xreflength + 1))
+            (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))
+    | _ ->
+        raise
+          (Pdf.PDFError
+             "Pdf.pdf_to_output: Bad trailer dictionary")
+  in
+    strings_of_pdf ~hex:true (flatten_W o) (null_hash ()) trailerdict';
+    o.output_string "\nstartxref\n";
+    o.output_string (string_of_int xrefstart);
+    o.output_string "\n%%EOF\n"
 
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
