@@ -144,7 +144,9 @@ type pdfobjects =
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t;
-   mutable altered : (int, unit) Hashtbl.t}
+   mutable altered : (int, unit) Hashtbl.t;
+   mutable deleted : (int, unit) Hashtbl.t}
+  (* NB. When an object number is re-used, it is not removed from "deleted". Reconciliation happens upon writing. *)
 
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
@@ -170,7 +172,8 @@ let empty () =
       parse = None;
       pdfobjects = pdfobjmap_empty ();
       object_stream_ids = null_hash ();
-      altered = null_hash ()};
+      altered = null_hash ();
+      deleted = null_hash ()};
    trailerdict = Dictionary [];
    was_linearized = false;
    saved_encryption = None}
@@ -299,7 +302,8 @@ let parse_lazy pdf n =
 (* Remove an object. *)
 let removeobj doc o =
   doc.objects <-
-    {doc.objects with pdfobjects = pdfobjmap_remove o doc.objects.pdfobjects}
+    {doc.objects with pdfobjects = pdfobjmap_remove o doc.objects.pdfobjects};
+  Hashtbl.add doc.objects.deleted o ()
 
 (* Look up an object. On an error return Null *)
 let rec lookup_obj doc i =
@@ -749,7 +753,8 @@ let objects_of_list parse l =
      pdfobjects = !map;
      maxobjnum = !maxobj;
      object_stream_ids = null_hash ();
-     altered = null_hash ()}
+     altered = null_hash ();
+     deleted = null_hash ()}
 
 (* Find the page reference numbers, given the top level node of the page tree *)
 let rec page_reference_numbers_inner pdf pages_node node_number =
@@ -1173,7 +1178,8 @@ let deep_copy from =
       parse = from.objects.parse;
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
       object_stream_ids = Hashtbl.copy from.objects.object_stream_ids;
-      altered = Hashtbl.copy from.objects.altered};
+      altered = Hashtbl.copy from.objects.altered;
+      deleted = Hashtbl.copy from.objects.deleted};
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption}
