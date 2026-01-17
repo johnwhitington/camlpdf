@@ -547,7 +547,14 @@ let dummy_encryption =
 
 (* Updating a PDF by appending. *)
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
+  let xrefs = ref [] in
   (* 1. Write each new or replacement object *)
+  let newobjs = map fst (list_of_hashtbl pdf.Pdf.objects.altered) in
+  iter
+    (fun (ob, p) ->
+       xrefs =| o.pos_out ();
+       strings_of_pdf_object (flatten_W o) (ob, p) ob (null_hash ()))
+    (combine newobjs (map (Pdf.lookup_obj pdf) newobjs));
   (* 2. Write xref table update *)
   let xrefstart = o.pos_out () in
   let xreflength = 10 in
