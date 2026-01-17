@@ -547,6 +547,7 @@ let dummy_encryption =
 
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None) encrypt mk_id pdf o
 =
@@ -655,6 +656,7 @@ let pdf_to_output
 
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
   encrypt mk_id pdf ch
@@ -670,6 +672,7 @@ existing object streams will be preserved. If [generate_objstm] is set, new
 ones will be generated in addition. To get totally fresh object streams, set
 [preserve_objstm=false, generate_objstm=true]. *)
 let pdf_to_file_options
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
   encrypt mk_id pdf f
