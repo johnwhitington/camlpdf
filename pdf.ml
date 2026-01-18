@@ -460,6 +460,7 @@ let indirect_number pdf key dict =
 
 (* Add an object, given an object number. *)
 let addobj_given_num doc (num, obj) =
+  (*Pdfe.log (Printf.sprintf "addobj_given_num, num = %i\n" num);*)
   doc.objects.maxobjnum <-
     max doc.objects.maxobjnum num;
   doc.objects.pdfobjects <-
