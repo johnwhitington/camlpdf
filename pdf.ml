@@ -1008,16 +1008,9 @@ let remove_unreferenced pdf =
     referenced [] [] pdf found pdf.root (Parsed (lookup_obj pdf pdf.root));
     referenced [] [] pdf found 0 (Parsed pdf.trailerdict);
     found := refset_add pdf.root !found;
-    let eltnumbers = refset_elts !found in
-      (* If not found, just ignore. *)
-      let elements =
-        map (fun n -> try lookup_obj pdf n with Not_found -> Null) eltnumbers
-      in
-        pdf.objects <-
-          {pdf.objects with
-             maxobjnum = 0;
-             pdfobjects = pdfobjmap_empty ()};
-        iter (addobj_given_num pdf) (combine eltnumbers elements)
+    let toremove = null_hash () in
+      objiter (fun n _ -> if not (refset_mem n !found) then Hashtbl.add toremove n ()) pdf;
+      Hashtbl.iter (fun k _ -> removeobj pdf k) toremove
 
 (* Objects referenced from a given one. *)
 let objects_referenced no_follow_entries no_follow_contains pdf pdfobject =
