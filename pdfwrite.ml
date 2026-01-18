@@ -550,6 +550,9 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
   (* 1. Write each new or replacement object *)
   let newobjs = map fst (list_of_hashtbl pdf.Pdf.objects.altered) in
+  let deletedobjs = map fst (list_of_hashtbl pdf.Pdf.objects.deleted) in
+  Printf.printf "newobjs: "; iter (Printf.printf "%i ") newobjs; Printf.printf "\n";
+  Printf.printf "deletedobjs: "; iter (Printf.printf "%i ") deletedobjs; Printf.printf "\n";
   iter
     (fun (ob, p) ->
        xrefs =| o.pos_out ();
