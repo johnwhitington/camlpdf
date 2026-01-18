@@ -160,7 +160,8 @@ type t =
    mutable objects : pdfobjects; 
    mutable trailerdict : pdfobject;
    mutable was_linearized : bool;
-   mutable saved_encryption : saved_encryption option}
+   mutable saved_encryption : saved_encryption option;
+   mutable first_xref : int}
 
 (* The null PDF document. *)
 let empty () =
@@ -176,7 +177,8 @@ let empty () =
       deleted = null_hash ()};
    trailerdict = Dictionary [];
    was_linearized = false;
-   saved_encryption = None}
+   saved_encryption = None;
+   first_xref = 0}
 
 (* General exception for low-level errors. *)
 exception PDFError of string
@@ -1176,7 +1178,8 @@ let deep_copy from =
       deleted = Hashtbl.copy from.objects.deleted};
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
-   saved_encryption = from.saved_encryption}
+   saved_encryption = from.saved_encryption;
+   first_xref = from.first_xref}
 
 let change_id pdf f =
   match pdf.trailerdict with

@@ -770,7 +770,8 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
            Pdf.major = basepdf.Pdf.major;
            Pdf.minor = basepdf.Pdf.minor;
            Pdf.trailerdict = basepdf.Pdf.trailerdict;
-           Pdf.saved_encryption = basepdf.Pdf.saved_encryption}
+           Pdf.saved_encryption = basepdf.Pdf.saved_encryption;
+           Pdf.first_xref = basepdf.Pdf.first_xref}
       in
         let existing_root_entries =
           try

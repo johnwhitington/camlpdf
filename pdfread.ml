@@ -1318,6 +1318,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
   if !read_debug then
     (Pdfe.log (Printf.sprintf "read_pdf, revision is %s\n"
       (match revision with None -> "None" | Some x -> string_of_int x)); tt' ());
+  let first_xref = ref 0 in
   begin match revision with
      Some x when x < 1 && x <> (-1) -> raise BadRevision
    | _ -> ()
@@ -1377,7 +1378,10 @@ let read_pdf ?revision user_pw owner_pw opt i =
       | [] ->
           raise
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
-      | xrefchars -> xref := int_of_string (implode xrefchars);
+      | xrefchars ->
+          xref := int_of_string (implode xrefchars);
+          Printf.printf "first is %b, setting first_xref to %i\n" !first !xref;
+          if !first then first_xref := !xref
       end;
       if !read_debug then (Pdfe.log (Printf.sprintf "Reading Cross-reference table\n"); tt' ());
       while not !got_all_xref_sections do
@@ -1608,6 +1612,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
         let trailerdict' = sanitize_trailerdict (length objects) !trailerdict in
+          Printf.printf "returning pdf with first_xref = %i\n" !first_xref;
           let pdf = 
             {Pdf.major = major;
              Pdf.minor = minor;
@@ -1616,7 +1621,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.root = root;
              Pdf.trailerdict = Pdf.Dictionary trailerdict';
              Pdf.was_linearized = was_linearized;
-             Pdf.saved_encryption = None}
+             Pdf.saved_encryption = None;
+             Pdf.first_xref = !first_xref}
           in
           if !read_debug then (Pdfe.log (Printf.sprintf "made final objects...\n"); tt' ());
           (* Check for a /Version in the document catalog *)
@@ -1835,7 +1841,8 @@ let read_malformed_pdf upw opw i =
             Pdf.objects = Pdf.objects_of_list None objects;
             Pdf.trailerdict = Pdf.Dictionary trailerdict';
             Pdf.was_linearized = was_linearized;
-            Pdf.saved_encryption = None}
+            Pdf.saved_encryption = None;
+            Pdf.first_xref = 0}
          in
            if !read_debug then Pdfwrite.debug_whole_pdf pdf;
            pdf

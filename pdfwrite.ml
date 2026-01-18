@@ -548,9 +548,11 @@ let dummy_encryption =
 (* Updating a PDF by appending. *)
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
-  (* 1. Write each new or replacement object *)
+  let original_length = o.out_channel_length () in
   let newobjs = map fst (list_of_hashtbl pdf.Pdf.objects.altered) in
   let deletedobjs = map fst (list_of_hashtbl pdf.Pdf.objects.deleted) in
+  let allchanged = map (fun x -> (x, true)) newobjs @ map (fun x -> (x, false)) deletedobjs in
+  (* FIXME NB. When an object number is re-used, it is not removed from "deleted". Reconciliation happens upon writing. *)
   Printf.printf "newobjs: "; iter (Printf.printf "%i ") newobjs; Printf.printf "\n";
   Printf.printf "deletedobjs: "; iter (Printf.printf "%i ") deletedobjs; Printf.printf "\n";
   iter
@@ -560,16 +562,15 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
     (combine newobjs (map (Pdf.lookup_obj pdf) newobjs));
   (* 2. Write xref table update *)
   let xrefstart = o.pos_out () in
-  let xreflength = 10 in
-  (* write_xrefs (rev !xrefs) o; *)
   (* 3. Write trailer section. *)
   o.output_string "trailer\n";
   let trailerdict' =
     match pdf.Pdf.trailerdict with
     | Pdf.Dictionary trailerdict ->
         Pdf.Dictionary
-          (add "/Size" (Pdf.Integer (xreflength + 1))
-            (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))
+          (add "/Prev" (Pdf.Integer pdf.Pdf.first_xref)
+            ((add "/Size" (Pdf.Integer (Pdf.objcard pdf + 1))
+              (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))))
     | _ ->
         raise
           (Pdf.PDFError
@@ -577,7 +578,7 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   in
     strings_of_pdf ~hex:true (flatten_W o) (null_hash ()) trailerdict';
     o.output_string "\nstartxref\n";
-    o.output_string (string_of_int xrefstart);
+    o.output_string (string_of_int (xrefstart + original_length));
     o.output_string "\n%%EOF\n"
 
 (* Flatten a PDF document to an Pdfio.output. *)
