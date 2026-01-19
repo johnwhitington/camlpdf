@@ -549,19 +549,61 @@ let dummy_encryption =
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
   let original_length = o.out_channel_length () in
-  let newobjs = [] in (* map fst (list_of_hashtbl pdf.Pdf.objects.altered) in *)
-  let deletedobjs = [] in (* map fst (list_of_hashtbl pdf.Pdf.objects.deleted) in *)
-  (*let allchanged = map (fun x -> (x, true)) newobjs @ map (fun x -> (x, false)) deletedobjs in *)
-  Printf.printf "newobjs: "; iter (Printf.printf "%i ") newobjs; Printf.printf "\n";
-  Printf.printf "deletedobjs: "; iter (Printf.printf "%i ") deletedobjs; Printf.printf "\n";
+  let newobjs = null_hash () in
+  let deletedobjs = null_hash () in
+  iter
+    (function
+     | (n, Pdf.Altered) ->
+         Hashtbl.replace newobjs n ();
+         Hashtbl.remove deletedobjs n;
+     | (n, Pdf.Deleted) ->
+         Hashtbl.replace deletedobjs n ();
+         Hashtbl.remove newobjs n)
+    pdf.Pdf.objects.log;
+  let reconciled_events =
+    sort compare
+      (map (fun (x, ()) -> (x, false)) (list_of_hashtbl newobjs) @
+       map (fun (x, ()) -> (x, true)) (list_of_hashtbl deletedobjs))
+  in
+  let final_newobjs = map fst (keep (function (_, false) -> true | _ -> false) reconciled_events) in
+  Printf.printf "reconciled event log: "; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;
   iter
     (fun (ob, p) ->
        xrefs =| o.pos_out ();
        strings_of_pdf_object (flatten_W o) (ob, p) ob (null_hash ()))
-    (combine newobjs (map (Pdf.lookup_obj pdf) newobjs));
-  (* 2. Write xref table update *)
+    (combine final_newobjs (map (Pdf.lookup_obj pdf) final_newobjs));
+  (* NB. Acrobat, contra the PDF spec, doesn't seem to care about generation numbers.
+     It outputs a 0000000000 65535 f line, then lines for the updated/added
+     objects. So we follow this model for now, since it's simpler.
+
+     (Actually, the spec says the 0000000000 65535 f line shouldn't exist
+     either, but there we are.)
+
+     Edit: we noted this for updated object. Perhaps generation numbers do
+     matter for deleted and then re-created objects, but we can't quite see
+     why.
+
+     (Suggestion: generation numbers have no use in modern PDF)
+
+     See also https://github.com/pdf-association/pdf-issues/issues/465 *)
+  o.output_string "xref\n";
+  o.output_string "0 1\n";
+  o.output_string "0000000000 65535 f\n";
+  let sections =
+    [(5, [(false, 1235); (true, 2425)]); (17, [(true, 123)])]
+  in
+    iter
+      (fun (n, l) ->
+        o.output_string (Printf.sprintf "%i %i\n" n (length l));
+        iter
+          (function
+           | (true, n) ->
+               o.output_string "0000000000 65535 f\n"
+           | (false, n) ->
+               output_string_of_xref o n)
+          l)
+      sections;
   let xrefstart = o.pos_out () in
-  (* 3. Write trailer section. *)
   o.output_string "trailer\n";
   let trailerdict' =
     match pdf.Pdf.trailerdict with
