@@ -1380,7 +1380,6 @@ let read_pdf ?revision user_pw owner_pw opt i =
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
       | xrefchars ->
           xref := int_of_string (implode xrefchars);
-          Printf.printf "first is %b, setting first_xref to %i\n" !first !xref;
           if !first then first_xref := !xref
       end;
       if !read_debug then (Pdfe.log (Printf.sprintf "Reading Cross-reference table\n"); tt' ());
@@ -1612,7 +1611,6 @@ let read_pdf ?revision user_pw owner_pw opt i =
         (* Fix Size entry and remove Prev, XRefStm, Filter, Index, W, Type,
         and DecodeParms *)
         let trailerdict' = sanitize_trailerdict (length objects) !trailerdict in
-          Printf.printf "returning pdf with first_xref = %i\n" !first_xref;
           let pdf = 
             {Pdf.major = major;
              Pdf.minor = minor;

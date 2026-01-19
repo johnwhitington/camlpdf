@@ -546,6 +546,20 @@ let dummy_encryption =
    permissions = []}
 
 (* Updating a PDF by appending. *)
+(* NB. Acrobat, contra the PDF spec, doesn't seem to care about generation numbers.
+   It outputs a 0000000000 65535 f line, then lines for the updated/added
+   objects. So we follow this model for now, since it's simpler.
+
+   (Actually, the spec says the 0000000000 65535 f line shouldn't exist
+   either, but there we are.)
+
+   Edit: we noted this for updated object. Perhaps generation numbers do
+   matter for deleted and then re-created objects, but we can't quite see
+   why.
+
+   (Suggestion: generation numbers have no use in modern PDF)
+
+   See also https://github.com/pdf-association/pdf-issues/issues/465 *)
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
   let original_length = o.out_channel_length () in
@@ -566,43 +580,39 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
        map (fun (x, ()) -> (x, true)) (list_of_hashtbl deletedobjs))
   in
   let final_newobjs = map fst (keep (function (_, false) -> true | _ -> false) reconciled_events) in
-  Printf.printf "reconciled event log: "; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;
+  (*Printf.printf "reconciled event log: "; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;*)
   iter
     (fun (ob, p) ->
-       xrefs =| o.pos_out ();
+       xrefs =| (ob, o.pos_out ());
        strings_of_pdf_object (flatten_W o) (ob, p) ob (null_hash ()))
     (combine final_newobjs (map (Pdf.lookup_obj pdf) final_newobjs));
-  (* NB. Acrobat, contra the PDF spec, doesn't seem to care about generation numbers.
-     It outputs a 0000000000 65535 f line, then lines for the updated/added
-     objects. So we follow this model for now, since it's simpler.
-
-     (Actually, the spec says the 0000000000 65535 f line shouldn't exist
-     either, but there we are.)
-
-     Edit: we noted this for updated object. Perhaps generation numbers do
-     matter for deleted and then re-created objects, but we can't quite see
-     why.
-
-     (Suggestion: generation numbers have no use in modern PDF)
-
-     See also https://github.com/pdf-association/pdf-issues/issues/465 *)
   o.output_string "xref\n";
   o.output_string "0 1\n";
   o.output_string "0000000000 65535 f\n";
-  let sections =
-    [(5, [(false, 1235); (true, 2425)]); (17, [(true, 123)])]
+  (* Pairs of (objnum, bool) --> list of (objnum, bool list) pairs. *)
+  let rec make_sections a = function
+    | [] -> rev (map (fun (b, l) -> (b, rev l)) a)
+    | (n, b)::r ->
+        match a with
+        | [] ->
+            make_sections [(n, [b])] r
+        | (n', bl)::ar ->
+            if n = n' + 1
+              then make_sections ((n', b::bl)::ar) r
+              else make_sections ((n, [b])::(n', bl)::ar) r
   in
-    iter
-      (fun (n, l) ->
-        o.output_string (Printf.sprintf "%i %i\n" n (length l));
-        iter
-          (function
-           | (true, n) ->
-               o.output_string "0000000000 65535 f\n"
-           | (false, n) ->
-               output_string_of_xref o n)
-          l)
-      sections;
+  iter
+    (fun (n, l) ->
+      o.output_string (Printf.sprintf "%i %i\n" n (length l));
+      let n = ref n in
+      iter
+        (function
+         | true ->
+             o.output_string "0000000000 65535 f\n"
+         | false ->
+             output_string_of_xref o !n; n += 1)
+        l)
+    (make_sections [] reconciled_events);
   let xrefstart = o.pos_out () in
   o.output_string "trailer\n";
   let trailerdict' =
