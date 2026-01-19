@@ -549,10 +549,9 @@ let dummy_encryption =
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
   let original_length = o.out_channel_length () in
-  let newobjs = map fst (list_of_hashtbl pdf.Pdf.objects.altered) in
-  let deletedobjs = map fst (list_of_hashtbl pdf.Pdf.objects.deleted) in
-  let allchanged = map (fun x -> (x, true)) newobjs @ map (fun x -> (x, false)) deletedobjs in
-  (* FIXME NB. When an object number is re-used, it is not removed from "deleted". Reconciliation happens upon writing. *)
+  let newobjs = [] in (* map fst (list_of_hashtbl pdf.Pdf.objects.altered) in *)
+  let deletedobjs = [] in (* map fst (list_of_hashtbl pdf.Pdf.objects.deleted) in *)
+  (*let allchanged = map (fun x -> (x, true)) newobjs @ map (fun x -> (x, false)) deletedobjs in *)
   Printf.printf "newobjs: "; iter (Printf.printf "%i ") newobjs; Printf.printf "\n";
   Printf.printf "deletedobjs: "; iter (Printf.printf "%i ") deletedobjs; Printf.printf "\n";
   iter

@@ -761,8 +761,7 @@ let change_pages ?matrices ?changes change_references basepdf pages' =
   let pdf = Pdf.empty () in
     Pdf.objiter (fun k v -> ignore (Pdf.addobj_given_num pdf (k, v))) basepdf;
     pdf.Pdf.objects.Pdf.object_stream_ids <- Hashtbl.copy basepdf.Pdf.objects.Pdf.object_stream_ids; (* Preserve objstms 11/12/2021 *)
-    pdf.Pdf.objects.altered <- Hashtbl.copy basepdf.Pdf.objects.altered;
-    pdf.Pdf.objects.deleted <- Hashtbl.copy basepdf.Pdf.objects.deleted;
+    pdf.Pdf.objects.log <- basepdf.Pdf.objects.log;
     let old_page_numbers = Pdf.page_reference_numbers basepdf in
     let pdf, pagetree_num = add_pagetree pages' pdf in
       let pdf =

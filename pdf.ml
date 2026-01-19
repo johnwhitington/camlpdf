@@ -137,6 +137,8 @@ let pdfobjmap_iter = Hashtbl.iter
 
 let pdfobjmap_remove key map = Hashtbl.remove map key; map
 
+type event = Altered | Deleted
+
 (* We hold the maximum object number in use, maxobjnum to allow easy
 production of new keys for the map. *)
 type pdfobjects =
@@ -144,9 +146,7 @@ type pdfobjects =
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t;
-   mutable altered : (int, unit) Hashtbl.t;
-   mutable deleted : (int, unit) Hashtbl.t}
-  (* NB. When an object number is re-used, it is not removed from "deleted". Reconciliation happens upon writing. *)
+   mutable log : (int * event) list}
 
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
@@ -173,8 +173,7 @@ let empty () =
       parse = None;
       pdfobjects = pdfobjmap_empty ();
       object_stream_ids = null_hash ();
-      altered = null_hash ();
-      deleted = null_hash ()};
+      log = []};
    trailerdict = Dictionary [];
    was_linearized = false;
    saved_encryption = None;
@@ -305,7 +304,7 @@ let parse_lazy pdf n =
 let removeobj doc o =
   doc.objects <-
     {doc.objects with pdfobjects = pdfobjmap_remove o doc.objects.pdfobjects};
-  Hashtbl.add doc.objects.deleted o ()
+  doc.objects.log <- (o, Deleted)::doc.objects.log
 
 (* Look up an object. On an error return Null *)
 let rec lookup_obj doc i =
@@ -467,7 +466,7 @@ let addobj_given_num doc (num, obj) =
     max doc.objects.maxobjnum num;
   doc.objects.pdfobjects <-
     pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects;
-  Hashtbl.replace doc.objects.altered num ()
+  doc.objects.log <- (num, Altered)::doc.objects.log
 
 (* Follow a chain from the root, finding a dictionary entry to replace (or add).
    Keep the same direct / indirect structure as is already present - any
@@ -756,8 +755,7 @@ let objects_of_list parse l =
      pdfobjects = !map;
      maxobjnum = !maxobj;
      object_stream_ids = null_hash ();
-     altered = null_hash ();
-     deleted = null_hash ()}
+     log = []}
 
 (* Find the page reference numbers, given the top level node of the page tree *)
 let rec page_reference_numbers_inner pdf pages_node node_number =
@@ -1174,8 +1172,7 @@ let deep_copy from =
       parse = from.objects.parse;
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
       object_stream_ids = Hashtbl.copy from.objects.object_stream_ids;
-      altered = Hashtbl.copy from.objects.altered;
-      deleted = Hashtbl.copy from.objects.deleted};
+      log = from.objects.log};
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
    saved_encryption = from.saved_encryption;

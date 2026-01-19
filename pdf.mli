@@ -51,6 +51,8 @@ val pdfobjmap_empty : unit -> pdfobjmap
 (** Find an object in the object map *)
 val pdfobjmap_find : pdfobjmap_key -> pdfobjmap -> objectdata ref * int
 
+type event = Altered | Deleted
+
 (** The objects. Again, you won't normally manipulate this directly.
 [maxobjnum] is the biggest object number seen yet. [parse] is a function to
 parse a non-object stream object given its object number, [pdfobjects] is the
@@ -62,8 +64,7 @@ type pdfobjects =
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
    mutable object_stream_ids : (int, int) Hashtbl.t;
-   mutable altered : (int, unit) Hashtbl.t;
-   mutable deleted : (int, unit) Hashtbl.t}
+   mutable log : (int * event) list}
 
 (** {2 The PDF document} *)
 
