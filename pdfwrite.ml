@@ -589,8 +589,8 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
     (combine final_newobjs (map (Pdf.lookup_obj pdf) final_newobjs));
   let xrefstart = o.pos_out () in
   o.output_string "xref\n";
-  o.output_string "0 1\n";
-  o.output_string "0000000000 65535 f\n";
+  o.output_string "0 1 \n";
+  o.output_string "0000000000 65535 f \n";
   (* Pairs of (objnum, bool) --> list of (objnum, bool list) pairs. *)
   let rec make_sections a dn = function
     | [] -> rev (map (fun (b, l) -> (b, rev l)) a)
@@ -612,12 +612,12 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
     (make_sections [] 1 reconciled_events);*)
   iter
     (fun (n, l) ->
-      o.output_string (Printf.sprintf "%i %i\n" n (length l));
+      o.output_string (Printf.sprintf "%i %i \n" n (length l));
       let n = ref n in
       iter
         (function
          | true ->
-             o.output_string "0000000000 65535 f\n";
+             o.output_string "0000000000 65535 f \n";
              n += 1
          | false ->
              (*Printf.printf "lookup %i\n%!" !n;*)
