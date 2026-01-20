@@ -560,6 +560,14 @@ let dummy_encryption =
    (Suggestion: generation numbers have no use in modern PDF)
 
    See also https://github.com/pdf-association/pdf-issues/issues/465 *)
+
+(* maxobjnum not robust to deletions, so we calculate our own. *)
+
+let find_maxobjnum pdf =
+  let m = ref min_int in
+    Pdf.objiter (fun n _ -> if n > !m then m :=n) pdf;
+    !m
+
 let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
   let xrefs = ref [] in
   let original_length = o.out_channel_length () in
@@ -631,7 +639,7 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
     | Pdf.Dictionary trailerdict ->
         Pdf.Dictionary
           (add "/Prev" (Pdf.Integer pdf.Pdf.first_xref)
-            ((add "/Size" (Pdf.Integer (pdf.objects.maxobjnum + 1))
+            ((add "/Size" (Pdf.Integer (find_maxobjnum pdf + 1))
               (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))))
     | _ ->
         raise
