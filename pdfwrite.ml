@@ -568,7 +568,18 @@ let find_maxobjnum pdf =
     Pdf.objiter (fun n _ -> if n > !m then m :=n) pdf;
     !m
 
-let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
+let pdf_to_output_updating ?(recrypt = None) encrypt mk_id pdf o =
+  let encrypt =
+    match recrypt with
+      None -> encrypt
+    | Some _ -> Some dummy_encryption
+  in
+  let pdf =
+    match recrypt with
+      None -> pdf
+    | Some pw -> Pdfcrypt.recrypt_pdf ~renumber:false pdf pw
+  in
+  let pdf = crypt_if_necessary pdf encrypt in
   let xrefs = ref [] in
   let original_length = o.out_channel_length () in
   let newobjs = null_hash () in
@@ -657,7 +668,7 @@ let pdf_to_output
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None) encrypt mk_id pdf o
 =
-  if update then pdf_to_output_updating ~recrypt mk_id pdf o else
+  if update then pdf_to_output_updating ~recrypt encrypt mk_id pdf o else
     begin
       if mk_id then Pdf.change_id pdf (string_of_float (Random.float 1.));
       let renumbered_objects_for_streams, preserve_objstm =
