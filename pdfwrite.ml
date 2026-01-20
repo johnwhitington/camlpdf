@@ -580,27 +580,36 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
        map (fun (x, ()) -> (x, true)) (list_of_hashtbl deletedobjs))
   in
   let final_newobjs = map fst (keep (function (_, false) -> true | _ -> false) reconciled_events) in
-  (*Printf.printf "reconciled event log: "; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;*)
+  Printf.printf "reconciled event log:\n"; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;
   iter
     (fun (ob, p) ->
+       Printf.printf "Adding %i %i to xrefs\n" ob (o.pos_out ());
        xrefs =| (ob, o.pos_out ());
        strings_of_pdf_object (flatten_W o) (ob, p) ob (null_hash ()))
     (combine final_newobjs (map (Pdf.lookup_obj pdf) final_newobjs));
+  let xrefstart = o.pos_out () in
   o.output_string "xref\n";
   o.output_string "0 1\n";
   o.output_string "0000000000 65535 f\n";
   (* Pairs of (objnum, bool) --> list of (objnum, bool list) pairs. *)
-  let rec make_sections a = function
+  let rec make_sections a dn = function
     | [] -> rev (map (fun (b, l) -> (b, rev l)) a)
     | (n, b)::r ->
         match a with
         | [] ->
-            make_sections [(n, [b])] r
+            make_sections [(n, [b])] 1 r
         | (n', bl)::ar ->
-            if n = n' + 1
-              then make_sections ((n', b::bl)::ar) r
-              else make_sections ((n, [b])::(n', bl)::ar) r
+            if n = n' + dn
+              then make_sections ((n', b::bl)::ar) (dn + 1) r
+              else make_sections ((n, [b])::(n', bl)::ar) 1 r
   in
+  Printf.printf "Sections: \n";
+  iter
+    (fun (n, l) ->
+       Printf.printf "%i: " n;
+       iter (Printf.printf "%b ") l;
+       Printf.printf "\n")
+    (make_sections [] 1 reconciled_events);
   iter
     (fun (n, l) ->
       o.output_string (Printf.sprintf "%i %i\n" n (length l));
@@ -608,19 +617,21 @@ let pdf_to_output_updating ?(recrypt = None) mk_id pdf o =
       iter
         (function
          | true ->
-             o.output_string "0000000000 65535 f\n"
+             o.output_string "0000000000 65535 f\n";
+             n += 1
          | false ->
-             output_string_of_xref o !n; n += 1)
+             Printf.printf "lookup %i\n%!" !n;
+             output_string_of_xref o (unopt (lookup !n !xrefs) + original_length);
+             n += 1)
         l)
-    (make_sections [] reconciled_events);
-  let xrefstart = o.pos_out () in
+    (make_sections [] 1 reconciled_events);
   o.output_string "trailer\n";
   let trailerdict' =
     match pdf.Pdf.trailerdict with
     | Pdf.Dictionary trailerdict ->
         Pdf.Dictionary
           (add "/Prev" (Pdf.Integer pdf.Pdf.first_xref)
-            ((add "/Size" (Pdf.Integer (Pdf.objcard pdf + 1))
+            ((add "/Size" (Pdf.Integer (pdf.objects.maxobjnum + 1))
               (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))))
     | _ ->
         raise
