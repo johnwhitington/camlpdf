@@ -1620,7 +1620,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.trailerdict = Pdf.Dictionary trailerdict';
              Pdf.was_linearized = was_linearized;
              Pdf.saved_encryption = None;
-             Pdf.first_xref = !first_xref}
+             Pdf.first_xref = !first_xref;
+             Pdf.revision_read = match revision with Some x -> x | _ -> 1}
           in
           if !read_debug then (Pdfe.log (Printf.sprintf "made final objects...\n"); tt' ());
           (* Check for a /Version in the document catalog *)
@@ -1840,7 +1841,8 @@ let read_malformed_pdf upw opw i =
             Pdf.trailerdict = Pdf.Dictionary trailerdict';
             Pdf.was_linearized = was_linearized;
             Pdf.saved_encryption = None;
-            Pdf.first_xref = 0}
+            Pdf.first_xref = 0;
+            Pdf.revision_read = 1}
          in
            if !read_debug then Pdfwrite.debug_whole_pdf pdf;
            pdf

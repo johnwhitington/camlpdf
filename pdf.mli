@@ -93,7 +93,8 @@ type t =
    mutable trailerdict : pdfobject;
    mutable was_linearized : bool;
    mutable saved_encryption : saved_encryption option;
-   mutable first_xref : int}
+   mutable first_xref : int;
+   mutable revision_read : int}
 
 (** The empty document (PDF 1.0, no objects, no root, empty trailer dictionary).
 Note this is not a well-formed PDF. *)
