@@ -571,14 +571,10 @@ let find_maxobjnum pdf =
 let pdf_to_output_updating ?(recrypt = None) encrypt mk_id pdf o =
   if pdf.Pdf.revision_read <> 1 then raise (Pdf.PDFError "cannot update a file read with revision > 1") else
   let encrypt =
-    match recrypt with
-      None -> encrypt
-    | Some _ -> Some dummy_encryption
+    match recrypt with None -> encrypt | Some _ -> Some dummy_encryption
   in
   let pdf =
-    match recrypt with
-      None -> pdf
-    | Some pw -> Pdfcrypt.recrypt_pdf ~renumber:false pdf pw
+    match recrypt with None -> pdf | Some pw -> Pdfcrypt.recrypt_pdf ~renumber:false pdf pw
   in
   let pdf = crypt_if_necessary pdf encrypt in
   let xrefs = ref [] in
