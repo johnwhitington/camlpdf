@@ -1074,6 +1074,13 @@ let rec read_xref_line i =
               | [Pdfgenlex.LexInt s; Pdfgenlex.LexInt l] -> Section (s, l)
               | _ -> Invalid 
 
+(* When reading xref tables, going back through /Prevs we need to keep track of
+   objects deleted. If we find an object in an earlier revision which has been
+   deleted by a later one, we don't read it. If we are reading an earlier
+   revision we go straight through the /Prevs without reading xrefs, so we
+   don't note deleted entries here, so that's ok. *)
+let deleted_objects = null_hash ()
+
 (* Read the cross-reference table in [i] at the current position. Leaves [i] at
 the first character of the trailer dictionary. *)
 let read_xref i =
@@ -1315,6 +1322,7 @@ memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
+  Hashtbl.clear deleted_objects;
   if !read_debug then
     (Pdfe.log (Printf.sprintf "read_pdf, revision is %s\n"
       (match revision with None -> "None" | Some x -> string_of_int x)); tt' ());
