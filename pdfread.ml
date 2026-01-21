@@ -1097,11 +1097,15 @@ let read_xref i =
             | Invalid -> fail ()
             | Valid (offset, gen) ->
                 entries += 1;
-                xrefs =| (!objnumber, XRefPlain (offset, gen));
+                if not (Hashtbl.mem deleted_objects !objnumber) then
+                  xrefs =| (!objnumber, XRefPlain (offset, gen));
                 incr objnumber
             | Finished -> set finished
             | Section (s, _) -> objnumber := s
-            | Free _ -> entries +=1; incr objnumber
+            | Free _ ->
+                Hashtbl.replace deleted_objects !objnumber ();
+                entries += 1;
+                incr objnumber
             | _ -> () (* Xref stream types won't have been generated. *)
           done
         with
