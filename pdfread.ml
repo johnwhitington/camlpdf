@@ -1083,7 +1083,7 @@ let deleted_objects = null_hash ()
 
 (* Read the cross-reference table in [i] at the current position. Leaves [i] at
 the first character of the trailer dictionary. *)
-let read_xref i =
+let read_xref skip i =
   let fail () =
     raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read x-ref table"))
   in
@@ -1097,13 +1097,14 @@ let read_xref i =
             | Invalid -> fail ()
             | Valid (offset, gen) ->
                 entries += 1;
-                (*if not (Hashtbl.mem deleted_objects !objnumber) then*) (* FIXME reinstate, it's wrong though! hello.pdf rotated -revision 2 *)
-                  xrefs =| (!objnumber, XRefPlain (offset, gen));
+                  if not (Hashtbl.mem deleted_objects !objnumber) then
+                    xrefs =| (!objnumber, XRefPlain (offset, gen));
                 incr objnumber
             | Finished -> set finished
             | Section (s, _) -> objnumber := s
             | Free _ ->
-                (*Hashtbl.replace deleted_objects !objnumber ();*) (* FIXME reinstate. it's wrong though! hello.pdf rotated -revision 2 *)
+                (* If we are not skipping this revision, note the deletion. *)
+                if not skip then Hashtbl.replace deleted_objects !objnumber ();
                 entries += 1;
                 incr objnumber
             | _ -> () (* Xref stream types won't have been generated. *)
@@ -1408,7 +1409,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
             !current_revision skip);
           if peek_char i = Some 'x'
             then
-              iter (if skip then (function _ -> ()) else addref) (read_xref i)
+              iter (if skip then (function _ -> ()) else addref) (read_xref skip i)
             else
               if not skip then
                 let refs, objnumbertodelete = read_xref_stream i in
