@@ -1415,13 +1415,15 @@ let read_pdf ?revision user_pw owner_pw opt i =
                   (postdeletes := objnumbertodelete::!postdeletes;
                    iter addref refs)
         in
-        begin match revision with
-          None -> read_table false
-        | Some r when r <= !current_revision -> read_table false
-        | _ ->
-            if !read_debug then Pdfe.log (Printf.sprintf "Skipping revision %i\n" !current_revision);
-            read_table true
-        end;
+        let skipped =
+          begin match revision with
+            None -> read_table false; false
+          | Some r when r <= !current_revision -> read_table false; false
+          | _ ->
+              if !read_debug then Pdfe.log (Printf.sprintf "Skipping revision %i\n" !current_revision);
+              read_table true; true
+          end
+        in
         (* It is now assumed that [i] is at the start of the trailer dictionary.  *)
         let trailerdict_current =
           let lexemes =
@@ -1433,6 +1435,11 @@ let read_pdf ?revision user_pw owner_pw opt i =
             | _ ->
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
         in
+          (* If we skipped, and there is no /Prev, this is an error which should not trigger malformed file reading. *)
+          begin match skipped, Pdf.lookup_immediate "/Prev" (Pdf.Dictionary trailerdict_current) with
+            true, None -> raise (Pdf.PDFError "Requested revision does not exist.") (* Do not alter this string. *)
+          | _, _ -> ()
+          end;
           begin
             begin match revision with
             | Some r when r = !current_revision -> trailerdict := trailerdict_current
@@ -1897,6 +1904,8 @@ let read_pdf revision upw opw opt i =
           when String.length s >= 10 && String.sub s 0 10 = "Encryption" ->
           (* If it failed due to encryption not supported or user password not
           right, the error should be passed up - it's not a malformed file. *)
+          raise e
+      | Pdf.PDFError "Requested revision does not exist." as e ->
           raise e
       | BadRevision ->
           raise (Pdf.PDFError "Revision number too low when reading PDF")
