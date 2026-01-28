@@ -39,6 +39,8 @@ type t =
 (** String of label style e.g DecimalArabic *)
 val string_of_labelstyle : labelstyle -> string
 
+val labelstyle_of_string : string -> labelstyle
+
 (** Debug string of page label *)
 val string_of_pagelabel : t -> string
 
