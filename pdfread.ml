@@ -1442,10 +1442,10 @@ let read_pdf ?revision user_pw owner_pw opt i =
           | _, _ -> ()
           end;
           begin
-            begin match revision with
-            | Some r when r = !current_revision -> trailerdict := trailerdict_current
-            | Some r -> ()
-            | None -> trailerdict := trailerdict_current
+            begin match revision, lookup "/Root" trailerdict_current with
+            | Some r, Some _ when r = !current_revision -> trailerdict := trailerdict_current
+            | None, Some _ -> trailerdict := trailerdict_current
+            | _ -> ()
             end;
             (* Do we have a /XRefStm to follow? *)
             begin match lookup "/XRefStm" trailerdict_current with
