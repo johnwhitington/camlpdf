@@ -1437,11 +1437,22 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
         in
           (* If we skipped, and there is no /Prev, this is an error which should not trigger malformed file reading. *)
+          (*Pdfe.log
+            (Printf.sprintf "skipped %b, prev %b, trailerdict_current = %s (= %s)\n"
+              skipped
+              (not (None = Pdf.lookup_immediate "/Prev" (Pdf.Dictionary trailerdict_current)))
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict_current))
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary (sanitize_trailerdict 0 trailerdict_current)))
+             );*)
           begin match skipped, Pdf.lookup_immediate "/Prev" (Pdf.Dictionary trailerdict_current) with
             true, None -> raise (Pdf.PDFError "Requested revision does not exist.") (* Do not alter this string. *)
           | _, _ -> ()
           end;
           begin
+            (*Pdfe.log (Printf.sprintf "Revision %s, Root presence %b, current trailerdict %s\n"
+              (match revision with None -> "None" | Some n -> string_of_int n)
+              (match lookup "/Root" trailerdict_current with None -> false | _ -> true)
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict_current)));*)
             begin match revision, lookup "/Root" trailerdict_current with
             | Some r, Some _ when r = !current_revision -> trailerdict := trailerdict_current
             | None, Some _ -> trailerdict := trailerdict_current
@@ -1491,6 +1502,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
       else
       if !read_debug then
         (Pdfe.log (Printf.sprintf "*** READ %i XREF entries\n" (Hashtbl.length xrefs)); tt' ());
+      (*Pdfe.log (Printf.sprintf "final trailerdict: %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary !trailerdict)));*)
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) ->
