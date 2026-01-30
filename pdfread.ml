@@ -1355,7 +1355,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
   in let objects_stream, objects_nonstream, root, trailerdict =
     let addref (n, x) = xrefs_table_add_if_not_present xrefs n x
     in let got_all_xref_sections = ref false
-    in let trailerdict = ref []
+    in let trailerdict, trailerdict_read = ref [], ref false
     in let xref = ref 0
     in let first = ref true in
       (* This function builds a partial pdf of the plain objects whose
@@ -1454,8 +1454,12 @@ let read_pdf ?revision user_pw owner_pw opt i =
               (match lookup "/Root" trailerdict_current with None -> false | _ -> true)
               (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict_current)));*)
             begin match revision, lookup "/Root" trailerdict_current with
-            | Some r, Some _ when r = !current_revision -> trailerdict := trailerdict_current
-            | None, Some _ -> trailerdict := trailerdict_current
+            | Some r, Some _ when r = !current_revision ->
+                trailerdict := trailerdict_current;
+                set trailerdict_read
+            | None, Some _ ->
+                trailerdict := trailerdict_current;
+                set trailerdict_read
             | _ -> ()
             end;
             (* Do we have a /XRefStm to follow? *)
@@ -1488,6 +1492,8 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
+      (* If no trailerdict was read at all, this is a bad revision on a linearized file. *)
+      if not !trailerdict_read then raise (Pdf.PDFError "Requested revision does not exist."); (* Do not alter this string. *)
       if revision = Some (-1) then
         (* If there are exactly two "revisions", and the file is linearized,
         then we return 1, since there is only one real revision. If there are
