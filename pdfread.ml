@@ -1493,7 +1493,11 @@ let read_pdf ?revision user_pw owner_pw opt i =
           end;
       done;
       (* If no trailerdict was read at all, this is a bad revision on a linearized file. *)
-      if not !trailerdict_read then raise (Pdf.PDFError "Requested revision does not exist."); (* Do not alter this string. *)
+      begin match revision with
+      | Some n when n > 1 ->
+          if not !trailerdict_read then raise (Pdf.PDFError "Requested revision does not exist."); (* Do not alter this string. *)
+      | _ -> ()
+      end;
       if revision = Some (-1) then
         (* If there are exactly two "revisions", and the file is linearized,
         then we return 1, since there is only one real revision. If there are
