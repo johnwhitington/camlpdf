@@ -1458,7 +1458,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 trailerdict := trailerdict_current;
                 set trailerdict_read
             | None, Some _ ->
-                trailerdict := trailerdict_current;
+                if not !trailerdict_read then trailerdict := trailerdict_current;
                 set trailerdict_read
             | _ -> ()
             end;
@@ -1712,6 +1712,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
             if !read_debug then
               begin
                 Pdfe.log "Done reading PDF file.\n"; tt' ();
+                (*Pdfwrite.debug_whole_pdf pdf;*)
                 match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
                 | Some _ -> Pdfe.log "***File is encrypted\n" | _ -> ()
               end;
