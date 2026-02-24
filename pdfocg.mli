@@ -2,7 +2,15 @@
 
 open Pdfutil
 
-type ocgusage (* Nothing for now; expand later *)
+type ocgusage =
+  {ocg_creatorinfo : Pdf.t option;
+   ocg_language : Pdf.t option;
+   ocg_export : Pdf.t option;
+   ocg_zoom : Pdf.t option;
+   ocg_print : Pdf.t option;
+   ocg_view : Pdf.t option;
+   ocg_user : Pdf.t option;
+   ocg_pageelement : Pdf.t option}
 
 type ocg =
   {ocg_name : string;
@@ -25,20 +33,16 @@ type ocgconfig =
    ocgconfig_usage_application_dictionaries: ocgappdict list option;
    ocgconfig_order : int tree option;
    ocgconfig_listmode : ocglistmode;
-   ocgconfig_rbgroups : int list list;
+   ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
 
 type ocgproperties =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
-   ocg_configs : ocgconfig list}
+   ocg_configs : ocgconfig list option}
 
 (** Read optional content data. *)
 val read_ocg : Pdf.t -> ocgproperties option
 
 (** Write optional content data. *)
 val write_ocg : Pdf.t -> ocgproperties -> unit
-
-(** Print information about the document's Optional Content Groups to Standard
-    Output. For debug only. *)
-val print_document_ocg : Pdf.t -> unit

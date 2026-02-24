@@ -1,7 +1,16 @@
 (* Pdf Optional Content Groups *)
 open Pdfutil
 
-type ocgusage (* Nothing for now; expand later *)
+(* FIXME: Make native types, not PDF. *)
+type ocgusage =
+  {ocg_creatorinfo : Pdf.t option;
+   ocg_language : Pdf.t option;
+   ocg_export : Pdf.t option;
+   ocg_zoom : Pdf.t option;
+   ocg_print : Pdf.t option;
+   ocg_view : Pdf.t option;
+   ocg_user : Pdf.t option;
+   ocg_pageelement : Pdf.t option}
 
 type ocg =
   {ocg_name : string;
@@ -12,7 +21,12 @@ type ocgstate = OCG_ON | OCG_OFF | OCG_Unchanged
 
 type ocglistmode = OCG_AllPages | OCG_VisiblePages
 
-type ocgappdict = AppDict (* Nothing for now; expand later *)
+type ocgevent = OCG_View | OCG_Print | OCG_Export
+
+type ocgappdict =
+  {ocg_event : ocgevent;
+   ocg_ocgs : string list; (* FIXME string? Need an example. *)
+   ocg_category : string list}
 
 type ocgconfig =
   {ocgconfig_name : string option;
@@ -21,18 +35,22 @@ type ocgconfig =
    ocgconfig_on : int list option;
    ocgconfig_off : int list option;
    ocgconfig_intent: string list;
-   ocgconfig_usage_application_dictionaries: ocgappdict list option;
+   ocgconfig_usage_application_dictionaries : ocgappdict list option;
    ocgconfig_order : int tree option;
    ocgconfig_listmode : ocglistmode;
-   ocgconfig_rbgroups : int list list;
+   ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
 
 type ocgproperties =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
-   ocg_configs : ocgconfig list}
+   ocg_configs : ocgconfig list option}
 
-let read_ocgappdict pdf appdict = AppDict
+(* FIXME Write *)
+let read_ocgappdict pdf appdict =
+  {ocg_event = OCG_View;
+   ocg_ocgs = [];
+   ocg_category = []}
 
 (* Read an OCG from a file, if there is one. None represents a non-existent
 /OCProperties, rather than an error. *)
@@ -98,7 +116,7 @@ let read_config pdf config =
      ocgconfig_usage_application_dictionaries = ocgconfig_usage_application_dictionaries;
      ocgconfig_order = ocgconfig_order;
      ocgconfig_listmode = ocgconfig_listmode;
-     ocgconfig_rbgroups = ocgconfig_rbgroups;
+     ocgconfig_rbgroups = Some ocgconfig_rbgroups;
      ocgconfig_locked = ocgconfig_locked}
 
 let read_ocg_usage pdf usage = None (* FIXME *) 
@@ -149,32 +167,6 @@ let read_ocg pdf =
             Some
               {ocgs = ocgs;
                ocg_default_config = ocg_default_config;
-               ocg_configs = ocg_configs}
+               ocg_configs = Some ocg_configs}
 
 let write_ocg pdf ocgprops = ()
-
-(* Use things called by write_ocg to get the pdf objects, then can use
-Pdfwrite.string_of_pdf to do the work *)
-let print_ocg (num, ocg) =
-  Printf.printf "OCG %i\n" num;
-  Printf.printf "Name %s\n" ocg.ocg_name;
-  Printf.printf "Intent(s)";
-  iter (Printf.printf "%s ") ocg.ocg_intent;
-  Printf.printf "\n"
-
-let print_ocg_config config =
-  begin match config.ocgconfig_name with
-  | None -> Printf.printf "No config name\n"
-  | Some n -> Printf.printf "Config Name: %s\n" n
-  end
-
-let print_document_ocg pdf =
-  match read_ocg pdf with
-  | None -> flprint "There are no optional content groups in this document\n"
-  | Some ocgs ->
-      Printf.printf "There are %i OCGs, and %i additional configs\n"
-      (length ocgs.ocgs) (length ocgs.ocg_configs);
-      flprint "OCGs\n-------------\n";
-      iter print_ocg ocgs.ocgs;
-      flprint "OCG Configs\n------------\n";
-      iter print_ocg_config ocgs.ocg_configs
