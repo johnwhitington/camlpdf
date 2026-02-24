@@ -36,13 +36,13 @@ type ocgconfig =
    ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
 
-type ocgproperties =
+type t =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
    ocg_configs : ocgconfig list option}
 
 (** Read optional content data. *)
-val read_ocg : Pdf.t -> ocgproperties option
+val read_ocg : Pdf.t -> t option
 
 (** Write optional content data. *)
-val write_ocg : Pdf.t -> ocgproperties -> unit
+val write_ocg : Pdf.t -> t -> unit
