@@ -70,6 +70,10 @@ let read_ocgappdict pdf appdict =
   in
    {ocg_event; ocg_ocgs; ocg_category}
 
+(* FIXME *)
+let read_order pdf order =
+  []
+
 (* Read an OCG from a file, if there is one. None represents a non-existent
 /OCProperties, rather than an error. *)
 let read_config pdf config =
@@ -110,7 +114,10 @@ let read_config pdf config =
     match Pdf.lookup_direct pdf "/AS" config with
     | Some (Pdf.Array appdicts) -> Some (map (read_ocgappdict pdf) appdicts)
     | _ -> None
-  and ocgconfig_order = None (* FIXME *)
+  and ocgconfig_order =
+    match Pdf.lookup_direct pdf "/Order" config with
+    | Some order -> Some (read_order pdf order)
+    | None -> None
   and ocgconfig_listmode =
     match Pdf.lookup_direct pdf "/ListMode" config with
     | Some (Pdf.Name "/VisiblePages") -> OCG_VisiblePages
@@ -141,7 +148,33 @@ let read_config pdf config =
      ocgconfig_rbgroups;
      ocgconfig_locked}
 
-let read_ocg_usage pdf usage = None (* FIXME *) 
+let read_ocg_usage pdf usage =
+  let ocg_creatorinfo_creator = None in
+  let ocg_creatorinfo_subtype = None in
+  let ocg_language = None in
+  let ocg_language_preferred = None in
+  let ocg_export = None in
+  let ocg_zoom_min = None in
+  let ocg_zoom_max = None in
+  let ocg_print_subtype = None in
+  let ocg_print_printstate = None in
+  let ocg_viewstate = None in
+  let ocg_user_type = None in
+  let ocg_user_name = None in
+  let ocg_page_element_subtype = None in
+    {ocg_creatorinfo_creator;
+     ocg_creatorinfo_subtype;
+     ocg_language;
+     ocg_language_preferred;
+     ocg_export;
+     ocg_zoom_min;
+     ocg_zoom_max;
+     ocg_print_subtype;
+     ocg_print_printstate;
+     ocg_viewstate;
+     ocg_user_type;
+     ocg_user_name;
+     ocg_page_element_subtype}
 
 let read_individual_ocg pdf ocg =
   let ocg_name =
@@ -157,7 +190,7 @@ let read_individual_ocg pdf ocg =
   and ocg_usage =
     match Pdf.lookup_direct pdf "/Usage" ocg with
     | None -> None
-    | Some usage -> read_ocg_usage pdf usage
+    | Some usage -> Some (read_ocg_usage pdf usage)
   in
     {ocg_name = ocg_name;
      ocg_intent = ocg_intent;
