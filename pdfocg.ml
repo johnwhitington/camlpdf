@@ -36,7 +36,7 @@ type ocgconfig =
    ocgconfig_off : int list option;
    ocgconfig_intent: string list;
    ocgconfig_usage_application_dictionaries : ocgappdict list option;
-   ocgconfig_order : int tree option;
+   ocgconfig_order : int list option;
    ocgconfig_listmode : ocglistmode;
    ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
@@ -46,7 +46,6 @@ type t =
    ocg_default_config : ocgconfig;
    ocg_configs : ocgconfig list option}
 
-(* FIXME Write *)
 let read_ocgappdict pdf appdict =
   {ocg_event = OCG_View;
    ocg_ocgs = [];
