@@ -8,8 +8,8 @@ type ocgusage =
    ocg_language : string option;
    ocg_language_preferred : string option;
    ocg_export : string option;
-   ocg_zoom_min : int option;
-   ocg_zoom_max : int option;
+   ocg_zoom_min : float option;
+   ocg_zoom_max : float option;
    ocg_print_subtype : string option;
    ocg_print_printstate : string option;
    ocg_viewstate : string option;

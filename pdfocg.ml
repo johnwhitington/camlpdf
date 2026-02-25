@@ -7,8 +7,8 @@ type ocgusage =
    ocg_language : string option;
    ocg_language_preferred : string option;
    ocg_export : string option;
-   ocg_zoom_min : int option;
-   ocg_zoom_max : int option;
+   ocg_zoom_min : float option;
+   ocg_zoom_max : float option;
    ocg_print_subtype : string option;
    ocg_print_printstate : string option;
    ocg_viewstate : string option;
@@ -105,10 +105,10 @@ let read_config pdf config =
     match Pdf.lookup_direct pdf "/Intent" config with
     | Some (Pdf.Name n) -> [n]
     | Some (Pdf.Array a) ->
-          (map
-            (function x ->
-               match Pdf.direct pdf x with | Pdf.Name n -> n | _ -> "")
-            a)
+        (map
+          (function x ->
+             match Pdf.direct pdf x with | Pdf.Name n -> n | _ -> "")
+          a)
     | _ -> ["/View"]
   and ocgconfig_usage_application_dictionaries =
     match Pdf.lookup_direct pdf "/AS" config with
@@ -149,19 +149,72 @@ let read_config pdf config =
      ocgconfig_locked}
 
 let read_ocg_usage pdf usage =
-  let ocg_creatorinfo_creator = None in
-  let ocg_creatorinfo_subtype = None in
-  let ocg_language = None in
-  let ocg_language_preferred = None in
-  let ocg_export = None in
-  let ocg_zoom_min = None in
-  let ocg_zoom_max = None in
-  let ocg_print_subtype = None in
-  let ocg_print_printstate = None in
-  let ocg_viewstate = None in
-  let ocg_user_type = None in
-  let ocg_user_name = None in
-  let ocg_page_element_subtype = None in
+  let ocg_creatorinfo_creator =
+    match Pdf.lookup_chain pdf usage ["/CreatorInfo"; "/Creator"] with
+    | Some (Pdf.String s) -> Some s
+    | _ -> None
+  in
+  let ocg_creatorinfo_subtype =
+    match Pdf.lookup_chain pdf usage ["/CreatorInfo"; "/Subtype"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_language =
+    match Pdf.lookup_chain pdf usage ["/Language"; "/Lang"] with
+    | Some (Pdf.String s) -> Some s
+    | _ -> None
+  in
+  let ocg_language_preferred =
+    match Pdf.lookup_chain pdf usage ["/Language"; "/Preferred"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_export =
+    match Pdf.lookup_chain pdf usage ["/Export"; "/ExportState"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_zoom_min =
+    match Pdf.lookup_chain pdf usage ["/Zoom"; "/min"] with
+    | Some x -> Some (Pdf.getnum pdf x)
+    | _ -> None
+  in
+  let ocg_zoom_max =
+    match Pdf.lookup_chain pdf usage ["/Zoom"; "/max"] with
+    | Some x -> Some (Pdf.getnum pdf x)
+    | _ -> None
+  in
+  let ocg_print_subtype = 
+    match Pdf.lookup_chain pdf usage ["/Print"; "/Subtype"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_print_printstate =
+    match Pdf.lookup_chain pdf usage ["/Print"; "/PrintState"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_viewstate =
+    match Pdf.lookup_chain pdf usage ["/View"; "/ViewState"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_user_type =
+    match Pdf.lookup_chain pdf usage ["/User"; "/Type"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
+  let ocg_user_name =
+    match Pdf.lookup_chain pdf usage ["/User"; "/Name"] with
+    | Some (Pdf.String s) -> Some [s]
+    | Some (Pdf.Array a) -> Some (map (function Pdf.String s -> s | _ -> "") (map (Pdf.direct pdf) a))
+    | _ -> None
+  in
+  let ocg_page_element_subtype =
+    match Pdf.lookup_chain pdf usage ["/PageElement"; "/Subtype"] with
+    | Some (Pdf.Name s) -> Some s
+    | _ -> None
+  in
     {ocg_creatorinfo_creator;
      ocg_creatorinfo_subtype;
      ocg_language;
