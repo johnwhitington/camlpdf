@@ -21,7 +21,12 @@ type ocgstate = OCG_ON | OCG_OFF | OCG_Unchanged
 
 type ocglistmode = OCG_AllPages | OCG_VisiblePages
 
-type ocgappdict (* Nothing for now; expand later *)
+type ocgevent = OCG_View | OCG_Print | OCG_Export
+
+type ocgappdict =
+  {ocg_event : ocgevent;
+   ocg_ocgs : string list;
+   ocg_category : string list}
 
 type ocgconfig =
   {ocgconfig_name : string option;
