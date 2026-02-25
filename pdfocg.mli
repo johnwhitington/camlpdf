@@ -25,7 +25,7 @@ type ocgevent = OCG_View | OCG_Print | OCG_Export
 
 type ocgappdict =
   {ocg_event : ocgevent;
-   ocg_ocgs : string list;
+   ocg_ocgs : int list;
    ocg_category : string list}
 
 type ocgconfig =

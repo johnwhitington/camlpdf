@@ -1,7 +1,6 @@
 (* Pdf Optional Content Groups *)
 open Pdfutil
 
-(* FIXME: Make native types, not PDF. *)
 type ocgusage =
   {ocg_creatorinfo : Pdf.t option;
    ocg_language : Pdf.t option;
@@ -25,7 +24,7 @@ type ocgevent = OCG_View | OCG_Print | OCG_Export
 
 type ocgappdict =
   {ocg_event : ocgevent;
-   ocg_ocgs : string list; (* FIXME string? Need an example. *)
+   ocg_ocgs : int list;
    ocg_category : string list}
 
 type ocgconfig =
@@ -47,9 +46,24 @@ type t =
    ocg_configs : ocgconfig list option}
 
 let read_ocgappdict pdf appdict =
-  {ocg_event = OCG_View;
-   ocg_ocgs = [];
-   ocg_category = []}
+  let ocg_event =
+    match Pdf.lookup_direct pdf "/Event" appdict with
+    | Some (Pdf.Name "/View") -> OCG_View
+    | Some (Pdf.Name "/Print") -> OCG_Print
+    | Some (Pdf.Name "/Export") -> OCG_Export
+    | _ -> OCG_View
+  in
+  let ocg_ocgs = 
+    match Pdf.lookup_direct pdf "/OCGs" appdict with
+    | Some (Pdf.Array l) -> map (function Pdf.Indirect i -> i | _ -> 0) l
+    | _ -> []
+  in
+  let ocg_category =
+    match Pdf.lookup_direct pdf "/Category" appdict with
+    | Some (Pdf.Array l) -> map (function Pdf.Name n -> n | _ -> "") (map (Pdf.direct pdf) l)
+    | _ -> []
+  in
+   {ocg_event; ocg_ocgs; ocg_category}
 
 (* Read an OCG from a file, if there is one. None represents a non-existent
 /OCProperties, rather than an error. *)
@@ -96,7 +110,11 @@ let read_config pdf config =
     match Pdf.lookup_direct pdf "/ListMode" config with
     | Some (Pdf.Name "/VisiblePages") -> OCG_VisiblePages
     | _ -> OCG_AllPages
-  and ocgconfig_rbgroups = [] (* FIXME *)
+  and ocgconfig_rbgroups =
+    match Pdf.lookup_direct pdf "/RBGroups" config with
+    | Some (Pdf.Array l) ->
+        Some (map (function Pdf.Array l -> map (function Pdf.Indirect i -> i | _ -> 0) l | _ -> []) l)
+    | _ -> None
   and ocgconfig_locked = 
     match Pdf.lookup_direct pdf "/Locked" config with
     | Some (Pdf.Array a) ->
@@ -106,17 +124,17 @@ let read_config pdf config =
             a)
     | _ -> []
   in
-    {ocgconfig_name = ocgconfig_name;
-     ocgconfig_creator = ocgconfig_creator;
-     ocgconfig_basestate = ocgconfig_basestate;
-     ocgconfig_on = ocgconfig_on;
-     ocgconfig_off = ocgconfig_off;
-     ocgconfig_intent = ocgconfig_intent;
-     ocgconfig_usage_application_dictionaries = ocgconfig_usage_application_dictionaries;
-     ocgconfig_order = ocgconfig_order;
-     ocgconfig_listmode = ocgconfig_listmode;
-     ocgconfig_rbgroups = Some ocgconfig_rbgroups;
-     ocgconfig_locked = ocgconfig_locked}
+    {ocgconfig_name;
+     ocgconfig_creator;
+     ocgconfig_basestate;
+     ocgconfig_on;
+     ocgconfig_off;
+     ocgconfig_intent;
+     ocgconfig_usage_application_dictionaries;
+     ocgconfig_order;
+     ocgconfig_listmode;
+     ocgconfig_rbgroups;
+     ocgconfig_locked}
 
 let read_ocg_usage pdf usage = None (* FIXME *) 
 
