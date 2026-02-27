@@ -1,4 +1,4 @@
-(* Pdf Optional Content Groups *)
+(* Optional Content Groups *)
 open Pdfutil
 
 type ocgusage =
@@ -74,8 +74,6 @@ let read_ocgappdict pdf appdict =
 let read_order pdf order =
   []
 
-(* Read an OCG from a file, if there is one. None represents a non-existent
-/OCProperties, rather than an error. *)
 let read_config pdf config =
   let ocgconfig_name =
     match Pdf.lookup_direct pdf "/Name" config with
