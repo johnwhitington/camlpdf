@@ -40,7 +40,7 @@ type ocgconfig =
    ocgconfig_off : int list option;
    ocgconfig_intent: string list;
    ocgconfig_usage_application_dictionaries : ocgappdict list option;
-   ocgconfig_order : int list option;
+   ocgconfig_order : (string option * int list) list option;
    ocgconfig_listmode : ocglistmode;
    ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
@@ -70,9 +70,18 @@ let read_ocgappdict pdf appdict =
   in
    {ocg_event; ocg_ocgs; ocg_category}
 
-(* FIXME *)
-let read_order pdf order =
-  []
+let read_order pdf = function
+  | Pdf.Array a ->
+      map
+        (function
+          | Pdf.Indirect i -> (None, [i])
+          | Pdf.Array (Pdf.String s::r) -> (Some s, map (function Pdf.Indirect i -> i | _ -> 0) r)
+          | Pdf.Array a -> (None, map (function Pdf.Indirect i -> i | _ -> 0) a)
+          | _ -> (None, []))
+        a
+  | _ ->
+      Pdfe.log "Bad /Order";
+      []
 
 let read_config pdf config =
   let ocgconfig_name =

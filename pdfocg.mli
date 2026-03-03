@@ -41,7 +41,7 @@ type ocgconfig =
    ocgconfig_off : int list option;
    ocgconfig_intent: string list;
    ocgconfig_usage_application_dictionaries: ocgappdict list option;
-   ocgconfig_order : int list option;
+   ocgconfig_order : (string option * int list) list option;
    ocgconfig_listmode : ocglistmode;
    ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
