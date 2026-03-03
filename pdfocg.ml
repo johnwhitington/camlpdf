@@ -36,10 +36,10 @@ type ocgconfig =
   {ocgconfig_name : string option;
    ocgconfig_creator : string option;
    ocgconfig_basestate : ocgstate;
-   ocgconfig_on : int list option;
-   ocgconfig_off : int list option;
+   ocgconfig_on : int list;
+   ocgconfig_off : int list;
    ocgconfig_intent: string list;
-   ocgconfig_usage_application_dictionaries : ocgappdict list option;
+   ocgconfig_usage_application_dictionaries : ocgappdict list;
    ocgconfig_order : (string option * int list) list option;
    ocgconfig_listmode : ocglistmode;
    ocgconfig_rbgroups : int list list option;
@@ -48,7 +48,7 @@ type ocgconfig =
 type t =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
-   ocg_configs : ocgconfig list option}
+   ocg_configs : ocgconfig list}
 
 let read_ocgappdict pdf appdict =
   let ocg_event =
@@ -101,13 +101,13 @@ let read_config pdf config =
   and ocgconfig_on =
     match Pdf.lookup_direct pdf "/ON" config with
     | Some (Pdf.Array indirects) -> 
-        Some (map (function Pdf.Indirect n -> n | _ -> 0) indirects)
-    | _ -> None
+        map (function Pdf.Indirect n -> n | _ -> 0) indirects
+    | _ -> []
   and ocgconfig_off =
     match Pdf.lookup_direct pdf "/OFF" config with
     | Some (Pdf.Array indirects) -> 
-        Some (map (function Pdf.Indirect n -> n | _ -> 0) indirects)
-    | _ -> None
+        map (function Pdf.Indirect n -> n | _ -> 0) indirects
+    | _ -> []
   and ocgconfig_intent =
     match Pdf.lookup_direct pdf "/Intent" config with
     | Some (Pdf.Name n) -> [n]
@@ -119,8 +119,8 @@ let read_config pdf config =
     | _ -> ["/View"]
   and ocgconfig_usage_application_dictionaries =
     match Pdf.lookup_direct pdf "/AS" config with
-    | Some (Pdf.Array appdicts) -> Some (map (read_ocgappdict pdf) appdicts)
-    | _ -> None
+    | Some (Pdf.Array appdicts) -> map (read_ocgappdict pdf) appdicts
+    | _ -> []
   and ocgconfig_order =
     match Pdf.lookup_direct pdf "/Order" config with
     | Some order -> Some (read_order pdf order)
@@ -281,7 +281,7 @@ let read_ocg pdf =
           in
             Some
               {ocgs = ocgs;
-               ocg_default_config = ocg_default_config;
-               ocg_configs = Some ocg_configs}
+               ocg_default_config;
+               ocg_configs;}
 
 let write_ocg pdf ocgprops = ()

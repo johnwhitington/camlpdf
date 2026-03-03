@@ -37,10 +37,10 @@ type ocgconfig =
   {ocgconfig_name : string option;
    ocgconfig_creator : string option;
    ocgconfig_basestate : ocgstate;
-   ocgconfig_on : int list option;
-   ocgconfig_off : int list option;
+   ocgconfig_on : int list;
+   ocgconfig_off : int list;
    ocgconfig_intent: string list;
-   ocgconfig_usage_application_dictionaries: ocgappdict list option;
+   ocgconfig_usage_application_dictionaries: ocgappdict list;
    ocgconfig_order : (string option * int list) list option;
    ocgconfig_listmode : ocglistmode;
    ocgconfig_rbgroups : int list list option;
@@ -49,7 +49,7 @@ type ocgconfig =
 type t =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
-   ocg_configs : ocgconfig list option}
+   ocg_configs : ocgconfig list}
 
 (** Read optional content data. *)
 val read_ocg : Pdf.t -> t option
