@@ -284,4 +284,6 @@ let read_ocg pdf =
                ocg_default_config;
                ocg_configs;}
 
-let write_ocg pdf ocgprops = ()
+let write_ocg pdf ocgprops =
+  let ocpropsdict = Pdf.Dictionary [] in
+    Pdf.replace_chain pdf ["/Root"; "/OCProperties"] (Pdf.Indirect (Pdf.addobj pdf ocpropsdict))
