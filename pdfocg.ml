@@ -284,6 +284,36 @@ let read_ocg pdf =
                ocg_default_config;
                ocg_configs;}
 
-let write_ocg pdf ocgprops =
-  let ocpropsdict = Pdf.Dictionary [] in
+(* FIXME Write *)
+let write_ocg_usage u = 0
+
+(* FIXME Write *)
+let write_ocg_config config = 0
+
+(* FIXME Write *)
+let write_ocg_appdict appdict = 0
+
+let write_ocg_ocg ocg =
+  Pdf.Dictionary
+    ([("/Name", Pdf.String ocg.ocg_name);
+      ("/Intent", Pdf.Array (map (fun x -> Pdf.String x) ocg.ocg_intent))]
+     @
+      (match ocg.ocg_usage with None -> [] | Some u -> [("/Usage", Pdf.Indirect (write_ocg_usage u))]))
+
+let write_ocg pdf {ocgs; ocg_default_config; ocg_configs} =
+  let ocgs =
+    Pdf.addobj pdf (Pdf.Array (map (function (i, ocg) -> Pdf.addobj_given_num pdf (i, write_ocg_ocg ocg); Pdf.Indirect i) ocgs))
+  in
+  let default =
+    Pdf.addobj pdf (Pdf.Indirect (write_ocg_config ocg_default_config))
+  in
+  let config =
+    Pdf.addobj pdf (Pdf.Array (map (fun x -> Pdf.Indirect (write_ocg_config x)) ocg_configs))
+  in
+  let ocpropsdict =
+    Pdf.Dictionary
+      [("/OCGs", Pdf.Indirect ocgs);
+       ("/Default", Pdf.Indirect default);
+       ("/Config", Pdf.Indirect config)]
+  in
     Pdf.replace_chain pdf ["/Root"; "/OCProperties"] (Pdf.Indirect (Pdf.addobj pdf ocpropsdict))
