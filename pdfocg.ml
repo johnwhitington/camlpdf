@@ -290,8 +290,11 @@ let write_ocg_usage u = 0
 (* FIXME Write *)
 let write_ocg_config config = 0
 
-(* FIXME Write *)
-let write_ocg_appdict appdict = 0
+let write_ocg_appdict appdict =
+  Pdf.Dictionary
+    [("/Event", Pdf.Name (match appdict.ocg_event with OCG_View -> "/View" | OCG_Print -> "/Print" | OCG_Export -> "/Export"));
+     ("/OCGs", Pdf.Array (map (fun x -> Pdf.Integer x) appdict.ocg_ocgs));
+     ("/Category", Pdf.Array (map (fun x -> Pdf.Name x) appdict.ocg_category))]
 
 let write_ocg_ocg ocg =
   Pdf.Dictionary
