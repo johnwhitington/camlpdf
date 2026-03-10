@@ -371,14 +371,38 @@ let write_ocg_config pdf u =
     | OCG_ON -> []
     | x -> [("/BaseState", Pdf.Name ((function OCG_OFF -> "/OFF" | _ -> "/Unchanged") x))]
   in
-  let on = [("/ON", Pdf.Null)] in
-  let off = [("/OFF", Pdf.Null)] in
-  let intent = [("/Intent", Pdf.Null)] in
-  let usage_application_dictionaries = [("/AS", Pdf.Null)] in
-  let order = [("/Order", Pdf.Null)] in
-  let listmode = [("/ListMode", Pdf.Null)] in
-  let rbgroups = [("/RBGroups", Pdf.Null)] in
-  let locked = [("/Locked", Pdf.Null)] in
+  let on =
+    match u.ocgconfig_on with
+    | [] -> []
+    | ocgs -> [("/ON", Pdf.Array (map (fun x -> Pdf.Indirect x) ocgs))]
+  in
+  let off =
+    match u.ocgconfig_off with
+    | [] -> []
+    | ocgs -> [("/OFF", Pdf.Array (map (fun x -> Pdf.Indirect x) ocgs))]
+  in
+  let intent =
+    match u.ocgconfig_intent with 
+    | [] -> []
+    | l -> [("/Intent", Pdf.Array (map (fun x -> Pdf.Name x) l))]
+  in
+  let usage_application_dictionaries =
+    match u.ocgconfig_usage_application_dictionaries with
+    | [] -> []
+    | l -> [("/AS", Pdf.Array (map write_ocg_appdict l))]
+  in
+  let order = [("/Order", Pdf.Null)] in (* FIXME *)
+  let listmode =
+    match u.ocgconfig_listmode with
+    | OCG_AllPages -> []
+    | OCG_VisiblePages -> [("/ListMode", Pdf.Name "/VisiblePages")]
+  in
+  let rbgroups = [("/RBGroups", Pdf.Null)] in (* FIXME *)
+  let locked =
+    match u.ocgconfig_locked with
+    | [] -> []
+    | l -> [("/Locked", Pdf.Array (map (fun x -> Pdf.Indirect x) l))]
+  in
     Pdf.addobj pdf
       (Pdf.Dictionary
         (name @ creator @ basestate @ on @ off @ intent @ usage_application_dictionaries @
