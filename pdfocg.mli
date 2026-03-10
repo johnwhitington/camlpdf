@@ -3,18 +3,15 @@
 open Pdfutil
 
 type ocgusage =
-  {ocg_creatorinfo_creator : string option;
-   ocg_creatorinfo_subtype : string option;
-   ocg_language : string option;
-   ocg_language_preferred : string option;
+  {ocg_creatorinfo : (string * string) option;
+   ocg_language : (string  * string option) option;
    ocg_export : string option;
    ocg_zoom_min : float option;
    ocg_zoom_max : float option;
    ocg_print_subtype : string option;
    ocg_print_printstate : string option;
    ocg_viewstate : string option;
-   ocg_user_type : string option;
-   ocg_user_name : string list option;
+   ocg_user : (string * string list) option;
    ocg_page_element_subtype : string option}
 
 type ocg =

@@ -2,18 +2,15 @@
 open Pdfutil
 
 type ocgusage =
-  {ocg_creatorinfo_creator : string option;
-   ocg_creatorinfo_subtype : string option;
-   ocg_language : string option;
-   ocg_language_preferred : string option;
+  {ocg_creatorinfo : (string * string) option;
+   ocg_language : (string * string option) option;
    ocg_export : string option;
    ocg_zoom_min : float option;
    ocg_zoom_max : float option;
    ocg_print_subtype : string option;
    ocg_print_printstate : string option;
    ocg_viewstate : string option;
-   ocg_user_type : string option;
-   ocg_user_name : string list option;
+   ocg_user : (string  * string list) option;
    ocg_page_element_subtype : string option}
 
 type ocg =
@@ -166,7 +163,14 @@ let read_ocg_usage pdf usage =
     | Some (Pdf.Name s) -> Some s
     | _ -> None
   in
-  let ocg_language =
+  let ocg_creatorinfo =
+    match ocg_creatorinfo_creator, ocg_creatorinfo_subtype with
+    | None, None -> None
+    | Some a, None -> Some (a, "")
+    | None, Some b -> Some ("", b)
+    | Some a, Some b -> Some (a, b)
+  in
+  let ocg_language_lang =
     match Pdf.lookup_chain pdf usage ["/Language"; "/Lang"] with
     | Some (Pdf.String s) -> Some s
     | _ -> None
@@ -175,6 +179,11 @@ let read_ocg_usage pdf usage =
     match Pdf.lookup_chain pdf usage ["/Language"; "/Preferred"] with
     | Some (Pdf.Name s) -> Some s
     | _ -> None
+  in
+  let ocg_language =
+    match ocg_language_lang, ocg_language_preferred with
+    | None, _ -> None
+    | Some a, b -> Some (a, b)
   in
   let ocg_export =
     match Pdf.lookup_chain pdf usage ["/Export"; "/ExportState"] with
@@ -217,23 +226,25 @@ let read_ocg_usage pdf usage =
     | Some (Pdf.Array a) -> Some (map (function Pdf.String s -> s | _ -> "") (map (Pdf.direct pdf) a))
     | _ -> None
   in
+  let ocg_user =
+    match ocg_user_type, ocg_user_name with
+    | Some a, Some b -> Some (a, b)
+    | _ -> None
+  in
   let ocg_page_element_subtype =
     match Pdf.lookup_chain pdf usage ["/PageElement"; "/Subtype"] with
     | Some (Pdf.Name s) -> Some s
     | _ -> None
   in
-    {ocg_creatorinfo_creator;
-     ocg_creatorinfo_subtype;
+    {ocg_creatorinfo;
      ocg_language;
-     ocg_language_preferred;
      ocg_export;
      ocg_zoom_min;
      ocg_zoom_max;
      ocg_print_subtype;
      ocg_print_printstate;
      ocg_viewstate;
-     ocg_user_type;
-     ocg_user_name;
+     ocg_user;
      ocg_page_element_subtype}
 
 let read_individual_ocg pdf ocg =
@@ -284,34 +295,111 @@ let read_ocg pdf =
                ocg_default_config;
                ocg_configs;}
 
-(* FIXME Write *)
-let write_ocg_usage u = 0
-
-(* FIXME Write *)
-let write_ocg_config config = 0
-
 let write_ocg_appdict appdict =
   Pdf.Dictionary
     [("/Event", Pdf.Name (match appdict.ocg_event with OCG_View -> "/View" | OCG_Print -> "/Print" | OCG_Export -> "/Export"));
      ("/OCGs", Pdf.Array (map (fun x -> Pdf.Integer x) appdict.ocg_ocgs));
      ("/Category", Pdf.Array (map (fun x -> Pdf.Name x) appdict.ocg_category))]
 
-let write_ocg_ocg ocg =
+let write_ocg_usage pdf usage =
+  let creatorinfo =
+    match usage.ocg_creatorinfo with
+    | None -> []
+    | Some (a, b) -> [("/CreatorInfo", Pdf.Dictionary [("/Creator", Pdf.String a); ("/Subtype", Pdf.Name b)])]
+  in
+  let language =
+    match usage.ocg_language with
+    | None -> []
+    | Some (a, None) -> [("/Language", Pdf.Dictionary [("/Lang", Pdf.String a)])]
+    | Some (a, Some b) -> [("/Language", Pdf.Dictionary [("/Lang", Pdf.String a); ("/Preferred", Pdf.Name b)])]
+  in
+  let export = 
+    match usage.ocg_export with
+    | None -> []
+    | Some a -> [("/Export", Pdf.Dictionary [("/ExportState", Pdf.Name a)])]
+  in
+  let zoom =
+    match usage.ocg_zoom_min, usage.ocg_zoom_max with
+    | None, None -> []
+    | Some a, None -> [("/Zoom", Pdf.Dictionary [("/min", Pdf.Real a)])]
+    | None, Some b -> [("/Zoom", Pdf.Dictionary [("/max", Pdf.Real b)])]
+    | Some a, Some b -> [("/Zoom", Pdf.Dictionary [("/min", Pdf.Real a); ("/max", Pdf.Real b)])]
+  in
+  let print =
+    match usage.ocg_print_subtype, usage.ocg_print_printstate with
+    | None, None -> []
+    | Some a, None -> [("/Print", Pdf.Dictionary [("/Subtype", Pdf.Name a)])]
+    | None, Some b -> [("/Print", Pdf.Dictionary [("/PrintState", Pdf.Name b)])]
+    | Some a, Some b -> [("/Print", Pdf.Dictionary [("/Subtype", Pdf.Name a); ("/PrintState", Pdf.Name b)])]
+  in
+  let view =
+    match usage.ocg_viewstate with
+    | None -> []
+    | Some a -> [("/View", Pdf.Dictionary [("/ViewState", Pdf.Name a)])]
+  in
+  let user =
+    match usage.ocg_user with
+    | None -> []
+    | Some (a, b) ->
+        [("/User",
+          Pdf.Dictionary [("/Type", Pdf.Name a); ("/Name", Pdf.Array (map (fun x -> Pdf.String x) b))])]
+  in
+  let pageelement =
+    match usage.ocg_page_element_subtype with
+    | None -> []
+    | Some x -> [("/PageElement", Pdf.Dictionary [("/Subtype", Pdf.Name x)])]
+  in
+    Pdf.addobj pdf
+      (Pdf.Dictionary
+         (creatorinfo @ language @ export @ zoom @ print @ view @ user @ pageelement))
+
+(* FIXME /OFF /ON should be a data type? Anything else? Throughout... *)
+
+let write_ocg_config pdf u =
+  let name =
+    match u.ocgconfig_name with
+    | None -> []
+    | Some x -> [("/Name", Pdf.String x)]
+  in
+  let creator =
+    match u.ocgconfig_creator with
+    | None -> []
+    | Some x -> [("/Creator", Pdf.String x)]
+  in
+  let basestate =
+    match u.ocgconfig_basestate with
+    | OCG_ON -> []
+    | x -> [("/BaseState", Pdf.Name ((function OCG_OFF -> "/OFF" | _ -> "/Unchanged") x))]
+  in
+  let on = [("/ON", Pdf.Null)] in
+  let off = [("/OFF", Pdf.Null)] in
+  let intent = [("/Intent", Pdf.Null)] in
+  let usage_application_dictionaries = [("/AS", Pdf.Null)] in
+  let order = [("/Order", Pdf.Null)] in
+  let listmode = [("/ListMode", Pdf.Null)] in
+  let rbgroups = [("/RBGroups", Pdf.Null)] in
+  let locked = [("/Locked", Pdf.Null)] in
+    Pdf.addobj pdf
+      (Pdf.Dictionary
+        (name @ creator @ basestate @ on @ off @ intent @ usage_application_dictionaries @
+         order @ listmode @ rbgroups @ locked))
+
+let write_ocg_ocg pdf ocg =
   Pdf.Dictionary
     ([("/Name", Pdf.String ocg.ocg_name);
       ("/Intent", Pdf.Array (map (fun x -> Pdf.String x) ocg.ocg_intent))]
      @
-      (match ocg.ocg_usage with None -> [] | Some u -> [("/Usage", Pdf.Indirect (write_ocg_usage u))]))
+      (match ocg.ocg_usage with None -> [] | Some u -> [("/Usage", Pdf.Indirect (write_ocg_usage pdf u))]))
 
 let write_ocg pdf {ocgs; ocg_default_config; ocg_configs} =
   let ocgs =
-    Pdf.addobj pdf (Pdf.Array (map (function (i, ocg) -> Pdf.addobj_given_num pdf (i, write_ocg_ocg ocg); Pdf.Indirect i) ocgs))
+    Pdf.addobj pdf (Pdf.Array (map (function (i, ocg) -> Pdf.addobj_given_num pdf (i, write_ocg_ocg pdf ocg); Pdf.Indirect i) ocgs))
   in
   let default =
-    Pdf.addobj pdf (Pdf.Indirect (write_ocg_config ocg_default_config))
+    Pdf.addobj pdf (Pdf.Indirect (write_ocg_config pdf ocg_default_config))
   in
   let config =
-    Pdf.addobj pdf (Pdf.Array (map (fun x -> Pdf.Indirect (write_ocg_config x)) ocg_configs))
+    Pdf.addobj pdf (Pdf.Array (map (fun x -> Pdf.Indirect (write_ocg_config pdf x)) ocg_configs))
   in
   let ocpropsdict =
     Pdf.Dictionary
