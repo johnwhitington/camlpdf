@@ -353,8 +353,6 @@ let write_ocg_usage pdf usage =
       (Pdf.Dictionary
          (creatorinfo @ language @ export @ zoom @ print @ view @ user @ pageelement))
 
-(* FIXME /OFF /ON should be a data type? Anything else? Throughout... *)
-
 let write_ocg_config pdf u =
   let name =
     match u.ocgconfig_name with
@@ -391,13 +389,27 @@ let write_ocg_config pdf u =
     | [] -> []
     | l -> [("/AS", Pdf.Array (map write_ocg_appdict l))]
   in
-  let order = [("/Order", Pdf.Null)] in (* FIXME *)
+  let order =
+    match u.ocgconfig_order with
+    | None -> []
+    | Some l ->
+        let f (so, ints) =
+          match so with
+          | None -> Pdf.Array (map (fun x -> Pdf.Indirect x) ints)
+          | Some s -> Pdf.Array (Pdf.String s::map (fun x -> Pdf.Indirect x) ints)
+        in
+          [("/Order", Pdf.Array (map f l))]
+  in
   let listmode =
     match u.ocgconfig_listmode with
     | OCG_AllPages -> []
     | OCG_VisiblePages -> [("/ListMode", Pdf.Name "/VisiblePages")]
   in
-  let rbgroups = [("/RBGroups", Pdf.Null)] in (* FIXME *)
+  let rbgroups =
+    match u.ocgconfig_rbgroups with
+    | None -> []
+    | Some l -> [("/RBGroups", Pdf.Array (map (fun l -> Pdf.Array (map (fun x -> Pdf.Indirect x) l)) l))]
+  in
   let locked =
     match u.ocgconfig_locked with
     | [] -> []
