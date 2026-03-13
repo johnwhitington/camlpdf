@@ -1,4 +1,4 @@
-2.9 (to come)
+2.9 (March 2026)
 
 o Add cycle detection in find_pages_quick for malformed files
 o CCITT Group 3 encoder (native) and Group 4 encoder (via imagemagick)
