@@ -34,6 +34,7 @@ additional new object streams will be created. To re-encrypt the file using its
 existing encryption, provide the user or owner password in the [?recrypt]
 argument. *)
 val pdf_to_output :
+  ?update:bool ->
   ?preserve_objstm:bool ->
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
@@ -43,6 +44,7 @@ val pdf_to_output :
 (** As [pdf_to_output] but to an OCaml channel. If the second boolean is set, build a new
 /ID (don't set this for encrypted documents). *)
 val pdf_to_channel :
+  ?update:bool ->
   ?preserve_objstm:bool ->
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->
@@ -51,6 +53,7 @@ val pdf_to_channel :
 
 (** As [pdf_to_channel] but to a named file. *)
 val pdf_to_file_options :
+  ?update:bool ->
   ?preserve_objstm:bool ->
   ?generate_objstm:bool ->
   ?compress_objstm:bool ->

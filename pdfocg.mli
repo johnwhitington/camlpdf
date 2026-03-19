@@ -2,7 +2,17 @@
 
 open Pdfutil
 
-type ocgusage (* Nothing for now; expand later *)
+type ocgusage =
+  {ocg_creatorinfo : (string * string) option;
+   ocg_language : (string  * string option) option;
+   ocg_export : string option;
+   ocg_zoom_min : float option;
+   ocg_zoom_max : float option;
+   ocg_print_subtype : string option;
+   ocg_print_printstate : string option;
+   ocg_viewstate : string option;
+   ocg_user : (string * string list) option;
+   ocg_page_element_subtype : string option}
 
 type ocg =
   {ocg_name : string;
@@ -13,32 +23,33 @@ type ocgstate = OCG_ON | OCG_OFF | OCG_Unchanged
 
 type ocglistmode = OCG_AllPages | OCG_VisiblePages
 
-type ocgappdict (* Nothing for now; expand later *)
+type ocgevent = OCG_View | OCG_Print | OCG_Export
+
+type ocgappdict =
+  {ocg_event : ocgevent;
+   ocg_ocgs : int list;
+   ocg_category : string list}
 
 type ocgconfig =
   {ocgconfig_name : string option;
    ocgconfig_creator : string option;
    ocgconfig_basestate : ocgstate;
-   ocgconfig_on : int list option;
-   ocgconfig_off : int list option;
+   ocgconfig_on : int list;
+   ocgconfig_off : int list;
    ocgconfig_intent: string list;
-   ocgconfig_usage_application_dictionaries: ocgappdict list option;
-   ocgconfig_order : int tree option;
+   ocgconfig_usage_application_dictionaries: ocgappdict list;
+   ocgconfig_order : (string option * int list) list option;
    ocgconfig_listmode : ocglistmode;
-   ocgconfig_rbgroups : int list list;
+   ocgconfig_rbgroups : int list list option;
    ocgconfig_locked : int list}
 
-type ocgproperties =
+type t =
   {ocgs : (int * ocg) list;
    ocg_default_config : ocgconfig;
    ocg_configs : ocgconfig list}
 
 (** Read optional content data. *)
-val read_ocg : Pdf.t -> ocgproperties option
+val read_ocg : Pdf.t -> t option
 
 (** Write optional content data. *)
-val write_ocg : Pdf.t -> ocgproperties -> unit
-
-(** Print information about the document's Optional Content Groups to Standard
-    Output. For debug only. *)
-val print_document_ocg : Pdf.t -> unit
+val write_ocg : Pdf.t -> t -> unit

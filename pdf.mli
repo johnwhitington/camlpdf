@@ -51,6 +51,8 @@ val pdfobjmap_empty : unit -> pdfobjmap
 (** Find an object in the object map *)
 val pdfobjmap_find : pdfobjmap_key -> pdfobjmap -> objectdata ref * int
 
+type event = Altered | Deleted
+
 (** The objects. Again, you won't normally manipulate this directly.
 [maxobjnum] is the biggest object number seen yet. [parse] is a function to
 parse a non-object stream object given its object number, [pdfobjects] is the
@@ -61,7 +63,8 @@ type pdfobjects =
   {mutable maxobjnum : int;
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
-   mutable object_stream_ids : (int, int) Hashtbl.t}
+   mutable object_stream_ids : (int, int) Hashtbl.t;
+   mutable log : (int * event) list}
 
 (** {2 The PDF document} *)
 
@@ -89,7 +92,9 @@ type t =
    mutable objects : pdfobjects;
    mutable trailerdict : pdfobject;
    mutable was_linearized : bool;
-   mutable saved_encryption : saved_encryption option}
+   mutable saved_encryption : saved_encryption option;
+   mutable first_xref : int;
+   mutable revision_read : int}
 
 (** The empty document (PDF 1.0, no objects, no root, empty trailer dictionary).
 Note this is not a well-formed PDF. *)

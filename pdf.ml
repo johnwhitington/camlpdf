@@ -137,13 +137,16 @@ let pdfobjmap_iter = Hashtbl.iter
 
 let pdfobjmap_remove key map = Hashtbl.remove map key; map
 
+type event = Altered | Deleted
+
 (* We hold the maximum object number in use, maxobjnum to allow easy
 production of new keys for the map. *)
 type pdfobjects =
   {mutable maxobjnum : int;
    mutable parse : (pdfobjmap_key -> pdfobject) option;
    mutable pdfobjects : pdfobjmap;
-   mutable object_stream_ids : (int, int) Hashtbl.t}
+   mutable object_stream_ids : (int, int) Hashtbl.t;
+   mutable log : (int * event) list}
 
 (* PDF Document. The major and minor version numbers, the root object number,
 the list of objects and the trailer dictionary.
@@ -157,7 +160,9 @@ type t =
    mutable objects : pdfobjects; 
    mutable trailerdict : pdfobject;
    mutable was_linearized : bool;
-   mutable saved_encryption : saved_encryption option}
+   mutable saved_encryption : saved_encryption option;
+   mutable first_xref : int;
+   mutable revision_read : int}
 
 (* The null PDF document. *)
 let empty () =
@@ -168,10 +173,13 @@ let empty () =
      {maxobjnum = 0;
       parse = None;
       pdfobjects = pdfobjmap_empty ();
-      object_stream_ids = null_hash ()};
+      object_stream_ids = null_hash ();
+      log = []};
    trailerdict = Dictionary [];
    was_linearized = false;
-   saved_encryption = None}
+   saved_encryption = None;
+   first_xref = 0;
+   revision_read = 1}
 
 (* General exception for low-level errors. *)
 exception PDFError of string
@@ -297,7 +305,8 @@ let parse_lazy pdf n =
 (* Remove an object. *)
 let removeobj doc o =
   doc.objects <-
-    {doc.objects with pdfobjects = pdfobjmap_remove o doc.objects.pdfobjects}
+    {doc.objects with pdfobjects = pdfobjmap_remove o doc.objects.pdfobjects};
+  doc.objects.log <- (o, Deleted)::doc.objects.log
 
 (* Look up an object. On an error return Null *)
 let rec lookup_obj doc i =
@@ -454,10 +463,12 @@ let indirect_number pdf key dict =
 
 (* Add an object, given an object number. *)
 let addobj_given_num doc (num, obj) =
+  (*Pdfe.log (Printf.sprintf "addobj_given_num, num = %i\n" num);*)
   doc.objects.maxobjnum <-
     max doc.objects.maxobjnum num;
   doc.objects.pdfobjects <-
-    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects
+    pdfobjmap_add num (ref (Parsed obj), 0) doc.objects.pdfobjects;
+  doc.objects.log <- (num, Altered)::doc.objects.log
 
 (* Follow a chain from the root, finding a dictionary entry to replace (or add).
    Keep the same direct / indirect structure as is already present - any
@@ -745,7 +756,8 @@ let objects_of_list parse l =
     {parse = parse;
      pdfobjects = !map;
      maxobjnum = !maxobj;
-     object_stream_ids = null_hash ()}
+     object_stream_ids = null_hash ();
+     log = []}
 
 (* Find the page reference numbers, given the top level node of the page tree *)
 let rec page_reference_numbers_inner pdf pages_node node_number =
@@ -998,16 +1010,9 @@ let remove_unreferenced pdf =
     referenced [] [] pdf found pdf.root (Parsed (lookup_obj pdf pdf.root));
     referenced [] [] pdf found 0 (Parsed pdf.trailerdict);
     found := refset_add pdf.root !found;
-    let eltnumbers = refset_elts !found in
-      (* If not found, just ignore. *)
-      let elements =
-        map (fun n -> try lookup_obj pdf n with Not_found -> Null) eltnumbers
-      in
-        pdf.objects <-
-          {pdf.objects with
-             maxobjnum = 0;
-             pdfobjects = pdfobjmap_empty ()};
-        iter (addobj_given_num pdf) (combine eltnumbers elements)
+    let toremove = null_hash () in
+      objiter (fun n _ -> if not (refset_mem n !found) then Hashtbl.add toremove n ()) pdf;
+      Hashtbl.iter (fun k _ -> removeobj pdf k) toremove
 
 (* Objects referenced from a given one. *)
 let objects_referenced no_follow_entries no_follow_contains pdf pdfobject =
@@ -1168,10 +1173,13 @@ let deep_copy from =
      {maxobjnum = from.objects.maxobjnum;
       parse = from.objects.parse;
       pdfobjects = deep_copy_pdfobjects from from.objects.pdfobjects;
-      object_stream_ids = Hashtbl.copy from.objects.object_stream_ids};
+      object_stream_ids = Hashtbl.copy from.objects.object_stream_ids;
+      log = from.objects.log};
    trailerdict = from.trailerdict;
    was_linearized = from.was_linearized;
-   saved_encryption = from.saved_encryption}
+   saved_encryption = from.saved_encryption;
+   first_xref = from.first_xref;
+   revision_read = from.revision_read}
 
 let change_id pdf f =
   match pdf.trailerdict with

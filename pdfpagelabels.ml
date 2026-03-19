@@ -24,6 +24,15 @@ let string_of_labelstyle = function
   | LowercaseLetters -> "LowercaseLetters"
   | NoLabelPrefixOnly -> "NoLabelPrefixOnly"
 
+let labelstyle_of_string = function
+  | "DecimalArabic" -> DecimalArabic
+  | "UppercaseRoman" -> UppercaseRoman
+  | "LowercaseRoman" -> LowercaseRoman
+  | "UppercaseLetters" -> UppercaseLetters
+  | "LowercaseLetters" -> LowercaseLetters
+  | "NoLabelPrefixOnly" -> NoLabelPrefixOnly
+  | _ -> raise (Pdf.PDFError "labelstyle_of_string")
+
 let string_of_pagelabel l =
   (Printf.sprintf "labelstyle: %s\n" (string_of_labelstyle l.labelstyle)) ^
   (Printf.sprintf "labelprefix: %s\n"

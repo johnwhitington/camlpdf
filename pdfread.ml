@@ -1074,9 +1074,16 @@ let rec read_xref_line i =
               | [Pdfgenlex.LexInt s; Pdfgenlex.LexInt l] -> Section (s, l)
               | _ -> Invalid 
 
+(* When reading xref tables, going back through /Prevs we need to keep track of
+   objects deleted. If we find an object in an earlier revision which has been
+   deleted by a later one, we don't read it. If we are reading an earlier
+   revision we go straight through the /Prevs without reading xrefs, so we
+   don't note deleted entries here, so that's ok. *)
+let deleted_objects = null_hash ()
+
 (* Read the cross-reference table in [i] at the current position. Leaves [i] at
 the first character of the trailer dictionary. *)
-let read_xref i =
+let read_xref skip i =
   let fail () =
     raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read x-ref table"))
   in
@@ -1090,11 +1097,16 @@ let read_xref i =
             | Invalid -> fail ()
             | Valid (offset, gen) ->
                 entries += 1;
-                xrefs =| (!objnumber, XRefPlain (offset, gen));
+                  if not (Hashtbl.mem deleted_objects !objnumber) then
+                    xrefs =| (!objnumber, XRefPlain (offset, gen));
                 incr objnumber
             | Finished -> set finished
             | Section (s, _) -> objnumber := s
-            | Free _ -> entries +=1; incr objnumber
+            | Free _ ->
+                (* If we are not skipping this revision, note the deletion. *)
+                if not skip then Hashtbl.replace deleted_objects !objnumber ();
+                entries += 1;
+                incr objnumber
             | _ -> () (* Xref stream types won't have been generated. *)
           done
         with
@@ -1315,9 +1327,11 @@ memory. Revision: 1 = first revision, 2 = second revision etc. max_int = latest
 revision (default). If revision = -1, the file is not read, but instead the
 exception Revisions x is raised, giving the number of revisions. *)
 let read_pdf ?revision user_pw owner_pw opt i =
+  Hashtbl.clear deleted_objects;
   if !read_debug then
     (Pdfe.log (Printf.sprintf "read_pdf, revision is %s\n"
       (match revision with None -> "None" | Some x -> string_of_int x)); tt' ());
+  let first_xref = ref 0 in
   begin match revision with
      Some x when x < 1 && x <> (-1) -> raise BadRevision
    | _ -> ()
@@ -1341,7 +1355,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
   in let objects_stream, objects_nonstream, root, trailerdict =
     let addref (n, x) = xrefs_table_add_if_not_present xrefs n x
     in let got_all_xref_sections = ref false
-    in let trailerdict = ref []
+    in let trailerdict, trailerdict_read = ref [], ref false
     in let xref = ref 0
     in let first = ref true in
       (* This function builds a partial pdf of the plain objects whose
@@ -1377,7 +1391,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
       | [] ->
           raise
             (Pdf.PDFError (Pdf.input_pdferror i "Could not find xref pointer"))
-      | xrefchars -> xref := int_of_string (implode xrefchars);
+      | xrefchars ->
+          xref := int_of_string (implode xrefchars);
+          if !first then (first_xref := !xref; clear first)
       end;
       if !read_debug then (Pdfe.log (Printf.sprintf "Reading Cross-reference table\n"); tt' ());
       while not !got_all_xref_sections do
@@ -1393,20 +1409,22 @@ let read_pdf ?revision user_pw owner_pw opt i =
             !current_revision skip);
           if peek_char i = Some 'x'
             then
-              iter (if skip then (function _ -> ()) else addref) (read_xref i)
+              iter (if skip then (function _ -> ()) else addref) (read_xref skip i)
             else
               if not skip then
                 let refs, objnumbertodelete = read_xref_stream i in
                   (postdeletes := objnumbertodelete::!postdeletes;
                    iter addref refs)
         in
-        begin match revision with
-          None -> read_table false
-        | Some r when r <= !current_revision -> read_table false
-        | _ ->
-            if !read_debug then Pdfe.log (Printf.sprintf "Skipping revision %i\n" !current_revision);
-            read_table true
-        end;
+        let skipped =
+          begin match revision with
+            None -> read_table false; false
+          | Some r when r <= !current_revision -> read_table false; false
+          | _ ->
+              if !read_debug then Pdfe.log (Printf.sprintf "Skipping revision %i\n" !current_revision);
+              read_table true; true
+          end
+        in
         (* It is now assumed that [i] is at the start of the trailer dictionary.  *)
         let trailerdict_current =
           let lexemes =
@@ -1418,12 +1436,32 @@ let read_pdf ?revision user_pw owner_pw opt i =
             | _ ->
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
         in
+          (* If we skipped, and there is no /Prev, this is an error which should not trigger malformed file reading. *)
+          (*Pdfe.log
+            (Printf.sprintf "skipped %b, prev %b, trailerdict_current = %s (= %s)\n"
+              skipped
+              (not (None = Pdf.lookup_immediate "/Prev" (Pdf.Dictionary trailerdict_current)))
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict_current))
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary (sanitize_trailerdict 0 trailerdict_current)))
+             );*)
+          begin match skipped, Pdf.lookup_immediate "/Prev" (Pdf.Dictionary trailerdict_current) with
+            true, None -> raise (Pdf.PDFError "Requested revision does not exist.") (* Do not alter this string. *)
+          | _, _ -> ()
+          end;
           begin
-            if !first then
-              begin
-                trailerdict := mergedict trailerdict_current !trailerdict;
-                clear first
-              end;
+            (*Pdfe.log (Printf.sprintf "Revision %s, Root presence %b, current trailerdict %s\n"
+              (match revision with None -> "None" | Some n -> string_of_int n)
+              (match lookup "/Root" trailerdict_current with None -> false | _ -> true)
+              (Pdfwrite.string_of_pdf (Pdf.Dictionary trailerdict_current)));*)
+            begin match revision, lookup "/Root" trailerdict_current with
+            | Some r, Some _ when r = !current_revision ->
+                trailerdict := trailerdict_current;
+                set trailerdict_read
+            | None, Some _ ->
+                if not !trailerdict_read then trailerdict := trailerdict_current;
+                set trailerdict_read
+            | _ -> ()
+            end;
             (* Do we have a /XRefStm to follow? *)
             begin match lookup "/XRefStm" trailerdict_current with
             | Some (Pdf.Integer n) ->
@@ -1454,6 +1492,12 @@ let read_pdf ?revision user_pw owner_pw opt i =
                 raise (Pdf.PDFError (Pdf.input_pdferror i "Malformed trailer"))
           end;
       done;
+      (* If no trailerdict was read at all, this is a bad revision on a linearized file. *)
+      begin match revision with
+      | Some n when n > 1 ->
+          if not !trailerdict_read then raise (Pdf.PDFError "Requested revision does not exist."); (* Do not alter this string. *)
+      | _ -> ()
+      end;
       if revision = Some (-1) then
         (* If there are exactly two "revisions", and the file is linearized,
         then we return 1, since there is only one real revision. If there are
@@ -1468,6 +1512,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
       else
       if !read_debug then
         (Pdfe.log (Printf.sprintf "*** READ %i XREF entries\n" (Hashtbl.length xrefs)); tt' ());
+      (*Pdfe.log (Printf.sprintf "final trailerdict: %s\n" (Pdfwrite.string_of_pdf (Pdf.Dictionary !trailerdict)));*)
       let root =
         match lookup "/Root" !trailerdict with
         | Some (Pdf.Indirect i) ->
@@ -1616,7 +1661,9 @@ let read_pdf ?revision user_pw owner_pw opt i =
              Pdf.root = root;
              Pdf.trailerdict = Pdf.Dictionary trailerdict';
              Pdf.was_linearized = was_linearized;
-             Pdf.saved_encryption = None}
+             Pdf.saved_encryption = None;
+             Pdf.first_xref = !first_xref;
+             Pdf.revision_read = match revision with Some x -> x | _ -> 1}
           in
           if !read_debug then (Pdfe.log (Printf.sprintf "made final objects...\n"); tt' ());
           (* Check for a /Version in the document catalog *)
@@ -1665,6 +1712,7 @@ let read_pdf ?revision user_pw owner_pw opt i =
             if !read_debug then
               begin
                 Pdfe.log "Done reading PDF file.\n"; tt' ();
+                (*Pdfwrite.debug_whole_pdf pdf;*)
                 match Pdf.lookup_direct pdf "/Encrypt" pdf.Pdf.trailerdict with
                 | Some _ -> Pdfe.log "***File is encrypted\n" | _ -> ()
               end;
@@ -1835,21 +1883,26 @@ let read_malformed_pdf upw opw i =
             Pdf.objects = Pdf.objects_of_list None objects;
             Pdf.trailerdict = Pdf.Dictionary trailerdict';
             Pdf.was_linearized = was_linearized;
-            Pdf.saved_encryption = None}
+            Pdf.saved_encryption = None;
+            Pdf.first_xref = 0;
+            Pdf.revision_read = 1}
          in
            if !read_debug then Pdfwrite.debug_whole_pdf pdf;
            pdf
 
 let report_read_error i e e' =
-  raise
-    (Pdf.PDFError
-       (Pdf.input_pdferror
-          i
-          (Printf.sprintf
-             "Failed to read PDF - initial error was\n%s\n\n\
-             final error was \n%s\n\n"
-             (Printexc.to_string e)
-             (Printexc.to_string e'))))
+  match e' with
+  | Revisions 1 -> raise (Revisions 1)
+  | _ ->
+    raise
+      (Pdf.PDFError
+         (Pdf.input_pdferror
+            i
+            (Printf.sprintf
+               "Failed to read PDF - initial error was\n%s\n\n\
+               final error was \n%s\n\n"
+               (Printexc.to_string e)
+               (Printexc.to_string e'))))
 
 let endpage = ref (fun _ -> 0)
 
@@ -1876,8 +1929,12 @@ let read_pdf revision upw opw opt i =
           (* If it failed due to encryption not supported or user password not
           right, the error should be passed up - it's not a malformed file. *)
           raise e
+      | Pdf.PDFError "Requested revision does not exist." as e ->
+          raise e
       | BadRevision ->
           raise (Pdf.PDFError "Revision number too low when reading PDF")
+      | Revisions n ->
+          raise (Revisions n)
       | e ->
           if !error_on_malformed then raise e else
             begin
@@ -1886,6 +1943,8 @@ let read_pdf revision upw opw opt i =
                 let r = read_malformed_pdf upw opw i in
                 (* As above, but this time it triggers checks for cyclic page trees etc. *)
                 ignore (!endpage r);
+                (* If the operation is Revisions, return 1. *)
+                if revision = Some ~-1 then raise (Revisions 1);
                 r
               with e' ->
                 report_read_error i e e'

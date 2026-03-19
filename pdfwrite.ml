@@ -545,122 +545,241 @@ let dummy_encryption =
    user_password = "";
    permissions = []}
 
+(* Updating a PDF by appending. *)
+(* NB. Acrobat, contra the PDF spec, doesn't seem to care about generation numbers.
+   It outputs a 0000000000 65535 f line, then lines for the updated/added
+   objects. So we follow this model for now, since it's simpler.
+
+   (Actually, the spec says the 0000000000 65535 f line shouldn't exist
+   either, but there we are.)
+
+   Edit: we noted this for updated object. Perhaps generation numbers do
+   matter for deleted and then re-created objects, but we can't quite see
+   why.
+
+   (Suggestion: generation numbers have no use in modern PDF)
+
+   See also https://github.com/pdf-association/pdf-issues/issues/465 *)
+
+(* maxobjnum not robust to deletions, so we calculate our own. *)
+
+let find_maxobjnum pdf =
+  let m = ref min_int in
+    Pdf.objiter (fun n _ -> if n > !m then m :=n) pdf;
+    !m
+
+let pdf_to_output_updating ?(recrypt = None) encrypt mk_id pdf o =
+  if pdf.Pdf.revision_read <> 1 then raise (Pdf.PDFError "cannot update a file read with revision > 1") else
+  let encrypt =
+    match recrypt with None -> encrypt | Some _ -> Some dummy_encryption
+  in
+  let pdf =
+    match recrypt with None -> pdf | Some pw -> Pdfcrypt.recrypt_pdf ~renumber:false pdf pw
+  in
+  let pdf = crypt_if_necessary pdf encrypt in
+  let xrefs = ref [] in
+  let original_length = o.out_channel_length () in
+  let newobjs = null_hash () in
+  let deletedobjs = null_hash () in
+  iter
+    (function
+     | (n, Pdf.Altered) ->
+         Hashtbl.replace newobjs n ();
+         Hashtbl.remove deletedobjs n;
+     | (n, Pdf.Deleted) ->
+         Hashtbl.replace deletedobjs n ();
+         Hashtbl.remove newobjs n)
+    pdf.Pdf.objects.log;
+  let reconciled_events =
+    sort compare
+      (map (fun (x, ()) -> (x, false)) (list_of_hashtbl newobjs) @
+       map (fun (x, ()) -> (x, true)) (list_of_hashtbl deletedobjs))
+  in
+  let final_newobjs = map fst (keep (function (_, false) -> true | _ -> false) reconciled_events) in
+  (*Printf.printf "reconciled event log:\n"; iter (fun (n, d) -> Printf.printf "%i %b\n" n d) reconciled_events;*)
+  iter
+    (fun (ob, p) ->
+       (*Printf.printf "Adding %i %i to xrefs\n" ob (o.pos_out ());*)
+       xrefs =| (ob, o.pos_out ());
+       strings_of_pdf_object (flatten_W o) (ob, p) ob (null_hash ()))
+    (combine final_newobjs (map (Pdf.lookup_obj pdf) final_newobjs));
+  let xrefstart = o.pos_out () in
+  o.output_string "xref\n";
+  o.output_string "0 1 \n";
+  o.output_string "0000000000 65535 f \n";
+  (* Pairs of (objnum, bool) --> list of (objnum, bool list) pairs. *)
+  let rec make_sections a dn = function
+    | [] -> rev (map (fun (b, l) -> (b, rev l)) a)
+    | (n, b)::r ->
+        match a with
+        | [] ->
+            make_sections [(n, [b])] 1 r
+        | (n', bl)::ar ->
+            if n = n' + dn
+              then make_sections ((n', b::bl)::ar) (dn + 1) r
+              else make_sections ((n, [b])::(n', bl)::ar) 1 r
+  in
+  (*Printf.printf "Sections: \n";
+  iter
+    (fun (n, l) ->
+       Printf.printf "%i: " n;
+       iter (Printf.printf "%b ") l;
+       Printf.printf "\n")
+    (make_sections [] 1 reconciled_events);*)
+  iter
+    (fun (n, l) ->
+      o.output_string (Printf.sprintf "%i %i \n" n (length l));
+      let n = ref n in
+      iter
+        (function
+         | true ->
+             o.output_string "0000000000 65535 f \n";
+             n += 1
+         | false ->
+             (*Printf.printf "lookup %i\n%!" !n;*)
+             output_string_of_xref o (unopt (lookup !n !xrefs) + original_length);
+             n += 1)
+        l)
+    (make_sections [] 1 reconciled_events);
+  o.output_string "trailer\n";
+  let trailerdict' =
+    match pdf.Pdf.trailerdict with
+    | Pdf.Dictionary trailerdict ->
+        Pdf.Dictionary
+          (add "/Prev" (Pdf.Integer pdf.Pdf.first_xref)
+            ((add "/Size" (Pdf.Integer (find_maxobjnum pdf + 1))
+              (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))))
+    | _ ->
+        raise
+          (Pdf.PDFError
+             "Pdf.pdf_to_output: Bad trailer dictionary")
+  in
+    strings_of_pdf ~hex:true (flatten_W o) (null_hash ()) trailerdict';
+    o.output_string "\nstartxref\n";
+    o.output_string (string_of_int (xrefstart + original_length));
+    o.output_string "\n%%EOF\n"
+
 (* Flatten a PDF document to an Pdfio.output. *)
 let pdf_to_output
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None) encrypt mk_id pdf o
 =
-  if mk_id then Pdf.change_id pdf (string_of_float (Random.float 1.));
-  let renumbered_objects_for_streams, preserve_objstm =
-    if generate_objstm then
-      generate_object_stream_hints
-      (match encrypt with Some _ -> true | _ -> false) pdf preserve_objstm;
-    if
-      (preserve_objstm || generate_objstm) &&
-      Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
-    then
-      (reinstate_object_streams
-        compress_objstm
-        (match encrypt with Some _ -> true | _ ->
-          match recrypt with Some _ -> true | _ -> false)
-        pdf,
-        true)
-    else
-      ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
-  in
-    let encrypt =
-      match recrypt with
-        None -> encrypt
-      | Some _ -> Some dummy_encryption
-    in
-    let pdf =
-      if preserve_objstm || generate_objstm then pdf else
-        begin match encrypt with
-        | Some e when e.encryption_method = AlreadyEncrypted ->
-            pdf (* Already been renumbered *)
-        | Some _  ->
-            (* Need to renumber before encrypting.
-            Will remove once encryption-on-demand-on-writing is done...*)
-            Pdf.renumber (Pdf.changes pdf) pdf
-        | _ -> pdf
-        end
-    in
-      let pdf =
-        match recrypt with
-          None -> pdf
-        | Some pw ->
-            Pdfcrypt.recrypt_pdf
-              ~renumber:(not (preserve_objstm || generate_objstm)) pdf pw
+  if update then pdf_to_output_updating ~recrypt encrypt mk_id pdf o else
+    begin
+      if mk_id then Pdf.change_id pdf (string_of_float (Random.float 1.));
+      let renumbered_objects_for_streams, preserve_objstm =
+        if generate_objstm then
+          generate_object_stream_hints
+          (match encrypt with Some _ -> true | _ -> false) pdf preserve_objstm;
+        if
+          (preserve_objstm || generate_objstm) &&
+          Hashtbl.length pdf.Pdf.objects.Pdf.object_stream_ids > 0
+        then
+          (reinstate_object_streams
+            compress_objstm
+            (match encrypt with Some _ -> true | _ ->
+              match recrypt with Some _ -> true | _ -> false)
+            pdf,
+            true)
+        else
+          ([], false) (* Weren't asked to preserve, or nothing to put in streams *)
       in
-      let pdf = crypt_if_necessary pdf encrypt in
-        o.output_string (header pdf);
-        let xrefs = ref []
-        and objiter =
-          if Pdfcrypt.is_encrypted pdf || preserve_objstm || generate_objstm
-            then Pdf.objiter_inorder
-            else Pdf.objiter
-        and changetable =
-          if Pdfcrypt.is_encrypted pdf || preserve_objstm || generate_objstm
-            then Hashtbl.create 0
-            else Pdf.changes pdf
-        and currobjnum = ref 1
+        let encrypt =
+          match recrypt with
+            None -> encrypt
+          | Some _ -> Some dummy_encryption
         in
-          objiter
-            (fun ob p ->
-               xrefs =| o.pos_out ();
-               strings_of_pdf_object
-                 (flatten_W o) (ob, p)
-                 (if preserve_objstm then ob else !currobjnum) changetable;
-               incr currobjnum)
-            pdf;
-          let xrefstart = o.pos_out () in
-          if preserve_objstm || generate_objstm then
-            begin
-              let xrefstream =
-                make_xref_stream pdf (rev !xrefs) renumbered_objects_for_streams
-              in
-                let thisnum =
-                  match Pdf.lookup_direct pdf "/Size" xrefstream with
-                  | Some (Pdf.Integer i) -> i
-                  | _ -> failwith "bad xref stream generated\n"
-                in
-                  o.output_string (string_of_int thisnum);
-                  o.output_string " 0 obj\n";
-                  strings_of_pdf ~hex:true (flatten_W o) changetable xrefstream;
-                  o.output_string "\nendobj\n";
-                  o.output_string "startxref\n";
-                  o.output_string (string_of_int xrefstart);
-                  o.output_string "\n%%EOF\n"
+        let pdf =
+          if preserve_objstm || generate_objstm then pdf else
+            begin match encrypt with
+            | Some e when e.encryption_method = AlreadyEncrypted ->
+                pdf (* Already been renumbered *)
+            | Some _  ->
+                (* Need to renumber before encrypting.
+                Will remove once encryption-on-demand-on-writing is done...*)
+                Pdf.renumber (Pdf.changes pdf) pdf
+            | _ -> pdf
             end
-          else
-            begin
-              write_xrefs (rev !xrefs) o;
-              o.output_string "trailer\n";
-              let trailerdict' =
-                match pdf.Pdf.trailerdict with
-                | Pdf.Dictionary trailerdict ->
-                    Pdf.Dictionary
-                      (add "/Size" (Pdf.Integer (length !xrefs + 1))
-                        (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))
-                | _ ->
-                    raise
-                      (Pdf.PDFError
-                         "Pdf.pdf_to_output: Bad trailer dictionary")
-              in
-                strings_of_pdf ~hex:true (flatten_W o) changetable trailerdict';
-                o.output_string "\nstartxref\n";
-                o.output_string (string_of_int xrefstart);
-                o.output_string "\n%%EOF\n"
-            end
+        in
+          let pdf =
+            match recrypt with
+              None -> pdf
+            | Some pw ->
+                Pdfcrypt.recrypt_pdf
+                  ~renumber:(not (preserve_objstm || generate_objstm)) pdf pw
+          in
+          let pdf = crypt_if_necessary pdf encrypt in
+            o.output_string (header pdf);
+            let xrefs = ref []
+            and objiter =
+              if Pdfcrypt.is_encrypted pdf || preserve_objstm || generate_objstm
+                then Pdf.objiter_inorder
+                else Pdf.objiter
+            and changetable =
+              if Pdfcrypt.is_encrypted pdf || preserve_objstm || generate_objstm
+                then Hashtbl.create 0
+                else Pdf.changes pdf
+            and currobjnum = ref 1
+            in
+              objiter
+                (fun ob p ->
+                   xrefs =| o.pos_out ();
+                   strings_of_pdf_object
+                     (flatten_W o) (ob, p)
+                     (if preserve_objstm then ob else !currobjnum) changetable;
+                   incr currobjnum)
+                pdf;
+              let xrefstart = o.pos_out () in
+              if preserve_objstm || generate_objstm then
+                begin
+                  let xrefstream =
+                    make_xref_stream pdf (rev !xrefs) renumbered_objects_for_streams
+                  in
+                    let thisnum =
+                      match Pdf.lookup_direct pdf "/Size" xrefstream with
+                      | Some (Pdf.Integer i) -> i
+                      | _ -> failwith "bad xref stream generated\n"
+                    in
+                      o.output_string (string_of_int thisnum);
+                      o.output_string " 0 obj\n";
+                      strings_of_pdf ~hex:true (flatten_W o) changetable xrefstream;
+                      o.output_string "\nendobj\n";
+                      o.output_string "startxref\n";
+                      o.output_string (string_of_int xrefstart);
+                      o.output_string "\n%%EOF\n"
+                end
+              else
+                begin
+                  write_xrefs (rev !xrefs) o;
+                  o.output_string "trailer\n";
+                  let trailerdict' =
+                    match pdf.Pdf.trailerdict with
+                    | Pdf.Dictionary trailerdict ->
+                        Pdf.Dictionary
+                          (add "/Size" (Pdf.Integer (length !xrefs + 1))
+                            (add "/Root" (Pdf.Indirect pdf.Pdf.root) trailerdict))
+                    | _ ->
+                        raise
+                          (Pdf.PDFError
+                             "Pdf.pdf_to_output: Bad trailer dictionary")
+                  in
+                    strings_of_pdf ~hex:true (flatten_W o) changetable trailerdict';
+                    o.output_string "\nstartxref\n";
+                    o.output_string (string_of_int xrefstart);
+                    o.output_string "\n%%EOF\n"
+                end
+     end
 
 (* Write a PDF to a channel. Don't use mk_id when the file is encrypted.*)
 let pdf_to_channel
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
   encrypt mk_id pdf ch
 =
   pdf_to_output
-    ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
+    ~update ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
     encrypt mk_id pdf (output_of_channel ch)
 
 (* Similarly to a named file. If mk_id is set, the /ID entry in the document's
@@ -670,15 +789,18 @@ existing object streams will be preserved. If [generate_objstm] is set, new
 ones will be generated in addition. To get totally fresh object streams, set
 [preserve_objstm=false, generate_objstm=true]. *)
 let pdf_to_file_options
+  ?(update = false)
   ?(preserve_objstm = false) ?(generate_objstm = false)
   ?(compress_objstm = true) ?(recrypt = None)
   encrypt mk_id pdf f
 =
   if mk_id then Pdf.change_id pdf f;
-  let ch = open_out_bin f in
+  let ch =
+    if update then open_out_gen [Open_binary; Open_append] 0 f else open_out_bin f
+  in
     try
       pdf_to_channel
-        ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
+        ~update ~preserve_objstm ~generate_objstm ~compress_objstm ~recrypt
         encrypt false pdf ch;
       close_out ch
     with
