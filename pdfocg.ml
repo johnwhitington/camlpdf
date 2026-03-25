@@ -395,7 +395,7 @@ let write_ocg_config pdf u =
     | Some l ->
         let f (so, ints) =
           match so with
-          | None -> Pdf.Array (map (fun x -> Pdf.Indirect x) ints)
+          | None -> begin match ints with [x] -> Pdf.Indirect x | ints -> Pdf.Array (map (fun x -> Pdf.Indirect x) ints) end
           | Some s -> Pdf.Array (Pdf.String s::map (fun x -> Pdf.Indirect x) ints)
         in
           [("/Order", Pdf.Array (map f l))]
@@ -422,7 +422,8 @@ let write_ocg_config pdf u =
 
 let write_ocg_ocg pdf ocg =
   Pdf.Dictionary
-    ([("/Name", Pdf.String ocg.ocg_name);
+    ([("/Type", Pdf.Name "/OCG");
+      ("/Name", Pdf.String ocg.ocg_name);
       ("/Intent", Pdf.Array (map (fun x -> Pdf.Name x) ocg.ocg_intent))]
      @
       (match ocg.ocg_usage with None -> [] | Some u -> [("/Usage", Pdf.Indirect (write_ocg_usage pdf u))]))
@@ -434,13 +435,13 @@ let write_ocg pdf {ocgs; ocg_default_config; ocg_configs} =
   let default =
     write_ocg_config pdf ocg_default_config
   in
-  let config =
-    Pdf.addobj pdf (Pdf.Array (map (fun x -> Pdf.Indirect (write_ocg_config pdf x)) ocg_configs))
+  let configs =
+    if ocg_configs = [] then [] else
+      [("/Configs", Pdf.Indirect (Pdf.addobj pdf (Pdf.Array (map (fun x -> Pdf.Indirect (write_ocg_config pdf x)) ocg_configs))))]
   in
   let ocpropsdict =
     Pdf.Dictionary
-      [("/OCGs", Pdf.Indirect ocgs);
-       ("/D", Pdf.Indirect default);
-       ("/Config", Pdf.Indirect config)]
+      ([("/OCGs", Pdf.Indirect ocgs);
+        ("/D", Pdf.Indirect default)] @ configs)
   in
     Pdf.replace_chain pdf ["/Root"; "/OCProperties"] (Pdf.Indirect (Pdf.addobj pdf ocpropsdict))
