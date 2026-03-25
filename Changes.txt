@@ -2,6 +2,7 @@
 
 o Support reading of file at given revision
 o Support writing with incremental update
+o Read (extended) and (new) write OCGs
 
 2.9 (March 2026)
 
