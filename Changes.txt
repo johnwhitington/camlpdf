@@ -3,6 +3,7 @@
 o Support reading of file at given revision
 o Support writing with incremental update
 o Read (extended) and (new) write OCGs
+o Flatness graphics parameter now (correctly) real
 
 2.9 (March 2026)
 
