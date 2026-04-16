@@ -10,7 +10,7 @@ type t =
   | Op_M of float 
   | Op_d of float list * float
   | Op_ri of string
-  | Op_i of int
+  | Op_i of float
   | Op_gs of string
   | Op_q
   | Op_Q

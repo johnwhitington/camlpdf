@@ -12,7 +12,7 @@ type t =
   | Op_M of float (* Set mitre limit *)
   | Op_d of float list * float (* Set dash pattern (dash, phase) *)
   | Op_ri of string (* Set rendering intent. *)
-  | Op_i of int (* Set flatness. *)
+  | Op_i of float (* Set flatness. *)
   | Op_gs of string (* Set graphics state from dictionary *)
   | Op_q (* Save graphics state to stack *)
   | Op_Q (* Restore graphics state from stack *)
@@ -101,7 +101,7 @@ let lexemes_of_op f = function
       f (Obj Pdfgenlex.LexRightSquare);
       f (Obj (Pdfgenlex.LexReal y)); f (Op "d")
   | Op_ri s -> f (Obj (Pdfgenlex.LexName s)); f (Op "ri")
-  | Op_i i -> f (Obj (Pdfgenlex.LexInt i)); f (Op "i")
+  | Op_i i -> f (Obj (Pdfgenlex.LexReal i)); f (Op "i")
   | Op_gs s -> f (Obj (Pdfgenlex.LexName s)); f (Op "gs")
   | Op_q -> f (Op "q")
   | Op_Q -> f (Op "Q")
@@ -740,7 +740,7 @@ let parse_operator compatibility = function
     Obj (Pdfgenlex.LexReal w)::Obj (Pdfgenlex.LexReal h)::
      Op "re"::r -> Op_re (x, y, w, h), r
   | Obj (Pdfgenlex.LexName n)::Op "ri"::r -> Op_ri n, r
-  | Obj (Pdfgenlex.LexReal i)::Op "i"::r -> Op_i (int_of_float i), r
+  | Obj (Pdfgenlex.LexReal i)::Op "i"::r -> Op_i i, r
   | Obj (Pdfgenlex.LexReal m)::Op "M"::r -> Op_M m, r
   | Obj (Pdfgenlex.LexString s)::Op "\'"::r -> Op_' s, r
   | Obj (Pdfgenlex.LexReal aw)::
