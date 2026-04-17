@@ -80,6 +80,14 @@ let rec iter3 f a b c =
       iter3 f a' b' c'
   | _ -> raise (Invalid_argument "Pdfutil.iter3")
 
+let rec iter4 f a b c d =
+  match a, b, c, d with
+  | [], [], [], [] -> ()
+  | ah::a', bh::b', ch::c', dh::d' ->
+      f ah bh ch dh;
+      iter4 f a' b' c' d'
+  | _ -> raise (Invalid_argument "Pdfutil.iter4")
+
 let append a b =
   List.rev_append (rev a) b
 

@@ -83,7 +83,9 @@ type composite_CIDfont =
    cid_basefont : string;
    cid_fontdescriptor : fontdescriptor;
    cid_widths : (int * float) list;
-   cid_default_width : int}
+   cid_widths2 : (int * float) list;
+   cid_default_width : float;
+   cid_default_width2 : float list}
   
 type cmap_encoding =
   | Predefined of string

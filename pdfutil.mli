@@ -57,6 +57,7 @@ val rev : ('a list -> 'a list)
 val iter : (('a -> unit) -> 'a list -> unit)
 val iter2 : (('a -> 'b -> unit) -> 'a list -> 'b list -> unit)
 val iter3 : ('a -> 'b -> 'c -> unit) -> 'a list -> 'b list -> 'c list -> unit
+val iter4 : ('a -> 'b -> 'c -> 'd -> unit) -> 'a list -> 'b list -> 'c list -> 'd list -> unit
 val append : 'a list -> 'a list -> 'a list
 val ( @ ) : ('a list -> 'a list -> 'a list)
 val flatten : 'a list list -> 'a list

@@ -104,7 +104,9 @@ type composite_CIDfont =
    cid_basefont : string;
    cid_fontdescriptor : fontdescriptor;
    cid_widths : (int * float) list;
-   cid_default_width : int}
+   cid_widths2 : (int * float) list;
+   cid_default_width : float;
+   cid_default_width2 : float list}
 
 type cmap_encoding =
   | Predefined of string
@@ -511,34 +513,50 @@ let rec read_cid_widths = function
   | _ -> raise (Pdf.PDFError "Malformed /W in CIDfont")
 
 (* Read a composite CID font *)
-(* FIXME: Doesn't support vertical modes (DW2 / W2) *)
 let read_descendant pdf dict =
   let cid_system_info =
     match Pdf.lookup_direct pdf "/CIDSystemInfo" dict with
     | Some cid_dict -> read_cid_system_info pdf cid_dict
     | None -> raise (Pdf.PDFError "No CIDSystemInfo")
-  in let cid_basefont =
+  in
+  let cid_basefont =
     match Pdf.lookup_direct pdf "/BaseFont" dict with
     | Some (Pdf.Name n) -> n
     | _ -> raise (Pdf.PDFError "No /BaseFont")
-  in let cid_fontdescriptor =
+  in
+  let cid_fontdescriptor =
     match read_fontdescriptor pdf dict with
     | Some f -> f
     | None -> raise (Pdf.PDFError "No FontDescriptor in CIDkeyed font")
-  in let cid_widths =
+  in
+  let cid_widths =
     match Pdf.lookup_direct pdf "/W" dict with
     | Some (Pdf.Array ws) -> read_cid_widths ws
     | _ -> []
-  in let default_width =
-    match Pdf.lookup_direct pdf "/DW" dict with
-    | Some (Pdf.Integer d) -> d
-    | _ -> 1000
   in
-    {cid_system_info = cid_system_info;
-     cid_basefont = cid_basefont;
-     cid_fontdescriptor = cid_fontdescriptor;
-     cid_widths = cid_widths;
-     cid_default_width = default_width}
+  let cid_widths2 =
+    match Pdf.lookup_direct pdf "/W2" dict with
+    | Some (Pdf.Array ws) -> read_cid_widths ws
+    | _ -> []
+  in
+  let cid_default_width =
+    match Pdf.lookup_direct pdf "/DW" dict with
+    | Some (Pdf.Integer d) -> float_of_int d
+    | Some (Pdf.Real d) -> d
+    | _ -> 1000.
+  in
+  let cid_default_width2 =
+    match Pdf.lookup_direct pdf "/DW2" dict with
+    | Some (Pdf.Array a) -> map (Pdf.getnum pdf) a
+    | _ -> [880.; ~-.1000.]
+  in
+    {cid_system_info;
+     cid_basefont;
+     cid_fontdescriptor;
+     cid_widths;
+     cid_widths2;
+     cid_default_width;
+     cid_default_width2}
 
 (* Read a CIDKeyed (Type 0) font *)
 let read_cidkeyed_font pdf font =
