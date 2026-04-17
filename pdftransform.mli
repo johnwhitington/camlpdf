@@ -29,6 +29,9 @@ val string_of_transform : transform -> string
 (** The identity matrix *)
 val i_matrix : transform_matrix
 
+(** Make a matrix from components. *)
+val matrix : float -> float -> float -> float -> float -> float -> transform_matrix
+
 (** String of a transformation matrix. *)
 val string_of_matrix : transform_matrix -> string
 
