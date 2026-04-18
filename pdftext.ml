@@ -535,6 +535,7 @@ let read_descendant pdf dict =
     | _ -> []
   in
   let cid_widths2 =
+    (* TODO Find an example and verify this works. *)
     match Pdf.lookup_direct pdf "/W2" dict with
     | Some (Pdf.Array ws) -> read_cid_widths ws
     | _ -> []
@@ -878,10 +879,7 @@ let reverse_table_of_encoding encoding =
     name, then look up the character in the glyph list.
     3. If it's a CID font, which we don't understand, just return.
 The font here is the PDF font structure, not our font data type. If we need to
-parse it, we do.
-
-FIXME: InlineImages2.pdf - Acrobat can extract text, why can't we?
-*)
+parse it, we do. *)
 let text_extractor_of_font_real font =
   {convert =
      (let encoding =
