@@ -198,23 +198,19 @@ let read_fontdescriptor pdf font =
   match Pdf.lookup_direct pdf "/FontDescriptor" font with
   | None -> None
   | Some fontdescriptor ->
-      let bbox_ascent, bbox_descent =
-        (* Ascent, Descent values of 0 are sadly common. We substitute from the FontBbox if so. *)
-        let minx, miny, maxx, maxy =
-          match Pdf.lookup_direct pdf "/FontBBox" fontdescriptor with
-          | Some x -> Pdf.parse_rectangle pdf x
-          | None -> (0., 0., 0., 0.)
-        in
-          (miny, maxy)
+      let fontbbox =
+        match Pdf.lookup_direct pdf "/FontBBox" fontdescriptor with
+        | Some x -> Pdf.parse_rectangle pdf x
+        | None -> (0., 0., 0., 0.)
       in
       let ascent =
         match Pdf.lookup_direct pdf "/Ascent" fontdescriptor with
-        | Some (Pdf.Integer 0 | Pdf.Real 0.) | None -> bbox_ascent
         | Some x -> Pdf.getnum pdf x
+        | None -> 0.
       in let descent =
         match Pdf.lookup_direct pdf "/Descent" fontdescriptor with
-        | Some (Pdf.Integer 0 | Pdf.Real 0.) | None -> bbox_descent
         | Some x -> Pdf.getnum pdf x
+        | None -> 0.
       in let avgwidth =
         match Pdf.lookup_direct pdf "/AvgWidth" fontdescriptor with
         | Some x -> Pdf.getnum pdf x
@@ -246,7 +242,7 @@ let read_fontdescriptor pdf font =
            fontfile = fontfile;
            charset = charset;
            flags = 0;
-           fontbbox = (0., 0., 0., 0.);
+           fontbbox;
            italicangle = 0.;
            capheight = 0.;
            xheight = 0.;
