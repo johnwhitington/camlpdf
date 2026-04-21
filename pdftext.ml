@@ -339,10 +339,11 @@ let standard_font_of_name = function
   | _ -> None
 
 (* Predicate: is it a standard 14 font? If it's been overriden (contains widths
-etc, we treat it as a simple font. *)
+etc, we treat it as a simple font. We allow "/TrueType" instead of "/Type1" for
+compatibility with broken files. *)
 let is_standard14font pdf font =
   match Pdf.lookup_direct pdf "/Subtype" font with
-  | Some (Pdf.Name "/Type1") ->
+  | Some (Pdf.Name ("/Type1" | "/TrueType")) ->
       begin match Pdf.lookup_direct pdf "/BaseFont" font with
       | Some (Pdf.Name name) ->
           begin match standard_font_of_name name with
