@@ -72,10 +72,6 @@ let append = (( @ ) : transform -> transform -> transform)
 let i_matrix =
   {a = 1.; c = 0.; e = 0.; b = 0.; d = 1.; f = 0.}
 
-(* Build a matrix. *)
-let matrix a c e b d f =
-  {a; c; e; b; d; f}
-
 (* Compose two matrices. Applying the result is equivalent to applying m
 then m'. *)
 let matrix_compose m' m =

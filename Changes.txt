@@ -5,7 +5,6 @@ o Support writing with incremental update
 o Read (extended) and (new) write OCGs
 o Flatness graphics parameter now (correctly) real
 o Expand definition of Standard Font for malformed files
-o Prefer FontBBox when font metrics zero or missing
 
 2.9 (March 2026)
 
