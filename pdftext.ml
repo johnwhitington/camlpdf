@@ -152,8 +152,7 @@ let string_of_font = function
 
 let read_type3_data pdf font =
   {fontbbox =
-     (let obj = Pdf.lookup_fail "No fontbbox" pdf "/FontBBox" font in
-       Pdf.parse_rectangle pdf obj);
+     begin try Pdf.parse_rectangle pdf font with _ -> (0., 0., 0., 0.) end;
    fontmatrix =
      Pdf.parse_matrix pdf "/FontMatrix" font;
    charprocs = 
