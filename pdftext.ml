@@ -104,7 +104,7 @@ type composite_CIDfont =
    cid_basefont : string;
    cid_fontdescriptor : fontdescriptor;
    cid_widths : (int * float) list;
-   cid_widths2 : (int * float) list;
+   cid_widths2 : (int * (float * float * float)) list;
    cid_default_width : float;
    cid_default_width2 : float list}
 
@@ -522,6 +522,51 @@ let rec read_cid_widths = function
   | [] -> []
   | _ -> raise (Pdf.PDFError "Malformed /W in CIDfont")
 
+let rec read_cid_widths2 = function
+  | Pdf.Integer c::Pdf.Array ws::more ->
+      let nums =
+        map
+          (function
+           | Pdf.Integer i -> float i
+           | Pdf.Real r -> r
+           | _ -> raise (Pdf.PDFError "Bad /W2 array"))
+        ws
+      in
+        let triples =
+          map (function [a; b; c] -> (a, b, c) | _ -> raise (Pdf.PDFError "Bad /W2 array")) (splitinto 3 nums)
+        in
+          combine (indxn c triples) triples @ read_cid_widths2 more
+  | Pdf.Integer c_first::Pdf.Integer c_last::w::vx::vy::more ->
+      let w =
+        match w with
+        | Pdf.Integer i -> float i
+        | Pdf.Real r -> r
+        | _ -> raise (Pdf.PDFError "Bad /W2 array")
+      in
+      let vx =
+        match vx with
+        | Pdf.Integer i -> float i
+        | Pdf.Real r -> r
+        | _ -> raise (Pdf.PDFError "Bad /W2 array")
+      in
+      let vy =
+        match vy with
+        | Pdf.Integer i -> float i
+        | Pdf.Real r -> r
+        | _ -> raise (Pdf.PDFError "Bad /W2 array")
+      in
+        if c_last < c_first
+          then raise (Pdf.PDFError "Bad /W array")
+          else
+            let pairs =
+              combine
+                (ilist c_first c_last)
+                (many (w, vx, vy) (c_last - c_first + 1))
+            in
+              pairs @ read_cid_widths2 more
+  | [] -> []
+  | _ -> raise (Pdf.PDFError "Malformed /W2 in CIDFont")
+
 (* Read a composite CID font *)
 let read_descendant pdf dict =
   let cid_system_info =
@@ -545,9 +590,8 @@ let read_descendant pdf dict =
     | _ -> []
   in
   let cid_widths2 =
-    (* TODO Find an example and verify this works. *)
     match Pdf.lookup_direct pdf "/W2" dict with
-    | Some (Pdf.Array ws) -> read_cid_widths ws
+    | Some (Pdf.Array ws) -> read_cid_widths2 ws
     | _ -> []
   in
   let cid_default_width =
