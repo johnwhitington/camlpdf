@@ -53,7 +53,7 @@ type t =
   | Op_TJ of Pdf.pdfobject (* Show many text strings *)
   | Op_' of string (* Move to next line and show text *)
   | Op_'' of float * float * string (* Ditto, extra parameters *)
-  | Op_d0 of float * float (* Set glpyh width info *)
+  | Op_d0 of float * float (* Set glyph width info *)
   | Op_d1 of float * float * float * float * float * float (* Similar *)
   | Op_CS of string (* Set colour space. *)
   | Op_cs of string (* Same for nonstroking operations *)
