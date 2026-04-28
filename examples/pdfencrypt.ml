@@ -2,7 +2,7 @@
 user password is blank. The permissions applied are NoEdit and NoPrint *)
 open Pdfutil
 
-(* Read command line arguments and call [decrypt_pdf] *)
+(* Read command line arguments, read the file and write with encryption. *)
 let _ =
   let pw, in_file, out_file =
     match Array.to_list Sys.argv with
