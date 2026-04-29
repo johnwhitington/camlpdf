@@ -109,6 +109,7 @@ let pairs_of_section = function
                   match rest with
                   | '<'::_ ->
                       (* It's a single unicode string *)
+                      (* TODO: PDFTests/kuendigung.pdf fails here, because d > 255. Fix or show why not. *)
                       let increment_final code d =
                         match code with
                         | "" -> ""
