@@ -60,9 +60,7 @@ type writeout =
 (* Format a real number.
 
 We want real numbers with no exponents (format compliance), and no trailing
-zeroes (compactness). (Jan 2012 - have added special case for whole numbers.
-Can still get trailing zeroes on small values e.g 0.00001 => 0.000010, but no
-printf way to prevent this). In addition, on 32 bit systems, we now read in
+zeroes (compactness). In addition, on 32 bit systems, we now read in
 numbers > 2^30 or < -2^30 as floating point values so that we can preserve
 them. We should write such numbers out as integers too. But int_of_float gives
 the wrong answer here. So we must pre-check and produce an integer instead. *)
@@ -70,19 +68,21 @@ the wrong answer here. So we must pre-check and produce an integer instead. *)
 let max_int_float = float_of_int max_int
 let min_int_float = float_of_int min_int
 
+external format_float: string -> float -> string
+  = "caml_format_float"
+
 let format_real x =
-  let fl = floor x in
-    if fl = x then
-     begin 
-      if x > max_int_float || x < min_int_float then
-        implode (all_but_last (explode (string_of_float x)))
-      else
-        string_of_int (int_of_float fl)
-     end
+  if Float.is_integer x then
+   begin
+    if Sys.word_size = 32 && (x > max_int_float || x < min_int_float) then
+      implode (all_but_last (explode (string_of_float x)))
     else
-      if x < 0.0001 && x > -. 0.0001
-        then Printf.sprintf "%f" x
-        else string_of_float x
+      string_of_int (int_of_float x)
+   end
+  else
+    if x < 0.0001 && x > -. 0.0001
+      then format_float "%f" x
+      else format_float "%.12g" x
 
 (* Character codes in a name < 33 or > 126 are replaced with hashed combinations
 (e.g #20 for space). If the name contains the null character, a warning is printed. *)
