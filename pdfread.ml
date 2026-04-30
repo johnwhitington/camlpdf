@@ -114,10 +114,10 @@ let find_eof i =
 (* String of lexeme. *)
 let string_of_lexeme = function
   | LexNull -> "null"
-  | LexBool b -> Pdfwrite.string_of_pdf (Pdf.Boolean b)
-  | LexInt i -> Pdfwrite.string_of_pdf (Pdf.Integer i)
-  | LexReal f -> Pdfwrite.string_of_pdf (Pdf.Real f)
-  | LexString s -> Pdfwrite.string_of_pdf (Pdf.String s)
+  | LexBool b -> string_of_bool b
+  | LexInt i -> string_of_int i
+  | LexReal f -> Pdfwrite.format_real f
+  | LexString s -> Pdfwrite.make_pdf_string s
   | LexName s -> s
   | LexLeftSquare -> "["
   | LexRightSquare -> "]"

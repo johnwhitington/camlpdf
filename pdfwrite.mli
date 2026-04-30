@@ -76,3 +76,7 @@ val debug_whole_pdf : Pdf.t -> unit
 
 (** Convert a PDF string to Hex PDF string representation *)
 val make_hex_pdf_string : string -> string
+
+val format_real : float -> string
+
+val make_pdf_string : string -> string
