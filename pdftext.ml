@@ -103,8 +103,8 @@ type composite_CIDfont =
   {cid_system_info : cid_system_info;
    cid_basefont : string;
    cid_fontdescriptor : fontdescriptor;
-   cid_widths : (int * float) list;
-   cid_widths2 : (int * (float * float * float)) list;
+   cid_widths : (int, float) Hashtbl.t;
+   cid_widths2 : (int, float * float * float) Hashtbl.t;
    cid_default_width : float;
    cid_default_width2 : float list}
 
@@ -586,13 +586,13 @@ let read_descendant pdf dict =
   in
   let cid_widths =
     match Pdf.lookup_direct pdf "/W" dict with
-    | Some (Pdf.Array ws) -> read_cid_widths ws
-    | _ -> []
+    | Some (Pdf.Array ws) -> hashtable_of_dictionary (read_cid_widths ws)
+    | _ -> null_hash ()
   in
   let cid_widths2 =
     match Pdf.lookup_direct pdf "/W2" dict with
-    | Some (Pdf.Array ws) -> read_cid_widths2 ws
-    | _ -> []
+    | Some (Pdf.Array ws) -> hashtable_of_dictionary (read_cid_widths2 ws)
+    | _ -> null_hash ()
   in
   let cid_default_width =
     match Pdf.lookup_direct pdf "/DW" dict with

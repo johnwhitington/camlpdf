@@ -82,8 +82,8 @@ type composite_CIDfont =
   {cid_system_info : cid_system_info;
    cid_basefont : string;
    cid_fontdescriptor : fontdescriptor;
-   cid_widths : (int * float) list;
-   cid_widths2 : (int * (float * float * float)) list;
+   cid_widths : (int, float) Hashtbl.t;
+   cid_widths2 : (int, float * float * float) Hashtbl.t;
    cid_default_width : float;
    cid_default_width2 : float list}
   
