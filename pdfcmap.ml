@@ -157,7 +157,6 @@ let extract_wmode data =
 
 let rec parse_cmap pdf cmap =
   let cmap = Pdf.direct pdf cmap in
-  Printf.printf "%s\n" (Pdfwrite.string_of_pdf cmap);
   match cmap with
   | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
       Pdfcodec.decode_pdfstream pdf cmap;
