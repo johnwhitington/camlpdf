@@ -106,7 +106,7 @@ type composite_CIDfont =
    cid_widths : (int, float) Hashtbl.t;
    cid_widths2 : (int, float * float * float) Hashtbl.t;
    cid_default_width : float;
-   cid_default_width2 : float list}
+   cid_default_width2 : float * float}
 
 type cmap_encoding =
   | Predefined of string
@@ -602,8 +602,8 @@ let read_descendant pdf dict =
   in
   let cid_default_width2 =
     match Pdf.lookup_direct pdf "/DW2" dict with
-    | Some (Pdf.Array a) -> map (Pdf.getnum pdf) a
-    | _ -> [880.; ~-.1000.]
+    | Some (Pdf.Array [a; b]) -> (Pdf.getnum pdf a, Pdf.getnum pdf b)
+    | _ -> (880., ~-.1000.)
   in
     {cid_system_info;
      cid_basefont;

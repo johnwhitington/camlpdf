@@ -85,7 +85,7 @@ type composite_CIDfont =
    cid_widths : (int, float) Hashtbl.t;
    cid_widths2 : (int, float * float * float) Hashtbl.t;
    cid_default_width : float;
-   cid_default_width2 : float list}
+   cid_default_width2 : float * float}
   
 type cmap_encoding =
   | Predefined of string
