@@ -3,7 +3,7 @@ open Pdfio
 
 type t =
   {map : (int * string) list;
-   wmode : int option}
+   wmode : int}
 
 (* Parse a /ToUnicode CMap to extract font mapping. *)
 type section =
@@ -146,44 +146,40 @@ let pairs_of_section = function
           Not_found -> rev !results
         end
 
-let extract_specifics data =
-  let wmode = ref None in
-  let read_number t =
-    let h, t = cleavewhile isdigit t in
-      int_of_string (implode h), t
-  in
+let extract_wmode data =
   let rec find = function
-    | [] -> ()
-    | '/'::'W'::'M'::'o'::'d'::'e'::' '::t ->
-        let n, t = read_number t in
-          wmode := Some n;
-          find t
+    | [] -> 0
+    | '/'::'W'::'M'::'o'::'d'::'e'::' '::'0'::_ -> 0
+    | '/'::'W'::'M'::'o'::'d'::'e'::' '::'1'::_ -> 1
     | h::t -> find t
   in
-    let chars = charlist_of_bytes data in
-      begin try find chars with _ -> () end;
-      !wmode
+    find (charlist_of_bytes data)
 
 let rec parse_cmap pdf cmap =
   let cmap = Pdf.direct pdf cmap in
+  Printf.printf "%s\n" (Pdfwrite.string_of_pdf cmap);
   match cmap with
   | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
       Pdfcodec.decode_pdfstream pdf cmap;
       begin match cmap with
       | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
-          let wmode = extract_specifics data in
-          begin try
-            {map =
-               flatten
-                 (map pairs_of_section
-                   (get_sections
-                      (lose Pdf.is_whitespace (charlist_of_bytes data))));
-            wmode}
-          with
-            e ->
-              Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
-              raise e
-          end
+          let wmode =
+            match Pdf.lookup_direct pdf "/WMode" dict with
+            | Some (Pdf.Integer w) -> w
+            | _ -> extract_wmode data
+          in
+            begin try
+              {map =
+                 flatten
+                   (map pairs_of_section
+                     (get_sections
+                        (lose Pdf.is_whitespace (charlist_of_bytes data))));
+              wmode}
+            with
+              e ->
+                Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
+                raise e
+            end
       | _ -> assert false
       end
   | Pdf.Stream {contents = (_, Pdf.ToGet _)} ->
