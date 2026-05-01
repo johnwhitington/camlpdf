@@ -1,8 +1,8 @@
 (** Parsing ToUnicode and other CMaps *)
 
-type cmap =
+type t =
   {map : (int * string) list;
    wmode : int option}
 
 (** Parse a CMap. *)
-val parse_cmap : Pdf.t -> Pdf.pdfobject -> cmap
+val parse_cmap : Pdf.t -> Pdf.pdfobject -> t

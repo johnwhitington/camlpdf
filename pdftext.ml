@@ -110,7 +110,7 @@ type composite_CIDfont =
 
 type cmap_encoding =
   | Predefined of string
-  | CMap of int (* indirect reference to CMap stream *)
+  | CMap of Pdfcmap.t
 
 type font =
   | StandardFont of standard_font * encoding
@@ -629,7 +629,7 @@ let read_cidkeyed_font pdf font =
     | Some (Pdf.Name e) -> Predefined e
     | Some (Pdf.Stream _) ->
         begin match Pdf.find_indirect "/Encoding" font with
-        | Some n -> CMap n
+        | Some n -> CMap (Pdfcmap.parse_cmap pdf (Pdf.Indirect n))
         | None -> raise (Pdf.PDFError "malformed /Encoding")
         end
     | _ -> raise (Pdf.PDFError "malformed or missing /Encoding")

@@ -11,3 +11,5 @@ val logger : logger ref
 
 (** Log a string. *)
 val log : logger
+
+val logf : ('a -> string, unit, string) format -> 'a -> unit

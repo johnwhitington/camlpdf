@@ -89,7 +89,7 @@ type composite_CIDfont =
   
 type cmap_encoding =
   | Predefined of string
-  | CMap of int (* indirect reference to CMap stream *)
+  | CMap of Pdfcmap.t
 
 type font =
   | StandardFont of standard_font * encoding
