@@ -4,6 +4,8 @@
 into account kerning if the first argument is true. *)
 val textwidth : bool -> Pdftext.encoding -> Pdftext.standard_font -> string -> int
 
+val charwidth : Pdftext.encoding -> (int, string) Hashtbl.t -> Pdftext.standard_font -> int -> int
+
 (** The appropriate amount to subtract from the y-coordinate of a 1pt text line
 to place it vertically centered around the y coordinate, rather than with the
 baseline at that y coordinate. *)

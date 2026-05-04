@@ -77,6 +77,11 @@ let textwidth dokern encoding f s =
   let encoding_table = Pdftext.table_of_encoding encoding in
   width dokern widths charname_to_width encoding encoding_table kerns (map int_of_char (explode s))
 
+(* Fast text width calculation for single codepoint. *)
+let charwidth encoding encoding_table f c =
+  let _, widths, _, charname_to_width = lookup_failnull f tables () in
+    find_width widths charname_to_width encoding encoding_table c
+
 (* Return the AFM table data itself *)
 let afm_data f =
   lookup_failnull f tables ()
