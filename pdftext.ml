@@ -239,12 +239,12 @@ let read_fontdescriptor pdf font =
         | _ -> None
       in
         Some
-          {ascent = ascent;
-           descent = descent;
-           avgwidth = avgwidth;
-           maxwidth = maxwidth;
-           fontfile = fontfile;
-           charset = charset;
+          {ascent;
+           descent;
+           avgwidth;
+           maxwidth;
+           fontfile;
+           charset;
            flags = 0;
            fontbbox;
            italicangle = 0.;
@@ -390,8 +390,6 @@ let is_symbolic pdf font =
       | Some (Pdf.Integer flags) -> flags land (1 lsl 3) > 0
       | _ -> raise (Pdf.PDFError "No /Flags in font descriptor")
 
-(* For now, not for truetype fonts: add pg 399-401 later. Need to clarify what
-happens if a standard-14 font is overriden. *)
 let read_encoding pdf font =
   match Pdf.lookup_direct pdf "/Encoding" font with
   | Some (Pdf.Name "/MacRomanEncoding") -> MacRomanEncoding
@@ -438,13 +436,13 @@ let read_simple_font pdf font =
           let fontdescriptor = read_fontdescriptor pdf font in
           let fontmetrics = read_metrics pdf font in
             SimpleFont
-              {fonttype = fonttype;
+              {fonttype;
                basefont = read_basefont pdf font;
                fontmetrics;
                firstchar = 0;
                lastchar = 0;
                widths = [||]; 
-               fontdescriptor = fontdescriptor;
+               fontdescriptor;
                encoding = read_encoding pdf font}
       | None -> raise (Pdf.PDFError "Not a simple font")
       end
@@ -758,11 +756,8 @@ let write_tounicode pdf u =
 
 let write_font ?objnum pdf = function
   | SimpleFont
-      {fonttype = Type3
-         {fontbbox = fontbbox;
-          fontmatrix = fontmatrix;
-          charprocs = charprocs};
-       encoding = encoding;
+      {fonttype = Type3 {charprocs};
+       encoding;
        fontdescriptor = Some fontdescriptor} ->
         let encoding_entry =
           match encoding with
