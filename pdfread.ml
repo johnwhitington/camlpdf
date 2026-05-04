@@ -666,7 +666,8 @@ let lex_object_at oneonly i opt p lexobj =
               end
             else lex_object_at i (lexeme::lexemes)
       | LexNone ->
-          raise (Pdf.PDFError (Pdf.input_pdferror i "Could not read object"))
+          Pdfe.log (Pdf.input_pdferror i "Could not read object");
+          []
       | LexInt i1 ->
           (* Check for the case of "x y obj", which in the case of oneonly
           should be returned as the one object. If i is followed by something
@@ -902,7 +903,8 @@ let parse_finish ?(failure_is_ok = false) q =
               Parsed p -> Pdfe.log (Printf.sprintf "%S\n" (Pdfwrite.string_of_pdf p))
             | Lexeme l -> Pdfe.log (Printf.sprintf "%S\n" (string_of_lexeme l)))
           l;
-        raise (Pdf.PDFError "Could not extract object")
+         (max_int, Pdf.Null)
+        (*raise (Pdf.PDFError "Could not extract object")*)
 
 (* Parse some lexemes *)
 let parse ?(failure_is_ok = false) lexemes =
@@ -1006,10 +1008,10 @@ let lex_stream_object
                   (Pdf.input_pdferror i "couldn't decode objstream"))
           end
     | stmobj ->
-        raise
-          (Pdf.PDFError
-            (Pdf.input_pdferror i (Printf.sprintf "lex_stream_object: not a stream, but %s"
-                                   (Pdfwrite.string_of_pdf stmobj))))
+        Pdfe.log
+            (Pdf.input_pdferror i (Printf.sprintf "lex_stream_object: not a stream, but %s\n"
+                                   (Pdfwrite.string_of_pdf stmobj)));
+        []
 
 (* Cross-reference tables *)
 
