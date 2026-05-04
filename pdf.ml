@@ -186,7 +186,7 @@ exception PDFError of string
 
 let input_pdferror i s =
   Printf.sprintf
-    "%s whilst reading file %s at position %i"
+    "%s whilst reading file %s at position %i\n"
     s i.Pdfio.source (i.Pdfio.pos_in ())
 
 (* Predicate on those characters considered whitespace in PDF files. *)
