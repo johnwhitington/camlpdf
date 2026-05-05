@@ -4,6 +4,9 @@
 into account kerning if the first argument is true. *)
 val textwidth : bool -> Pdftext.encoding -> Pdftext.standard_font -> string -> int
 
+(** Calculate the width, in millipoints, of a character in the given font,
+    provided with the encoding and an encoding table built with
+    [Pdftext.table_of_encoding]. *)
 val charwidth : Pdftext.encoding -> (int, string) Hashtbl.t -> Pdftext.standard_font -> int -> int
 
 (** The appropriate amount to subtract from the y-coordinate of a 1pt text line

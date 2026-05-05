@@ -51,6 +51,7 @@ val pdfobjmap_empty : unit -> pdfobjmap
 (** Find an object in the object map *)
 val pdfobjmap_find : pdfobjmap_key -> pdfobjmap -> objectdata ref * int
 
+(** Objects may be marked as Altered or Deleted to aid with incremental update. *)
 type event = Altered | Deleted
 
 (** The objects. Again, you won't normally manipulate this directly.
@@ -58,7 +59,8 @@ type event = Altered | Deleted
 parse a non-object stream object given its object number, [pdfobjects] is the
 object map itself. [object_stream_ids] is a hash table of (object number,
 was-stored-in-obect-stream-number) pairs, which is used to reconstruct stream
-objects when preserving them upon write. *)
+objects when preserving them upon write. [log] is the log of events used when
+writing with incremental update. *)
 type pdfobjects =
   {mutable maxobjnum : int;
    mutable parse : (pdfobjmap_key -> pdfobject) option;

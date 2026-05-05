@@ -77,6 +77,8 @@ val debug_whole_pdf : Pdf.t -> unit
 (** Convert a PDF string to Hex PDF string representation *)
 val make_hex_pdf_string : string -> string
 
+(** PDF requires floats to be converted to strings in a particular way (for example, avoiding scientific notation). *)
 val format_real : float -> string
 
+(** Convert an internal string to PDF string format. *)
 val make_pdf_string : string -> string

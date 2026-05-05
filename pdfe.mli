@@ -12,4 +12,5 @@ val logger : logger ref
 (** Log a string. *)
 val log : logger
 
+(** Log a formatted string, similar to printf. *)
 val logf : ('a -> string, unit, string) format -> 'a -> unit
