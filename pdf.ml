@@ -359,6 +359,9 @@ let rec getnum pdf = function
   | Indirect i -> getnum pdf (lookup_obj pdf i)
   | _ -> raise (PDFError "Pdf.getnum: not a number")
 
+let getnum_opt pdf x =
+  try Some (getnum pdf x) with PDFError _ -> None
+
 (* Parse a PDF rectangle data structure. Returns min x, min y, max x, max y. *)
 let parse_rectangle pdf = function
   | Array [a; b; c; d] ->

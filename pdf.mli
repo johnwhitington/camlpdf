@@ -122,6 +122,9 @@ val getstream : pdfobject -> unit
 (** Return a float from a [Real], an [Int] or an [Indirect] *)
 val getnum : t -> pdfobject -> float
 
+(** Like getnum, but uses an option type. *)
+val getnum_opt : t -> pdfobject -> float option
+
 (** Lookup an object in a document, parsing it if required. Raises [Not_found]
 if the object does not exist. *)
 val lookup_obj : t -> int -> pdfobject
