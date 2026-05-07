@@ -5,7 +5,7 @@ type t =
   {map : (int * string) list;
    wmode : int}
 
-(* Parse a /ToUnicode CMap to extract font mapping. *)
+(* Parse a CMap to extract font mapping. *)
 type section =
   | BfChar of char list
   | BfRange of char list
@@ -105,7 +105,7 @@ let pairs_of_section = function
           while true do
             let src1, rest  = read_number !numbers in
               let src2, rest  = read_number rest in
-                if src1 > src2 then raise (Pdf.PDFError "Bad /ToUnicode") else
+                if src1 > src2 then raise (Pdf.PDFError "Bad CMap src1 > src2") else
                   match rest with
                   | '<'::_ ->
                       (* It's a single unicode string *)
@@ -176,7 +176,7 @@ let rec parse_cmap pdf cmap =
               wmode}
             with
               e ->
-                Pdfe.log (Printf.sprintf "/ToUnicode Parse Error : %s\n" (Printexc.to_string e));
+                Pdfe.log (Printf.sprintf "CMap Parse Error : %s\n" (Printexc.to_string e));
                 raise e
             end
       | _ -> assert false
@@ -184,4 +184,10 @@ let rec parse_cmap pdf cmap =
   | Pdf.Stream {contents = (_, Pdf.ToGet _)} ->
       Pdf.getstream cmap;
       parse_cmap pdf cmap
-  | e -> raise (Pdf.PDFError (Printf.sprintf "Bad /ToUnicode %s" (Pdfwrite.string_of_pdf e)))
+  | Pdf.Name "/Identity-H" ->
+      {map = map (fun charcode -> (charcode, Printf.sprintf "%04X" charcode)) (ilist 0 65536);
+       wmode = 0}
+  | Pdf.Name "/Identity-V" ->
+      {map = map (fun charcode -> (charcode, Printf.sprintf "%04X" charcode)) (ilist 0 65536);
+       wmode = 1}
+  | e -> raise (Pdf.PDFError (Printf.sprintf "Unknown CMap %s" (Pdfwrite.string_of_pdf e)))

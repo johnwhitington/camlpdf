@@ -6,6 +6,7 @@ o Read (extended) and (new) write OCGs
 o Flatness graphics parameter now (correctly) real
 o Expand definition of Standard Font for malformed files
 o Read widths for vertical mode fonts properly
+o Allow supression of identical adjacent logs in Pdfe
 
 2.9 (March 2026)
 

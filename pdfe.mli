@@ -9,6 +9,9 @@ val default : logger
 (** The current error logger, set to [default] upon startup. *)
 val logger : logger ref
 
+(** If set (default clear), identical errors in sequence will be supressed. *)
+val suppress_adjacent_duplicates : bool ref
+
 (** Log a string. *)
 val log : logger
 
