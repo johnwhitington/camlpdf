@@ -108,14 +108,19 @@ let pairs_of_section ~to_unicode = function
                 if src1 > src2 then raise (Pdf.PDFError "Bad CMap src1 > src2") else
                   match rest with
                   | '<'::_ ->
-                      (* It's a single unicode string *)
                       let increment_final code d =
-                        match code with
-                        | "" -> ""
-                        | s ->
-                            let chars = rev (explode s) in
-                              implode ((rev (tl chars)) @
-                              [char_of_int (int_of_char (hd chars) + d)])
+                        if to_unicode then
+                          (* If a /ToUnicode, it's a single unicode string, the last byte of which should be incremented. *)
+                          match code with
+                          | "" -> ""
+                          | s ->
+                              let chars = rev (explode s) in
+                                (* If increment is too large, result is undefined. *)
+                                try implode ((rev (tl chars)) @ [char_of_int (int_of_char (hd chars) + d)]) with _ -> s
+                        else
+                          (* If an ordinary CMap, it's just a hex number, and increment is unbounded. *)
+                          let n = int_of_string ("0x" ^ code) in
+                            Printf.sprintf "%04x" (n + d)
                       in
                         let code, rest = read_unicode rest in
                           results =@
