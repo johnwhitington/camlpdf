@@ -627,7 +627,7 @@ let read_cidkeyed_font pdf font =
     | Some (Pdf.Name e) -> Predefined e
     | Some (Pdf.Stream _) ->
         begin match Pdf.find_indirect "/Encoding" font with
-        | Some n -> CMap (Pdfcmap.parse_cmap pdf (Pdf.Indirect n))
+        | Some n -> CMap (Pdfcmap.parse_cmap ~to_unicode:false pdf (Pdf.Indirect n))
         | None -> raise (Pdf.PDFError "malformed /Encoding")
         end
     | _ -> raise (Pdf.PDFError "malformed or missing /Encoding")
@@ -643,7 +643,7 @@ let add_tounicode pdf font fontdict =
     match Pdf.lookup_direct pdf "/ToUnicode" fontdict with
     | Some tounicode ->
         begin try
-          Some (hashtable_of_dictionary <| (Pdfcmap.parse_cmap pdf tounicode).map)
+          Some (hashtable_of_dictionary <| (Pdfcmap.parse_cmap ~to_unicode:true pdf tounicode).map)
         with
           e -> Pdfe.log (Printf.sprintf "bad tounicode (%s)\n" (Printexc.to_string e)); None
         end

@@ -83,7 +83,7 @@ let rec get_sections chars =
   | Some (sec, restchars) ->
       sec::get_sections restchars
 
-let pairs_of_section = function
+let pairs_of_section ~to_unicode = function
   | BfChar numbers ->
       let results = ref []
       in let numbers = ref numbers in
@@ -109,7 +109,6 @@ let pairs_of_section = function
                   match rest with
                   | '<'::_ ->
                       (* It's a single unicode string *)
-                      (* TODO: PDFTests/kuendigung.pdf fails here, because d > 255. Fix or show why not. *)
                       let increment_final code d =
                         match code with
                         | "" -> ""
@@ -155,7 +154,7 @@ let extract_wmode data =
   in
     find (charlist_of_bytes data)
 
-let rec parse_cmap pdf cmap =
+let rec parse_cmap ~to_unicode pdf cmap =
   let cmap = Pdf.direct pdf cmap in
   match cmap with
   | Pdf.Stream {contents = (dict, Pdf.Got data)} ->
@@ -170,7 +169,7 @@ let rec parse_cmap pdf cmap =
             begin try
               {map =
                  flatten
-                   (map pairs_of_section
+                   (map (pairs_of_section ~to_unicode)
                      (get_sections
                         (lose Pdf.is_whitespace (charlist_of_bytes data))));
               wmode}
@@ -183,7 +182,7 @@ let rec parse_cmap pdf cmap =
       end
   | Pdf.Stream {contents = (_, Pdf.ToGet _)} ->
       Pdf.getstream cmap;
-      parse_cmap pdf cmap
+      parse_cmap ~to_unicode pdf cmap
   | Pdf.Name "/Identity-H" ->
       {map = map (fun charcode -> (charcode, Printf.sprintf "%04X" charcode)) (ilist 0 65536);
        wmode = 0}

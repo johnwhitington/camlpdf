@@ -5,4 +5,4 @@ type t =
    wmode : int}
 
 (** Parse a CMap. *)
-val parse_cmap : Pdf.t -> Pdf.pdfobject -> t
+val parse_cmap : to_unicode:bool -> Pdf.t -> Pdf.pdfobject -> t
