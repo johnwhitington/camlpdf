@@ -123,8 +123,8 @@ val write_font : ?objnum:int -> Pdf.t -> font -> int
 (** Is a PDF string UTF16be (i.e does it have a byte order marker at the beginning)? *)
 val is_unicode : string -> bool
 
-(** Is a font Identity H? *)
-val is_identity_h : font -> bool
+(** Does the font have two-byte charcodes? *)
+val is_twobyte : font -> bool
 
 (** A list of unicode codepoints for a UTF8 string *)
 val codepoints_of_utf8 : string -> int list

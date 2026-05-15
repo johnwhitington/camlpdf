@@ -925,10 +925,7 @@ let reverse_table_of_encoding encoding =
 (* Method:
     1. If there's a /ToUnicode CMap, use it.
     2. If it is a standard 14 or simple font, use the encoding to get a glyph
-    name, then look up the character in the glyph list.
-    3. If it's a CID font, which we don't understand, just return.
-The font here is the PDF font structure, not our font data type. If we need to
-parse it, we do. *)
+    name, then look up the character in the glyph list. *)
 let text_extractor_of_font_real font =
   {convert =
      (let encoding =
@@ -967,13 +964,12 @@ let text_extractor_of_font pdf fontdict =
   let font = read_font pdf fontdict in
     text_extractor_of_font_real font
 
-(* For now, the only composite font encoding scheme we understand is /Identity-H *)
-let is_identity_h = function
-  | CIDKeyedFont (_, _, Predefined "/Identity-H") -> true
+let is_twobyte = function
+  | CIDKeyedFont (_, _, Predefined ("/Identity-H" | "/Identity-V")) -> true
   | _ -> false
 
 let glyphnames_and_codepoints_of_text extractor text =
-  if is_identity_h extractor.font then
+  if is_twobyte extractor.font then
     let chars = map int_of_char (explode text) in
       if odd (length chars) then raise (Pdf.PDFError "Bad Text") else
         map (fun (h, l) -> extractor.convert ((h lsl 8) lor l)) (pairs_of_list chars)
