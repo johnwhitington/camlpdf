@@ -1,9 +1,6 @@
 (* AFM data for standard 14 fonts *)
 
-(* This file constitutes a modification of Adobe's AFM data files. This file
-   also constitutes a modification of Adobe's license file.
-
-   This file and the 14 PostScript(R) AFM files it accompanies may be used,
+(* This file and the 14 PostScript(R) AFM files it accompanies may be used,
    copied, and distributed for any purpose and without charge, with or without
    modification, provided that all copyright notices are retained; that the AFM
    files are not distributed without this file; that all modifications to this
