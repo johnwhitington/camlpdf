@@ -12,7 +12,7 @@ Copyright Coherent Graphics Ltd 2007 - 2026. Released under the LGPL with
 special linking exception. See "LICENSE" for details.
 
 See also original copyright and/or license statements in rijndael-alg-fst*,
-sha2*, miniz*, and pdfafmdata.ml.
+sha2*, miniz*, pdfafmdata.ml, and compresssor.
 
 To Build
 ---
