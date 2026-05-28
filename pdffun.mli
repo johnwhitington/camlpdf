@@ -1,4 +1,4 @@
-(** Parsing and Evaluating PDF Functions. *)
+(** Parsing and Evaluating PDF Functions *)
 
 type calculator =
   | If of calculator list

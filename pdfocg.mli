@@ -1,4 +1,4 @@
-(** Optional Content Groups. *)
+(** Optional Content Groups *)
 
 open Pdfutil
 
