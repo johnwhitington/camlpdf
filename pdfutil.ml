@@ -244,6 +244,17 @@ let rec split_around_inner p prev curr = function
 let split_around p l =
   split_around_inner p [] [] l
 
+(* Split any time a predicate on two adjacent elements is true. *)
+let rec split_around_two_inner p prev curr = function
+  | [] -> if curr = [] then rev prev else rev (rev curr::prev)
+  | h::t ->
+      if curr = [] then split_around_two_inner p prev (h::curr) t else
+      if p (hd curr) h then split_around_two_inner p (rev curr::prev) [h] t else
+        split_around_two_inner p prev (h::curr) t
+
+let split_around_two p l =
+  split_around_two_inner p [] [] l
+
 (* Count the number of elements matching a predicate. *)
 let rec lcount_inner p c = function
   | [] -> c

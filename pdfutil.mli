@@ -359,6 +359,9 @@ val index : ('a -> bool) -> 'a list -> int
 (** Split a list into a list of lists at every point where a predicate is true *)
 val split_around : ('a -> bool) -> 'a list -> 'a list list
 
+(** Split any time a predicate on two adjacent elements is true. *)
+val split_around_two : ('a -> 'a -> bool) -> 'a list -> 'a list list
+
 (** {2 32 and 64 bit integers} *)
 
 val i32ofi : (int -> int32)
