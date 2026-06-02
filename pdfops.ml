@@ -50,7 +50,7 @@ type t =
   | Op_Tm of Pdftransform.transform_matrix (* Set text and line matrices *)
   | Op_T' (* T* operator. Move text to the next line *)
   | Op_Tj of string (* Show text string *)
-  | Op_TJ of Pdf.pdfobject (* Show many text strings *)
+  | Op_TJ of Pdf.pdfobject list (* Show many text strings *)
   | Op_' of string (* Move to next line and show text *)
   | Op_'' of float * float * string (* Ditto, extra parameters *)
   | Op_d0 of float * float (* Set glyph width info *)
@@ -167,7 +167,7 @@ let lexemes_of_op f = function
        f (Op "Tm")
   | Op_T' -> f (Op "T*")
   | Op_Tj s -> f (Obj (Pdfgenlex.LexString s)); f (Op "Tj")
-  | Op_TJ pdfobject -> f (PdfObj pdfobject); f (Op "TJ")
+  | Op_TJ l -> f (PdfObj (Pdf.Array l)); f (Op "TJ")
   | Op_' s -> f (Obj (Pdfgenlex.LexString s)); f (Op "'")
   | Op_'' (k, k', s) -> 
       f (Obj (Pdfgenlex.LexReal k));
@@ -816,7 +816,7 @@ let parse_operator compatibility = function
                            None)
                       t
                   in
-                    Op_TJ (Pdf.Array elements)
+                    Op_TJ elements
               | _ -> raise (Pdf.PDFError "malformed TJ op")
               end
           | Op _::_ as l ->
