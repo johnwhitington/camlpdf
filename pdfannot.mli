@@ -25,8 +25,8 @@ type subtype =
   | Underline
   | Squiggly
   | StrikeOut
-  | Stamp
   | Caret
+  | Stamp
   | Ink
   | Popup of t
   | FileAttachment
@@ -38,6 +38,8 @@ type subtype =
   | TrapNet
   | Watermark
   | ThreeDee
+  | Redact
+  | Projection
   | Unknown of string
 
 (** Annotations. *)
@@ -46,7 +48,7 @@ and t =
    annot_contents : string option;
    subject : string option;
    rectangle : float * float * float * float;
-   border : border;
+   border : border option;
    colour : (int * int * int) option;
    annotrest : Pdf.pdfobject}
 

@@ -30,8 +30,8 @@ type subtype =
   | Underline
   | Squiggly
   | StrikeOut
-  | Stamp
   | Caret
+  | Stamp
   | Ink
   | Popup of t
   | FileAttachment
@@ -43,6 +43,8 @@ type subtype =
   | TrapNet
   | Watermark
   | ThreeDee
+  | Redact
+  | Projection
   | Unknown of string
 
 (* Main type. 'rest' contains the raw annotation dictionary with the exception
@@ -52,7 +54,7 @@ and t =
    annot_contents : string option;
    subject : string option;
    rectangle : float * float * float * float;
-   border : border;
+   border : border option;
    colour : (int * int * int) option;
    annotrest : Pdf.pdfobject}
 
@@ -97,7 +99,7 @@ let rec read_annotation pdf annot =
     | Some (Pdf.Name "/3D") -> ThreeDee
     | Some (Pdf.Name n) -> Unknown n
     | _ -> Unknown ""
-  in let contents =
+  in let annot_contents =
     match Pdf.lookup_direct pdf "/Contents" annot with
     | Some (Pdf.String s) -> Some s
     | _ -> None
@@ -129,35 +131,33 @@ let rec read_annotation pdf annot =
                 (map int_of_float (map (Pdf.getnum pdf) (map (Pdf.direct pdf) dash)))
           | _ -> [||]
         in
-          {width = width;
-           vradius = 0.;
-           hradius = 0.;
-           style = style;
-           dasharray = dasharray}
+          Some
+            {width = width;
+             vradius = 0.;
+             hradius = 0.;
+             style = style;
+             dasharray = dasharray}
     | None ->
         match Pdf.lookup_direct pdf "/Border" annot with
         | Some (Pdf.Array [h; v; w]) ->
-            {width = Pdf.getnum pdf (Pdf.direct pdf w);
-             vradius = Pdf.getnum pdf (Pdf.direct pdf v);
-             hradius = Pdf.getnum pdf (Pdf.direct pdf h);
-             style = NoStyle;
-             dasharray = [||]}
+            Some
+              {width = Pdf.getnum pdf (Pdf.direct pdf w);
+               vradius = Pdf.getnum pdf (Pdf.direct pdf v);
+               hradius = Pdf.getnum pdf (Pdf.direct pdf h);
+               style = NoStyle;
+               dasharray = [||]}
         | Some (Pdf.Array [h; v; w; Pdf.Array dash]) ->
-            {width = Pdf.getnum pdf (Pdf.direct pdf w);
-             vradius = Pdf.getnum pdf (Pdf.direct pdf v);
-             hradius = Pdf.getnum pdf (Pdf.direct pdf h);
-             style = NoStyle;
-             dasharray =
-               Array.of_list
-                 (map
-                   int_of_float
-                   (map (Pdf.getnum pdf) (map (Pdf.direct pdf) dash)))}
-        | _ ->
-            {width = 1.;
-             vradius = 0.;
-             hradius = 0.;
-             style = NoStyle;
-             dasharray = [||]}
+            Some
+              {width = Pdf.getnum pdf (Pdf.direct pdf w);
+               vradius = Pdf.getnum pdf (Pdf.direct pdf v);
+               hradius = Pdf.getnum pdf (Pdf.direct pdf h);
+               style = NoStyle;
+               dasharray =
+                 Array.of_list
+                   (map
+                     int_of_float
+                     (map (Pdf.getnum pdf) (map (Pdf.direct pdf) dash)))}
+        | _ -> None
   in let colour =
     match Pdf.lookup_direct pdf "/C" annot with
     | Some (Pdf.Array [r; g; b]) ->
@@ -174,13 +174,7 @@ let rec read_annotation pdf annot =
             entries)
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary")
   in
-    {subtype = subtype;
-     annot_contents = contents;
-     subject = subject;
-     rectangle = rectangle;
-     border = border;
-     colour = colour;
-     annotrest = annotrest}
+    {subtype; annot_contents; subject; rectangle; border; colour; annotrest}
 
 let get_popup_parent pdf annotation =
   match Pdf.direct pdf annotation with
@@ -196,8 +190,7 @@ let annotations_of_page pdf page =
   match Pdf.lookup_direct pdf "/Annots" page.Pdfpage.rest with
   | Some (Pdf.Array annotations) ->
       (* We don't read annotations which are parents of Popup annotations - they
-      will be caught anyway. This seems to be the right thing to do, but will
-      need more advice. *)
+      will be caught anyway. *)
       let popup_parents =
         option_map (get_popup_parent pdf) annotations
       in
@@ -218,19 +211,24 @@ let string_of_subtype = function
   | Caret -> "/Caret" | Ink -> "/Ink" | FileAttachment -> "/FileAttachment" | Sound -> "/Sound"
   | Movie -> "/Movie" | Widget -> "/Widget" | Screen -> "/Screen"
   | PrinterMark -> "/PrinterMark" | TrapNet -> "/TrapNet" | Watermark -> "/Watermark"
-  | Unknown _ -> "/Unknown" | Popup _ -> "/Popup" | ThreeDee -> "/3D"
+  | Unknown _ -> "/Unknown" | Popup _ -> "/Popup" | ThreeDee -> "/3D" | Redact -> "/Redact"
+  | Projection -> "/Projection"
 
 let obj_of_annot t =
   let d =
     ["/Subtype", Pdf.Name (string_of_subtype t.subtype);
-     "/Contents", (match t.annot_contents with None -> Pdf.Null | Some s -> Pdf.String s);
-     "/Rect", (let a, b, c, d = t.rectangle in Pdf.Array [Pdf.Real a; Pdf.Real b; Pdf.Real c; Pdf.Real d]);
-     "/Border", match t.border.dasharray with
-                | [||] -> Pdf.Array [Pdf.Real t.border.hradius; Pdf.Real t.border.vradius; Pdf.Real t.border.width]
-                | _    -> raise (Pdf.PDFError "non-empty dash array unsupported")]
+     "/Rect", (let a, b, c, d = t.rectangle in Pdf.Array [Pdf.Real a; Pdf.Real b; Pdf.Real c; Pdf.Real d])]
+    @
+     (match t.annot_contents with None -> [] | Some s -> [("/Contents", Pdf.String s)])
+    @
+     (match t.border with
+     | None -> []
+     | Some b ->
+         [("/Border", match b.dasharray with
+                     | [||] -> Pdf.Array [Pdf.Real b.hradius; Pdf.Real b.vradius; Pdf.Real b.width]
+                     | _    -> raise (Pdf.PDFError "non-empty dash array unsupported"))])
   in
   let d = match t.annotrest with
-    | Pdf.Null -> d
     | Pdf.Dictionary d' -> d @ d'
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary") in
   let colorize d = match t.colour with
@@ -241,12 +239,12 @@ let obj_of_annot t =
     | None -> d
     | Some s -> (("/Subj", Pdf.String s)::d)
   in
-  Pdf.Dictionary (subject (colorize d))
+    Pdf.Dictionary (subject (colorize d))
 
 let make_border ?(vradius=0.0) ?(hradius=0.0) ?(style=NoStyle) ?(dasharray = [||]) width =
   {vradius; hradius; style; dasharray; width}
 
-let make ?content ?(border=make_border 0.0) ?(rectangle=(0., 0., 0., 0.)) ?colour ?subject subtype =
+let make ?content ?border ?(rectangle=(0., 0., 0., 0.)) ?colour ?subject subtype =
   {annot_contents = content;
    border;
    rectangle;
@@ -260,12 +258,12 @@ let add_annotation pdf page anno =
   match Pdf.lookup_direct pdf "/Annots" page.Pdfpage.rest with
   | Some (Pdf.Array annotations) ->
       {page with
-         Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest "/Annots" (Pdf.Array (obj::annotations))}
+         Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest "/Annots" (Pdf.Array (annotations @ [Pdf.Indirect (Pdf.addobj pdf obj)]))}
   | Some _  ->
       raise (Pdf.PDFError "Bad annotation dictionary")
   | None ->
       {page with
-         Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest "/Annots" (Pdf.Array [obj])}
+         Pdfpage.rest = Pdf.add_dict_entry page.Pdfpage.rest "/Annots" (Pdf.Array [Pdf.Indirect (Pdf.addobj pdf obj)])}
 
 (* Apply transformations to any annotations in /Annots (i.e their /Rect and
 /QuadPoints entries). Also as a best-effort service, altering other
