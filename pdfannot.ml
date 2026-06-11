@@ -55,7 +55,7 @@ and t =
    subject : string option;
    rectangle : float * float * float * float;
    border : border option;
-   colour : (int * int * int) option;
+   colour : float list option;
    annotrest : Pdf.pdfobject}
 
 (* Read a single annotation *)
@@ -161,10 +161,12 @@ let rec read_annotation pdf annot =
   in let colour =
     match Pdf.lookup_direct pdf "/C" annot with
     | Some (Pdf.Array [r; g; b]) ->
-        Some (int_of_float (Pdf.getnum pdf (Pdf.direct pdf r)),
-              int_of_float (Pdf.getnum pdf (Pdf.direct pdf g)),
-              int_of_float (Pdf.getnum pdf (Pdf.direct pdf b)))
-    | _ -> None
+        Some
+          [Pdf.getnum pdf (Pdf.direct pdf r);
+           Pdf.getnum pdf (Pdf.direct pdf g);
+           Pdf.getnum pdf (Pdf.direct pdf b)]
+    | _ ->
+        None 
   in let annotrest =
     match Pdf.direct pdf annot with
     | Pdf.Dictionary entries ->
@@ -233,11 +235,11 @@ let obj_of_annot t =
     | _ -> raise (Pdf.PDFError "Bad annotation dictionary") in
   let colorize d = match t.colour with
     | None -> d
-    | Some (r,g,b) -> (("/C", Pdf.Array [Pdf.Integer r; Pdf.Integer g; Pdf.Integer b]))::d
+    | Some l -> ("/C", Pdf.Array (map (fun x -> Pdf.Real x) l))::d
   in
   let subject d = match t.subject with
     | None -> d
-    | Some s -> (("/Subj", Pdf.String s)::d)
+    | Some s -> ("/Subj", Pdf.String s)::d
   in
     Pdf.Dictionary (subject (colorize d))
 

@@ -28,9 +28,9 @@ let rectangle_of_paper paper =
 
 (* Create a page with empty content, media box from the given paper size,
 empty resources, zero rotation and no extra dictionary entries. *)
-let custompage rectangle =
+let custompage mediabox =
   {content = [];
-   mediabox = rectangle;
+   mediabox;
    resources = Pdf.Dictionary [];
    rotate = Rotate0;
    rest = Pdf.Dictionary []}

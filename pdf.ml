@@ -569,6 +569,7 @@ let replace_chain pdf chain obj =
           replace_chain_exists pdf chain (key, obj)
 
 (* FIXME When the final item in the chain is indirect, shouldn't it be kept indirect and the object just replaced? In case there are other references to it? Check. *)
+(* FIXME Expose a local version of this which can start at any object not just the trailer dictionary. *)
 
 (* Remove a dictionary entry given its chain. Returns true if removed.
    Our example for now /Root/Names/JavaScript. Aim is to remove the dict entry with key "/JavaScript" from /Names.

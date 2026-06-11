@@ -49,7 +49,7 @@ and t =
    subject : string option;
    rectangle : float * float * float * float;
    border : border option;
-   colour : (int * int * int) option;
+   colour : float list option;
    annotrest : Pdf.pdfobject}
 
 val annotations_of_page : Pdf.t -> Pdfpage.t -> t list
@@ -65,7 +65,7 @@ val make_border : ?vradius:float ->
 val make : ?content:string ->
   ?border:border ->
   ?rectangle:float * float * float * float ->
-  ?colour:int * int * int -> ?subject:string -> subtype -> t
+  ?colour:float list -> ?subject:string -> subtype -> t
 (** Make an annotation of a given [subtype]. *)
 
 val transform_annotations : Pdf.t -> Pdftransform.transform_matrix -> Pdf.pdfobject -> unit
