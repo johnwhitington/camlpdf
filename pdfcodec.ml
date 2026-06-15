@@ -254,13 +254,17 @@ external camlpdf_caml_zlib_decompress : string -> string = "camlpdf_caml_zlib_de
 let is_js =
   match Sys.backend_type with Sys.Other "js_of_ocaml" -> true | _ -> false
 
+let encode_flate_shared_stream = Pdfflate.deflate_stream ()   
+
 let encode_flate stream =
   if is_js then
     bytes_of_string (camlpdf_caml_zlib_compress (string_of_bytes stream))
   else
-    flate_process (Pdfflate.compress ~level:!flate_level) stream
+    let r = flate_process (Pdfflate.compress ~stream:encode_flate_shared_stream ~level:!flate_level) stream in
+      Pdfflate.deflate_reset encode_flate_shared_stream;
+      r
 
-let debug_stream_serial = ref 0
+(*let debug_stream_serial = ref 0*)
 
 let debug_stream s =
   Pdfe.log "First 50 bytes\n";
@@ -277,13 +281,21 @@ let debug_stream s =
       done;
       close_out fh*)
 
+let decode_flate_shared_stream = Pdfflate.inflate_stream ()   
+
 let decode_flate stream =
   if bytes_size stream = 0 then mkbytes 0 else (* Accept the empty stream. *)
     try
       if is_js then
         bytes_of_string (camlpdf_caml_zlib_decompress (string_of_bytes stream))
       else
-        flate_process Pdfflate.uncompress stream
+        begin
+          let r =
+            flate_process (Pdfflate.uncompress ~stream:decode_flate_shared_stream) stream
+          in
+            Pdfflate.inflate_reset decode_flate_shared_stream;
+            r
+        end
     with
       Pdfflate.Error (a, b) ->
         if !debug then debug_stream stream;

@@ -17,6 +17,8 @@ external deflate:
 
 external deflate_end: stream -> unit = "camlpdf_camlzip_deflateEnd"
 
+external deflate_reset: stream -> unit = "camlpdf_camlzip_deflateReset"
+
 external inflate_init: bool -> stream = "camlpdf_camlzip_inflateInit"
 
 external inflate:
@@ -24,14 +26,22 @@ external inflate:
          -> bool * int * int
   = "camlpdf_camlzip_inflate_bytecode" "camlpdf_camlzip_inflate"
 
+external inflate_reset: stream -> unit = "camlpdf_camlzip_inflateReset"
+
 external inflate_end: stream -> unit = "camlpdf_camlzip_inflateEnd"
+
+let inflate_stream ?(header = true) () =
+  inflate_init header
+
+let deflate_stream ?(level = 6) ?(header = true) () =
+  deflate_init level header
 
 let buffer_size = 1024
 
-let compress ?(level = 6) ?(header = true) refill flush =
+let compress ?(level = 6) ?(header = true) ?stream refill flush =
   let inbuf = Bytes.create buffer_size
   and outbuf = Bytes.create buffer_size in
-  let zs = deflate_init level header in
+  let zs = match stream with Some s -> s | None -> deflate_init level header in
   let rec compr inpos inavail =
     if inavail = 0 then begin
       let incount = refill inbuf in
@@ -49,12 +59,12 @@ let compress ?(level = 6) ?(header = true) refill flush =
     if not finished then compr_finish()
   in
     compr 0 0;
-    deflate_end zs
+    match stream with None -> deflate_end zs | _ -> ()
 
-let uncompress ?(header = true) refill flush =
+let uncompress ?(header = true) ?stream refill flush =
   let inbuf = Bytes.create buffer_size
   and outbuf = Bytes.create buffer_size in
-  let zs = inflate_init header in
+  let zs = match stream with Some s -> s | None -> inflate_init header in
   let rec uncompr inpos inavail =
     if inavail = 0 then begin
       let incount = refill inbuf in
@@ -76,4 +86,4 @@ let uncompress ?(header = true) refill flush =
     if not finished then uncompr_finish false
   in
     uncompr 0 0;
-    inflate_end zs
+    match stream with None -> inflate_end zs | _ -> ()

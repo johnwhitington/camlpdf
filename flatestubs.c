@@ -3,7 +3,8 @@
  * - to prefix names with 'camlpdf' to avoid clashing symbols when zlib
  *   also linked
  * - to harden against such malformed flate streams as may commonly
- *   appear in PDF files */
+ *   appear in PDF files 
+ * - to add deflateReset and inflateReset for speed */
 
 /***********************************************************************/
 /*                                                                     */
@@ -130,6 +131,13 @@ value camlpdf_camlzip_deflateEnd(value vzs)
   return Val_unit;
 }
 
+value camlpdf_camlzip_deflateReset(value vzs)
+{
+  if (mz_deflateReset(ZStream_val(vzs)) != MZ_OK)
+    camlpdf_camlzip_error("Zlib.deflateReset", vzs);
+  return Val_unit;
+}
+
 /* CamlZIP now treats Z_BUF_ERROR and Z_DATA_ERROR as non-fatal. However, this
  * can lead to lack of progress on some malformed streams (at least with
  * miniz.c -- maybe not zlib. So we have this hack. */
@@ -186,6 +194,13 @@ value camlpdf_camlzip_inflateEnd(value vzs)
 {
   if (mz_inflateEnd(ZStream_val(vzs)) != MZ_OK)
     camlpdf_camlzip_error("Zlib.inflateEnd", vzs);
+  return Val_unit;
+}
+
+value camlpdf_camlzip_inflateReset(value vzs)
+{
+  if (mz_inflateReset(ZStream_val(vzs)) != MZ_OK)
+    camlpdf_camlzip_error("Zlib.inflateReset", vzs);
   return Val_unit;
 }
 
