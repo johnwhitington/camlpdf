@@ -1307,28 +1307,6 @@ let contents_to_file ~filename str =
     output_string fh str;
     close_out fh
 
-(* A clock for debugging huge files without needing the Unix module.
-Does not work on Windows. Needs GNU version of POSIX date command (gdate
-with homebrew on MacOS). *)
-let clock () =
-  let tempfile = Filename.temp_file "cpdf" "strftime" in
-  let command = Filename.quote_command "gdate" ~stdout:tempfile ["+%S-%M-%H-%3N"] in
-  let outcode = Sys.command command in
-    if outcode > 0 then raise (Failure "Date command returned non-zero exit code") else
-      let r = contents_of_file tempfile in
-        Sys.remove tempfile;
-        let get_int o l = int_of_string (String.sub r o l) in
-            float_of_int (get_int 6 2 * 3600 + get_int 3 2 * 60 + get_int 0 2)
-         +. float_of_int (get_int 9 3) /. 1000.
-
-let time = ref 0. (*ref (clock ())*)
-
-let tt' () = ()
-  (*(*Gc.major ();*)
-  let t = clock () in
-    Pdfe.log (Printf.sprintf "Elapsed: %.2f\n" (t -. !time));
-    time := t*)
-
 let starts_with prefix s =
   let len_s = String.length s
   and len_pre = String.length prefix in

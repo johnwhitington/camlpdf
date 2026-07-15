@@ -1162,6 +1162,10 @@ let encode_ccittg4 ?im columns rows stream =
     contents_to_file ~filename:f_i (Pdfio.string_of_bytes stream);
     let outcode =
       let command = Filename.quote_command im ["-depth"; "1"; "-size"; string_of_int columns ^ "x" ^ string_of_int rows; f_i; "-compress"; "GROUP4"; f_out] in
+        begin match Sys.getenv_opt "CAMLPDF_SHOW_EXT" with
+        | Some "true" -> flprint (command ^ "\n")
+        | _ -> ()
+        end;
         Sys.command command
     in
       if outcode > 0 then raise (DecodeNotSupported "magick return code non-zero") else
@@ -1602,6 +1606,10 @@ let decode_jbig2 jbig2globals jbig2dec i =
   end;
   let outcode =
     let command = (Filename.quote_command jbig2dec (["-e"] @ (if f_globals = "" then [] else [f_globals]) @ [f_i] @ ["-o"; f_out])) in
+      begin match Sys.getenv_opt "CAMLPDF_SHOW_EXT" with
+      | Some "true" -> flprint (command ^ "\n")
+      | _ -> ()
+      end;
       Sys.command command
   in
   let data =
