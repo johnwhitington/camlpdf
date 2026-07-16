@@ -1,6 +1,6 @@
-2.9.2 (to come)
+2.9.2 (August 2026)
 
-o New CAMLPDF_SHOW_EXT env var to show external commands
+o New CAMLPDF_SHOW_EXT environment variable to show external commands
 
 2.9.1 (May 2026)
 
