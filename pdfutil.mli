@@ -689,6 +689,7 @@ val leafnames_of_dir : string -> string list
 (** Return the contents of a (binary) file as a string *)
 val contents_of_file : string -> string
 
+(** Write a string to a (binary) file. *)
 val contents_to_file : filename:string -> string -> unit
 
 (** {2 Roman numerals} *)
