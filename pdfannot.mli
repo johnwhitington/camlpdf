@@ -52,6 +52,8 @@ and t =
    colour : float list option;
    annotrest : Pdf.pdfobject}
 
+val string_of_subtype : subtype -> string
+
 val annotations_of_page : Pdf.t -> Pdfpage.t -> t list
 (** Return the annotations on a page in a document. *)
 
