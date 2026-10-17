@@ -52,6 +52,7 @@ and t =
    colour : float list option;
    annotrest : Pdf.pdfobject}
 
+(** String of annotation subtype. *)
 val string_of_subtype : subtype -> string
 
 val annotations_of_page : Pdf.t -> Pdfpage.t -> t list
