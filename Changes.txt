@@ -1,3 +1,7 @@
+2.9.3 (October 2026)
+
+o Expose Pdfannot.string_of_subtype
+
 2.9.2 (September 2026)
 
 o New CAMLPDF_SHOW_EXT environment variable to show external commands
