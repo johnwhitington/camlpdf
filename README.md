@@ -2,8 +2,10 @@ CamlPDF
 =======
 
 CamlPDF is an OCaml library for reading, writing and modifying PDF files. It is
-the basis of the "CPDF" command line tool which is available at
-[http://www.coherentpdf.com/](http://www.coherentpdf.com/).
+the basis of the "Cpdf" PDF command line tool for which [source](https://github.com/johnwhitington/cpdf-source) and [binaries](https://github.com/coherentgraphics/cpdf-binaries). 
+
+Cpdf licenses for commercial use may be obtained at [http://www.coherentpdf.com/](http://www.coherentpdf.com/).
+
 
 License
 ---
