@@ -110,13 +110,27 @@ let pairs_of_section ~to_unicode = function
                   | '<'::_ ->
                       let increment_final code d =
                         if to_unicode then
-                          (* If a /ToUnicode, it's a single unicode string, the last byte of which should be incremented. *)
-                          match code with
-                          | "" -> ""
-                          | s ->
-                              let chars = rev (explode s) in
-                                (* If increment is too large, result is undefined. *)
-                                try implode ((rev (tl chars)) @ [char_of_int (int_of_char (hd chars) + d)]) with _ -> s
+                          (* Some malformed but common PDFs (e.g Tesseract
+                          glyph-less OCR fonts) use a ToUnicode CMap like this:
+
+                            1 beginbfrange
+                            <0000> <FFFF> <0000>
+                            endbfrange
+
+                          In this event, the ISO 32000-1 9.10.3 stricture on not
+                          incrementing the last byte past 255 causes conformant
+                          but "Wrong" results to be returned. So we in fact add
+                          'd' to the whole destination with carry. *)
+                          let b = Bytes.of_string code in
+                          let carry = ref d in
+                          let i = ref (Bytes.length b - 1) in
+                          while !carry > 0 && !i >= 0 do
+                            let v = Char.code (Bytes.get b !i) + !carry in
+                            Bytes.set b !i (Char.chr (v land 0xFF));
+                            carry := v lsr 8;
+                            decr i
+                          done;
+                          Bytes.to_string b
                         else
                           (* If an ordinary CMap, it's just a hex number, and increment is unbounded. *)
                           let n = int_of_string ("0x" ^ code) in

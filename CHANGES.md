@@ -1,5 +1,9 @@
 # Changes
 
+## 2.9.4 (December 2026)
+
+- Allow common malformed CMaps (thanks Alain Frisch)
+
 ## 2.9.3 (October 2026)
 
 - Expose Pdfannot.string_of_subtype
