@@ -51,7 +51,7 @@ let flprint s =
   print_string s; flush stdout
 
 let fleprint s =
-  print_string s; flush stderr
+  prerr_string s; flush stderr
 
 (* Debug printing *)
 let dp_print = ref false
@@ -732,12 +732,13 @@ let many x n =
 (* A version where we need to apply unit each time, for instance when producing
 a list of random numbers. Result is ordered. *)
 let manyunique f n =
-  let rec manyunique_inner r f n =
-    if n = 0
-      then rev r
-      else manyunique_inner (f ()::r) f (n - 1)
-  in
-    manyunique_inner [] f n
+  if n < 0 then raise (Invalid_argument "manyunique") else
+    let rec manyunique_inner r f n =
+      if n = 0
+        then rev r
+        else manyunique_inner (f ()::r) f (n - 1)
+    in
+      manyunique_inner [] f n
 
 (* Take [n] elements from the front of a list [l], returning them in order. *)
 let take l n =
@@ -847,13 +848,14 @@ let collate cmp l =
 (* Split a list into some lists of length [n] (and possibly a final one of
 length < [n]). *)
 let splitinto n l =
-  let rec splitinto_inner a n l len =
-    match l with [] -> rev a | _ ->
-      if len < n then rev (l::a) else
-        let h, t = cleave l n in
-          splitinto_inner (h::a) n t (len - n)
-  in
-    splitinto_inner [] n l (length l)
+  if n = 0 then raise (Invalid_argument "splitinto") else
+    let rec splitinto_inner a n l len =
+      match l with [] -> rev a | _ ->
+        if len < n then rev (l::a) else
+          let h, t = cleave l n in
+            splitinto_inner (h::a) n t (len - n)
+    in
+      splitinto_inner [] n l (length l)
 
 (* Non-tail recursive version, for use when [n] is small and fixed. *)
 let rec takeatmost n l =
